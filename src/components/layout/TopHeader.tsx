@@ -1,5 +1,5 @@
 import React from "react";
-import { Shield, Sparkles } from "lucide-react";
+import { Shield, Sparkles, LogOut } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface TopHeaderProps {
@@ -7,6 +7,7 @@ interface TopHeaderProps {
   subtitle?: string;
   userName?: string;
   userRole?: "admin" | "member";
+  onLogout?: () => void;
   className?: string;
 }
 
@@ -15,6 +16,7 @@ export function TopHeader({
   subtitle = "Nuestro piso",
   userName,
   userRole,
+  onLogout,
   className,
 }: TopHeaderProps) {
   return (
@@ -35,9 +37,23 @@ export function TopHeader({
       </div>
 
       {userName && (
-        <div className="border-border/80 bg-secondary/80 text-foreground flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-medium">
-          {userRole === "admin" && <Shield className="h-3 w-3 text-emerald-600" />}
-          <span>{userName}</span>
+        <div className="flex items-center gap-2">
+          <div className="border-border/80 bg-secondary/80 text-foreground flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-medium">
+            <span className="h-2 w-2 animate-pulse rounded-full bg-emerald-500" />
+            {userRole === "admin" && <Shield className="h-3 w-3 text-emerald-600" />}
+            <span>{userName}</span>
+          </div>
+
+          {onLogout && (
+            <button
+              type="button"
+              onClick={onLogout}
+              title="Cerrar sesión y liberar perfil"
+              className="border-border/80 text-muted-foreground hover:bg-destructive/10 hover:text-destructive flex h-8 w-8 items-center justify-center rounded-lg border transition-colors active:scale-95"
+            >
+              <LogOut className="h-4 w-4" />
+            </button>
+          )}
         </div>
       )}
     </header>
