@@ -28,13 +28,24 @@ export interface HeartbeatResult {
   error?: string;
 }
 
+interface SupabaseRpcClient {
+  rpc: (
+    fn: string,
+    args?: Record<string, unknown>
+  ) => Promise<{ data: unknown; error: { message: string } | null }>;
+}
+
+function getRpcClient(): SupabaseRpcClient {
+  return getSupabaseBrowserClient() as unknown as SupabaseRpcClient;
+}
+
 export const authService = {
   /**
    * Obtiene los 3 perfiles con su estado de disponibilidad en tiempo real
    */
   async getProfilesAvailability(deviceId: string): Promise<ProfileAvailability[]> {
-    const supabase = getSupabaseBrowserClient();
-    const { data, error } = await (supabase.rpc as any)("get_profiles_availability", {
+    const client = getRpcClient();
+    const { data, error } = await client.rpc("get_profiles_availability", {
       p_current_device_id: deviceId,
     });
 
@@ -54,8 +65,8 @@ export const authService = {
     deviceId: string,
     leaseSeconds: number = 60
   ): Promise<ClaimResult> {
-    const supabase = getSupabaseBrowserClient();
-    const { data, error } = await (supabase.rpc as any)("claim_profile", {
+    const client = getRpcClient();
+    const { data, error } = await client.rpc("claim_profile", {
       p_user_id: userId,
       p_device_id: deviceId,
       p_lease_seconds: leaseSeconds,
@@ -80,8 +91,8 @@ export const authService = {
     sessionToken: string,
     extendSeconds: number = 60
   ): Promise<HeartbeatResult> {
-    const supabase = getSupabaseBrowserClient();
-    const { data, error } = await (supabase.rpc as any)("heartbeat_session", {
+    const client = getRpcClient();
+    const { data, error } = await client.rpc("heartbeat_session", {
       p_session_token: sessionToken,
       p_extend_seconds: extendSeconds,
     });
@@ -100,8 +111,8 @@ export const authService = {
    * Libera voluntariamente el perfil en la base de datos (Logout)
    */
   async releaseProfile(sessionToken: string): Promise<boolean> {
-    const supabase = getSupabaseBrowserClient();
-    const { data, error } = await (supabase.rpc as any)("release_profile", {
+    const client = getRpcClient();
+    const { data, error } = await client.rpc("release_profile", {
       p_session_token: sessionToken,
     });
 
@@ -118,8 +129,8 @@ export const authService = {
    * Permite a Jorge (admin) forzar la liberación de un usuario bloqueado
    */
   async adminForceRelease(userId: string): Promise<boolean> {
-    const supabase = getSupabaseBrowserClient();
-    const { data, error } = await (supabase.rpc as any)("admin_force_release_profile", {
+    const client = getRpcClient();
+    const { data, error } = await client.rpc("admin_force_release_profile", {
       p_user_id: userId,
     });
 

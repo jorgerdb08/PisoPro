@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useState } from "react";
 import { TopHeader } from "@/components/layout/TopHeader";
 import { BottomNav } from "@/components/layout/BottomNav";
 import { Card, CardContent } from "@/components/ui/card";
@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/features/auth/AuthContext";
 import { ProfileSelectorModal } from "@/features/auth/components/ProfileSelectorModal";
+import { AdminModal } from "@/features/admin/components/AdminModal";
 import {
   CheckCircle2,
   Wallet,
@@ -21,6 +22,7 @@ import {
 
 export default function HomePage() {
   const { currentUser, isLoading, logout } = useAuth();
+  const [isAdminModalOpen, setIsAdminModalOpen] = useState(false);
 
   // 1. Loading state while checking session and device lease
   if (isLoading) {
@@ -49,7 +51,13 @@ export default function HomePage() {
         subtitle="Nuestro piso"
         userName={currentUser.name}
         userRole={currentUser.role}
+        onOpenAdmin={() => setIsAdminModalOpen(true)}
         onLogout={logout}
+      />
+
+      <AdminModal
+        isOpen={isAdminModalOpen}
+        onClose={() => setIsAdminModalOpen(false)}
       />
 
       <main className="flex-1 space-y-4 px-4 py-5">
