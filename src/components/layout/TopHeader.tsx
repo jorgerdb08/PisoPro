@@ -8,6 +8,7 @@ interface TopHeaderProps {
   userName?: string;
   userRole?: "admin" | "member";
   onLogout?: () => void;
+  onOpenAdmin?: () => void;
   className?: string;
 }
 
@@ -17,6 +18,7 @@ export function TopHeader({
   userName,
   userRole,
   onLogout,
+  onOpenAdmin,
   className,
 }: TopHeaderProps) {
   return (
@@ -44,9 +46,22 @@ export function TopHeader({
             <span>{userName}</span>
           </div>
 
+          {userRole === "admin" && onOpenAdmin && (
+            <button
+              type="button"
+              data-testid="admin-panel-trigger"
+              onClick={onOpenAdmin}
+              title="Panel de Administración del Piso"
+              className="border-border/80 text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 hover:bg-emerald-500/20 flex h-8 w-8 items-center justify-center rounded-lg border transition-colors active:scale-95"
+            >
+              <Shield className="h-4 w-4" />
+            </button>
+          )}
+
           {onLogout && (
             <button
               type="button"
+              data-testid="logout-trigger"
               onClick={onLogout}
               title="Cerrar sesión y liberar perfil"
               className="border-border/80 text-muted-foreground hover:bg-destructive/10 hover:text-destructive flex h-8 w-8 items-center justify-center rounded-lg border transition-colors active:scale-95"
