@@ -1,135 +1,209 @@
+"use client";
+
+import React from "react";
 import { TopHeader } from "@/components/layout/TopHeader";
 import { BottomNav } from "@/components/layout/BottomNav";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-  CardDescription,
-} from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { useAuth } from "@/features/auth/AuthContext";
+import { ProfileSelectorModal } from "@/features/auth/components/ProfileSelectorModal";
 import {
   CheckCircle2,
-  Shield,
-  Users,
+  Wallet,
+  CheckSquare,
+  ShoppingCart,
+  MessageSquare,
   Sparkles,
-  Smartphone,
+  Loader2,
   ArrowRight,
 } from "lucide-react";
 
 export default function HomePage() {
-  const members = [
-    { name: "Jorge", role: "admin", status: "🟢 Disponible", avatarBg: "bg-blue-600" },
-    { name: "Samuel", role: "member", status: "🟢 Disponible", avatarBg: "bg-amber-600" },
-    {
-      name: "David",
-      role: "member",
-      status: "🟢 Disponible",
-      avatarBg: "bg-emerald-600",
-    },
-  ];
+  const { currentUser, isLoading, logout } = useAuth();
 
+  // 1. Loading state while checking session and device lease
+  if (isLoading) {
+    return (
+      <div className="bg-background flex min-h-screen flex-col items-center justify-center space-y-3 p-4 text-center">
+        <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-emerald-600 text-white shadow-lg shadow-emerald-600/30">
+          <Loader2 className="h-6 w-6 animate-spin" />
+        </div>
+        <p className="text-muted-foreground text-xs font-semibold tracking-wide uppercase">
+          Cargando PisoPro...
+        </p>
+      </div>
+    );
+  }
+
+  // 2. Unauthenticated state: display "¿Quién eres?" profile selector screen
+  if (!currentUser) {
+    return <ProfileSelectorModal />;
+  }
+
+  // 3. Authenticated state: personalized flat dashboard for the current user
   return (
     <div className="flex min-h-screen flex-col pb-24">
-      <TopHeader title="PisoPro" subtitle="Nuestro piso" />
+      <TopHeader
+        title="PisoPro"
+        subtitle="Nuestro piso"
+        userName={currentUser.name}
+        userRole={currentUser.role}
+        onLogout={logout}
+      />
 
       <main className="flex-1 space-y-4 px-4 py-5">
-        {/* Welcome / Phase 1 Status Banner */}
-        <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-emerald-600 via-emerald-700 to-teal-800 p-5 text-white shadow-lg shadow-emerald-700/20">
-          <div className="relative z-10 space-y-2">
-            <div className="inline-flex items-center gap-1.5 rounded-full bg-white/20 px-2.5 py-0.5 text-xs font-semibold backdrop-blur-md">
-              <Sparkles className="h-3.5 w-3.5" />
-              <span>Fase 1: Scaffolding & PWA Listo</span>
-            </div>
-            <h2 className="text-xl font-bold tracking-tight">Bienvenido a PisoPro</h2>
-            <p className="text-xs leading-relaxed text-emerald-100/90">
-              La plataforma integral para organizar tareas, gastos compartidos, compras y
-              convivencia de piso.
+        {/* Welcome Header */}
+        <div className="flex items-center justify-between">
+          <div>
+            <h2 className="text-foreground text-xl font-extrabold tracking-tight">
+              Hola, {currentUser.name} 👋
+            </h2>
+            <p className="text-muted-foreground text-xs">
+              {currentUser.role === "admin"
+                ? "Administrador del piso"
+                : "Compañero de piso"}
             </p>
           </div>
-          <div className="pointer-events-none absolute -right-6 -bottom-6 h-28 w-28 rounded-full bg-white/10 blur-xl" />
+          <Badge
+            variant="secondary"
+            className="gap-1 border-emerald-500/20 bg-emerald-500/10 px-2 py-0.5 text-xs text-emerald-700 dark:text-emerald-400"
+          >
+            <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-emerald-500" />
+            En línea
+          </Badge>
         </div>
 
-        {/* Flat Members Preview Section */}
-        <section className="space-y-2.5">
-          <div className="flex items-center justify-between">
-            <h3 className="text-muted-foreground flex items-center gap-1.5 text-xs font-bold tracking-wider uppercase">
-              <Users className="h-3.5 w-3.5" />
-              <span>Compañeros de Piso</span>
-            </h3>
-            <span className="text-muted-foreground text-[11px]">3 miembros</span>
-          </div>
-
-          <div className="grid gap-2.5">
-            {members.map((member) => (
-              <Card
-                key={member.name}
-                className="transition-all hover:border-emerald-500/40"
+        {/* Hoy te toca Banner */}
+        <Card className="overflow-hidden border-emerald-500/30 bg-gradient-to-br from-emerald-600 to-teal-700 text-white shadow-lg shadow-emerald-600/20">
+          <CardContent className="space-y-3 p-4">
+            <div className="flex items-center justify-between text-xs font-medium text-emerald-100">
+              <span className="text-[10px] font-bold tracking-wider uppercase">
+                Hoy te toca
+              </span>
+              <span className="rounded-full bg-white/20 px-2 py-0.5 text-[10px] font-bold">
+                4 pts
+              </span>
+            </div>
+            <div>
+              <h3 className="text-lg font-bold">Limpiar baño</h3>
+              <p className="text-xs text-emerald-100/90">
+                Lavabo, ducha, inodoro y toallas limpias
+              </p>
+            </div>
+            <div className="flex items-center justify-between pt-1">
+              <span className="text-[11px] text-emerald-200">
+                Asignada a ti esta semana
+              </span>
+              <Button
+                size="sm"
+                className="h-8 rounded-lg bg-white px-3 text-xs font-semibold text-emerald-700 shadow-sm hover:bg-white/90"
               >
-                <CardContent className="flex items-center justify-between p-3.5">
-                  <div className="flex items-center gap-3">
-                    <div
-                      className={`flex h-10 w-10 items-center justify-center rounded-xl text-sm font-bold text-white shadow-sm ${member.avatarBg}`}
-                    >
-                      {member.name.charAt(0)}
-                    </div>
-                    <div>
-                      <div className="flex items-center gap-1.5">
-                        <span className="text-foreground text-sm font-semibold">
-                          {member.name}
-                        </span>
-                        {member.role === "admin" && (
-                          <Badge
-                            variant="secondary"
-                            className="gap-1 px-1.5 py-0 text-[10px] font-medium"
-                          >
-                            <Shield className="h-2.5 w-2.5 text-emerald-600" />
-                            Admin
-                          </Badge>
-                        )}
-                      </div>
-                      <p className="text-muted-foreground text-[11px]">{member.status}</p>
-                    </div>
-                  </div>
-                  <div className="text-muted-foreground">
-                    <ArrowRight className="h-4 w-4" />
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        </section>
-
-        {/* Technical Architecture Check */}
-        <Card className="border-border/80">
-          <CardHeader className="p-4 pb-2">
-            <CardTitle className="text-muted-foreground flex items-center gap-1.5 text-xs font-bold tracking-wider uppercase">
-              <Smartphone className="h-3.5 w-3.5" />
-              <span>Infraestructura Base Activa</span>
-            </CardTitle>
-            <CardDescription className="text-xs">
-              Módulos técnicos validados para las próximas fases
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-2 p-4 pt-1">
-            <div className="text-foreground flex items-center gap-2 text-xs">
-              <CheckCircle2 className="h-4 w-4 flex-shrink-0 text-emerald-600" />
-              <span>Next.js App Router + TypeScript Strict</span>
-            </div>
-            <div className="text-foreground flex items-center gap-2 text-xs">
-              <CheckCircle2 className="h-4 w-4 flex-shrink-0 text-emerald-600" />
-              <span>PWA: Manifest, Service Worker & Offline Ready</span>
-            </div>
-            <div className="text-foreground flex items-center gap-2 text-xs">
-              <CheckCircle2 className="h-4 w-4 flex-shrink-0 text-emerald-600" />
-              <span>Testing: Vitest, Testing Library & Playwright</span>
-            </div>
-            <div className="text-foreground flex items-center gap-2 text-xs">
-              <CheckCircle2 className="h-4 w-4 flex-shrink-0 text-emerald-600" />
-              <span>Validaciones Zod y Arquitectura Modular</span>
+                <CheckCircle2 className="mr-1 h-3.5 w-3.5 text-emerald-600" />
+                Hecho
+              </Button>
             </div>
           </CardContent>
         </Card>
+
+        {/* Balances Summary Card */}
+        <Card>
+          <CardContent className="space-y-3 p-4">
+            <div className="flex items-center justify-between">
+              <span className="text-muted-foreground flex items-center gap-1.5 text-xs font-bold tracking-wider uppercase">
+                <Wallet className="h-3.5 w-3.5" />
+                <span>Balance Compartido</span>
+              </span>
+              <span className="flex cursor-pointer items-center text-xs font-semibold text-emerald-600 hover:underline">
+                Detalles <ArrowRight className="ml-0.5 h-3 w-3" />
+              </span>
+            </div>
+            <div className="grid grid-cols-2 gap-3 pt-1">
+              <div className="border-border/80 bg-secondary/50 rounded-xl border p-3">
+                <span className="text-muted-foreground text-[11px] font-medium">
+                  Debes
+                </span>
+                <p className="text-foreground text-base font-bold">0,00 €</p>
+              </div>
+              <div className="border-border/80 bg-secondary/50 rounded-xl border p-3">
+                <span className="text-muted-foreground text-[11px] font-medium">
+                  Te deben
+                </span>
+                <p className="text-base font-bold text-emerald-600">0,00 €</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Quick Grid: Tareas & Compra */}
+        <div className="grid grid-cols-2 gap-3">
+          {/* Tareas Card */}
+          <Card className="cursor-pointer transition-colors hover:border-emerald-500/40">
+            <CardContent className="space-y-2 p-4">
+              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-blue-500/10 text-blue-600">
+                <CheckSquare className="h-4 w-4" />
+              </div>
+              <div>
+                <h4 className="text-foreground text-xs font-bold tracking-wider uppercase">
+                  Tareas
+                </h4>
+                <p className="text-foreground mt-0.5 text-sm font-extrabold">
+                  6 pendientes
+                </p>
+              </div>
+              <p className="text-muted-foreground text-[11px]">Rotación semanal</p>
+            </CardContent>
+          </Card>
+
+          {/* Compra Card */}
+          <Card className="cursor-pointer transition-colors hover:border-emerald-500/40">
+            <CardContent className="space-y-2 p-4">
+              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-amber-500/10 text-amber-600">
+                <ShoppingCart className="h-4 w-4" />
+              </div>
+              <div>
+                <h4 className="text-foreground text-xs font-bold tracking-wider uppercase">
+                  Compra
+                </h4>
+                <p className="text-foreground mt-0.5 text-sm font-extrabold">
+                  3 productos
+                </p>
+              </div>
+              <p className="text-muted-foreground text-[11px]">Leche, café, papel...</p>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Chat del Piso Preview */}
+        <Card className="cursor-pointer transition-colors hover:border-emerald-500/40">
+          <CardContent className="space-y-2.5 p-4">
+            <div className="flex items-center justify-between">
+              <span className="text-muted-foreground flex items-center gap-1.5 text-xs font-bold tracking-wider uppercase">
+                <MessageSquare className="h-3.5 w-3.5" />
+                <span>Chat del Piso</span>
+              </span>
+              <span className="text-muted-foreground text-[11px]">Hoy</span>
+            </div>
+            <div className="border-border/80 bg-secondary/30 space-y-1 rounded-xl border p-3">
+              <div className="flex items-center justify-between">
+                <span className="text-foreground text-xs font-semibold">Jorge</span>
+                <span className="text-muted-foreground text-[10px]">Bienvenida</span>
+              </div>
+              <p className="text-muted-foreground line-clamp-2 text-xs">
+                ¡Bienvenidos a PisoPro! Aquí organizaremos las tareas, los gastos y las
+                compras del piso.
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Active Session Lease Info */}
+        <div className="border-border/60 bg-muted/30 rounded-xl border p-3 text-center">
+          <div className="text-muted-foreground flex items-center justify-center gap-1.5 text-[11px] font-medium">
+            <Sparkles className="h-3.5 w-3.5 text-emerald-600" />
+            <span>Perfil bloqueado para este dispositivo · Heartbeat activo</span>
+          </div>
+        </div>
       </main>
 
       <BottomNav />

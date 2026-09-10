@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { PwaProvider } from "@/components/pwa/PwaProvider";
+import { AuthProvider } from "@/features/auth/AuthContext";
 import { MobileContainer } from "@/components/layout/MobileContainer";
 
 const geistSans = Geist({
@@ -54,7 +55,9 @@ export default function RootLayout({
     >
       <body className="flex min-h-full flex-col bg-slate-950/5">
         <PwaProvider>
-          <MobileContainer>{children}</MobileContainer>
+          <AuthProvider>
+            <MobileContainer>{children}</MobileContainer>
+          </AuthProvider>
         </PwaProvider>
       </body>
     </html>
