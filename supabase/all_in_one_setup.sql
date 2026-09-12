@@ -198,41 +198,68 @@ END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
 -- Políticas permisivas para la aplicación
+DROP POLICY IF EXISTS "Profiles are viewable by all" ON profiles;
 CREATE POLICY "Profiles are viewable by all" ON profiles FOR SELECT USING (true);
+DROP POLICY IF EXISTS "Only admin can update profiles" ON profiles;
 CREATE POLICY "Only admin can update profiles" ON profiles FOR UPDATE USING (true);
 
+DROP POLICY IF EXISTS "Households viewable by members" ON households;
 CREATE POLICY "Households viewable by members" ON households FOR SELECT USING (true);
+DROP POLICY IF EXISTS "Only admin can update household" ON households;
 CREATE POLICY "Only admin can update household" ON households FOR UPDATE USING (true);
 
+DROP POLICY IF EXISTS "Household members are viewable by all" ON household_members;
 CREATE POLICY "Household members are viewable by all" ON household_members FOR SELECT USING (true);
 
+DROP POLICY IF EXISTS "Sessions select" ON user_sessions;
 CREATE POLICY "Sessions select" ON user_sessions FOR SELECT USING (true);
+DROP POLICY IF EXISTS "Sessions insert" ON user_sessions;
 CREATE POLICY "Sessions insert" ON user_sessions FOR INSERT WITH CHECK (true);
+DROP POLICY IF EXISTS "Sessions update" ON user_sessions;
 CREATE POLICY "Sessions update" ON user_sessions FOR UPDATE USING (true);
 
+DROP POLICY IF EXISTS "Tasks select" ON tasks;
 CREATE POLICY "Tasks select" ON tasks FOR SELECT USING (true);
+DROP POLICY IF EXISTS "Tasks insert" ON tasks;
 CREATE POLICY "Tasks insert" ON tasks FOR INSERT WITH CHECK (true);
+DROP POLICY IF EXISTS "Tasks update" ON tasks;
 CREATE POLICY "Tasks update" ON tasks FOR UPDATE USING (true);
+DROP POLICY IF EXISTS "Tasks delete" ON tasks;
 CREATE POLICY "Tasks delete" ON tasks FOR DELETE USING (true);
 
+DROP POLICY IF EXISTS "Task assignments all" ON task_assignments;
 CREATE POLICY "Task assignments all" ON task_assignments FOR ALL USING (true);
+DROP POLICY IF EXISTS "Task completions select" ON task_completions;
 CREATE POLICY "Task completions select" ON task_completions FOR SELECT USING (true);
+DROP POLICY IF EXISTS "Task completions insert" ON task_completions;
 CREATE POLICY "Task completions insert" ON task_completions FOR INSERT WITH CHECK (true);
 
+DROP POLICY IF EXISTS "Expenses select" ON expenses;
 CREATE POLICY "Expenses select" ON expenses FOR SELECT USING (true);
+DROP POLICY IF EXISTS "Expenses insert" ON expenses;
 CREATE POLICY "Expenses insert" ON expenses FOR INSERT WITH CHECK (true);
+DROP POLICY IF EXISTS "Expenses update" ON expenses;
 CREATE POLICY "Expenses update" ON expenses FOR UPDATE USING (true);
+DROP POLICY IF EXISTS "Expenses delete" ON expenses;
 CREATE POLICY "Expenses delete" ON expenses FOR DELETE USING (true);
 
+DROP POLICY IF EXISTS "Expense participants select" ON expense_participants;
 CREATE POLICY "Expense participants select" ON expense_participants FOR SELECT USING (true);
+DROP POLICY IF EXISTS "Expense participants insert" ON expense_participants;
 CREATE POLICY "Expense participants insert" ON expense_participants FOR INSERT WITH CHECK (true);
 
+DROP POLICY IF EXISTS "Shopping items select" ON shopping_items;
 CREATE POLICY "Shopping items select" ON shopping_items FOR SELECT USING (true);
+DROP POLICY IF EXISTS "Shopping items insert" ON shopping_items;
 CREATE POLICY "Shopping items insert" ON shopping_items FOR INSERT WITH CHECK (true);
+DROP POLICY IF EXISTS "Shopping items update" ON shopping_items;
 CREATE POLICY "Shopping items update" ON shopping_items FOR UPDATE USING (true);
+DROP POLICY IF EXISTS "Shopping items delete" ON shopping_items;
 CREATE POLICY "Shopping items delete" ON shopping_items FOR DELETE USING (true);
 
+DROP POLICY IF EXISTS "Messages select" ON messages;
 CREATE POLICY "Messages select" ON messages FOR SELECT USING (true);
+DROP POLICY IF EXISTS "Messages insert" ON messages;
 CREATE POLICY "Messages insert" ON messages FOR INSERT WITH CHECK (true);
 
 -- 3. FUNCIONES DE BLOQUEO ATÓMICO Y SESIONES (RPC)
@@ -622,27 +649,59 @@ ALTER TABLE cleaning_helpers ENABLE ROW LEVEL SECURITY;
 ALTER TABLE trash_events ENABLE ROW LEVEL SECURITY;
 ALTER TABLE point_transactions ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "cleaning_zones_read" ON cleaning_zones;
 CREATE POLICY "cleaning_zones_read" ON cleaning_zones FOR SELECT USING (true);
+DROP POLICY IF EXISTS "cleaning_zones_admin" ON cleaning_zones;
 CREATE POLICY "cleaning_zones_admin" ON cleaning_zones FOR ALL USING (true);
+
+DROP POLICY IF EXISTS "cleaning_tasks_read" ON cleaning_tasks;
 CREATE POLICY "cleaning_tasks_read" ON cleaning_tasks FOR SELECT USING (true);
+DROP POLICY IF EXISTS "cleaning_tasks_admin" ON cleaning_tasks;
 CREATE POLICY "cleaning_tasks_admin" ON cleaning_tasks FOR ALL USING (true);
+
+DROP POLICY IF EXISTS "cleaning_lottery_read" ON cleaning_lottery;
 CREATE POLICY "cleaning_lottery_read" ON cleaning_lottery FOR SELECT USING (true);
+DROP POLICY IF EXISTS "cleaning_lottery_all" ON cleaning_lottery;
 CREATE POLICY "cleaning_lottery_all" ON cleaning_lottery FOR ALL USING (true);
+
+DROP POLICY IF EXISTS "initial_zone_assignments_read" ON initial_zone_assignments;
 CREATE POLICY "initial_zone_assignments_read" ON initial_zone_assignments FOR SELECT USING (true);
+DROP POLICY IF EXISTS "initial_zone_assignments_all" ON initial_zone_assignments;
 CREATE POLICY "initial_zone_assignments_all" ON initial_zone_assignments FOR ALL USING (true);
+
+DROP POLICY IF EXISTS "overrides_read" ON cleaning_assignment_overrides;
 CREATE POLICY "overrides_read" ON cleaning_assignment_overrides FOR SELECT USING (true);
+DROP POLICY IF EXISTS "overrides_all" ON cleaning_assignment_overrides;
 CREATE POLICY "overrides_all" ON cleaning_assignment_overrides FOR ALL USING (true);
+
+DROP POLICY IF EXISTS "weekly_task_checks_read" ON cleaning_weekly_task_checks;
 CREATE POLICY "weekly_task_checks_read" ON cleaning_weekly_task_checks FOR SELECT USING (true);
+DROP POLICY IF EXISTS "weekly_task_checks_all" ON cleaning_weekly_task_checks;
 CREATE POLICY "weekly_task_checks_all" ON cleaning_weekly_task_checks FOR ALL USING (true);
+
+DROP POLICY IF EXISTS "cleaning_completions_read" ON cleaning_completions;
 CREATE POLICY "cleaning_completions_read" ON cleaning_completions FOR SELECT USING (true);
+DROP POLICY IF EXISTS "cleaning_completions_all" ON cleaning_completions;
 CREATE POLICY "cleaning_completions_all" ON cleaning_completions FOR ALL USING (true);
+
+DROP POLICY IF EXISTS "help_requests_read" ON cleaning_help_requests;
 CREATE POLICY "help_requests_read" ON cleaning_help_requests FOR SELECT USING (true);
+DROP POLICY IF EXISTS "help_requests_all" ON cleaning_help_requests;
 CREATE POLICY "help_requests_all" ON cleaning_help_requests FOR ALL USING (true);
+
+DROP POLICY IF EXISTS "cleaning_helpers_read" ON cleaning_helpers;
 CREATE POLICY "cleaning_helpers_read" ON cleaning_helpers FOR SELECT USING (true);
+DROP POLICY IF EXISTS "cleaning_helpers_all" ON cleaning_helpers;
 CREATE POLICY "cleaning_helpers_all" ON cleaning_helpers FOR ALL USING (true);
+
+DROP POLICY IF EXISTS "trash_events_read" ON trash_events;
 CREATE POLICY "trash_events_read" ON trash_events FOR SELECT USING (true);
+DROP POLICY IF EXISTS "trash_events_all" ON trash_events;
 CREATE POLICY "trash_events_all" ON trash_events FOR ALL USING (true);
+
+DROP POLICY IF EXISTS "point_transactions_read" ON point_transactions;
 CREATE POLICY "point_transactions_read" ON point_transactions FOR SELECT USING (true);
+DROP POLICY IF EXISTS "point_transactions_all" ON point_transactions;
 CREATE POLICY "point_transactions_all" ON point_transactions FOR ALL USING (true);
 
 DO $$
