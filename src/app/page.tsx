@@ -11,6 +11,8 @@ import { useAuth } from "@/features/auth/AuthContext";
 import { useChores } from "@/features/chores/useChores";
 import { useExpenses } from "@/features/expenses/useExpenses";
 import { useShopping } from "@/features/shopping/useShopping";
+import { useChat } from "@/features/chat/useChat";
+import { FLATMATES } from "@/lib/constants";
 import { ProfileSelectorModal } from "@/features/auth/components/ProfileSelectorModal";
 import { AdminModal } from "@/features/admin/components/AdminModal";
 import {
@@ -31,6 +33,10 @@ export default function HomePage() {
   const { myPendingTasks, pendingTasks, toggleTask, actionLoading } = useChores();
   const { userSummary } = useExpenses();
   const { pendingItems } = useShopping();
+  const { lastMessage } = useChat();
+
+  const lastSender = lastMessage ? FLATMATES.find((f) => f.id === lastMessage.user_id) : null;
+  const lastSenderName = lastSender?.name || (lastMessage ? "Compañero" : "PisoPro");
 
   const currentTask = myPendingTasks[0];
 
@@ -245,27 +251,49 @@ export default function HomePage() {
         </div>
 
         {/* Chat del Piso Preview */}
-        <Card className="cursor-pointer transition-colors hover:border-emerald-500/40">
-          <CardContent className="space-y-2.5 p-4">
-            <div className="flex items-center justify-between">
-              <span className="text-muted-foreground flex items-center gap-1.5 text-xs font-bold tracking-wider uppercase">
-                <MessageSquare className="h-3.5 w-3.5" />
-                <span>Chat del Piso</span>
-              </span>
-              <span className="text-muted-foreground text-[11px]">Hoy</span>
-            </div>
-            <div className="border-border/80 bg-secondary/30 space-y-1 rounded-xl border p-3">
+        <Link href="/chat">
+          <Card
+            data-testid="home-chat-card"
+            className="cursor-pointer transition-colors hover:border-emerald-500/40"
+          >
+            <CardContent className="space-y-2.5 p-4">
               <div className="flex items-center justify-between">
-                <span className="text-foreground text-xs font-semibold">Jorge</span>
-                <span className="text-muted-foreground text-[10px]">Bienvenida</span>
+                <span className="text-muted-foreground flex items-center gap-1.5 text-xs font-bold tracking-wider uppercase">
+                  <MessageSquare className="h-3.5 w-3.5" />
+                  <span>Chat del Piso</span>
+                </span>
+                <span className="text-muted-foreground text-[11px]">
+                  {lastMessage
+                    ? (() => {
+                        try {
+                          return new Date(lastMessage.created_at).toLocaleTimeString([], {
+                            hour: "2-digit",
+                            minute: "2-digit",
+                          });
+                        } catch {
+                          return "En vivo";
+                        }
+                      })()
+                    : "En vivo"}
+                </span>
               </div>
-              <p className="text-muted-foreground line-clamp-2 text-xs">
-                ¡Bienvenidos a PisoPro! Aquí organizaremos las tareas, los gastos y las
-                compras del piso.
-              </p>
-            </div>
-          </CardContent>
-        </Card>
+              <div className="border-border/80 bg-secondary/30 space-y-1 rounded-xl border p-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-foreground text-xs font-semibold">
+                    {lastSenderName}
+                  </span>
+                  <span className="text-muted-foreground text-[10px]">
+                    {lastMessage ? "Último mensaje" : "Sin mensajes"}
+                  </span>
+                </div>
+                <p className="text-muted-foreground line-clamp-2 text-xs">
+                  {lastMessage?.content ||
+                    "Pulsa para chatear con tus compañeros de piso..."}
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+        </Link>
 
         {/* Active Session Lease Info */}
         <div className="border-border/60 bg-muted/30 rounded-xl border p-3 text-center">
