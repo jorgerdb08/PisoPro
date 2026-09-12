@@ -155,7 +155,7 @@ export default function HomePage() {
         )}
 
         {/* Balances Summary Card */}
-        <Link href="/gastos">
+        <Link href="/gastos" className="block">
           <Card data-testid="home-balance-card" className="cursor-pointer border-[#BFC6CC]/60 bg-white shadow-xs hover:border-[#194F6B]/40 transition">
             <CardContent className="space-y-3 p-4">
               <div className="flex items-center justify-between">
@@ -190,7 +190,7 @@ export default function HomePage() {
         </Link>
 
         {/* Quick Grid: Tareas & Compra */}
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-2 gap-3 pt-2">
           {/* Tareas Card */}
           <Link href="/tareas">
             <Card
