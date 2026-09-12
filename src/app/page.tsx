@@ -1,12 +1,14 @@
 "use client";
 
 import React, { useState } from "react";
+import Link from "next/link";
 import { TopHeader } from "@/components/layout/TopHeader";
 import { BottomNav } from "@/components/layout/BottomNav";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/features/auth/AuthContext";
+import { useChores } from "@/features/chores/useChores";
 import { ProfileSelectorModal } from "@/features/auth/components/ProfileSelectorModal";
 import { AdminModal } from "@/features/admin/components/AdminModal";
 import {
@@ -18,11 +20,15 @@ import {
   Sparkles,
   Loader2,
   ArrowRight,
+  PartyPopper,
 } from "lucide-react";
 
 export default function HomePage() {
   const { currentUser, isLoading, logout } = useAuth();
   const [isAdminModalOpen, setIsAdminModalOpen] = useState(false);
+  const { myPendingTasks, pendingTasks, toggleTask, actionLoading } = useChores();
+
+  const currentTask = myPendingTasks[0];
 
   // 1. Loading state while checking session and device lease
   if (isLoading) {
@@ -83,36 +89,64 @@ export default function HomePage() {
         </div>
 
         {/* Hoy te toca Banner */}
-        <Card className="overflow-hidden border-emerald-500/30 bg-gradient-to-br from-emerald-600 to-teal-700 text-white shadow-lg shadow-emerald-600/20">
-          <CardContent className="space-y-3 p-4">
-            <div className="flex items-center justify-between text-xs font-medium text-emerald-100">
-              <span className="text-[10px] font-bold tracking-wider uppercase">
-                Hoy te toca
-              </span>
-              <span className="rounded-full bg-white/20 px-2 py-0.5 text-[10px] font-bold">
-                4 pts
-              </span>
-            </div>
-            <div>
-              <h3 className="text-lg font-bold">Limpiar baño</h3>
-              <p className="text-xs text-emerald-100/90">
-                Lavabo, ducha, inodoro y toallas limpias
-              </p>
-            </div>
-            <div className="flex items-center justify-between pt-1">
-              <span className="text-[11px] text-emerald-200">
-                Asignada a ti esta semana
-              </span>
-              <Button
-                size="sm"
-                className="h-8 rounded-lg bg-white px-3 text-xs font-semibold text-emerald-700 shadow-sm hover:bg-white/90"
+        {currentTask ? (
+          <Card className="overflow-hidden border-emerald-500/30 bg-gradient-to-br from-emerald-600 to-teal-700 text-white shadow-lg shadow-emerald-600/20">
+            <CardContent className="space-y-3 p-4">
+              <div className="flex items-center justify-between text-xs font-medium text-emerald-100">
+                <span className="text-[10px] font-bold tracking-wider uppercase">
+                  Hoy te toca
+                </span>
+                <span className="rounded-full bg-white/20 px-2 py-0.5 text-[10px] font-bold">
+                  +{currentTask.points} {currentTask.points === 1 ? "pt" : "pts"}
+                </span>
+              </div>
+              <div>
+                <h3 className="text-lg font-bold">{currentTask.title}</h3>
+                <p className="text-xs text-emerald-100/90">
+                  {currentTask.description || "Tarea asignada a ti esta semana"}
+                </p>
+              </div>
+              <div className="flex items-center justify-between pt-1">
+                <span className="text-[11px] text-emerald-200">
+                  {myPendingTasks.length > 1
+                    ? `Tienes ${myPendingTasks.length} tareas pendientes`
+                    : "Asignada a ti esta semana"}
+                </span>
+                <Button
+                  data-testid="home-chore-done-btn"
+                  size="sm"
+                  disabled={actionLoading === currentTask.id}
+                  onClick={() => toggleTask(currentTask.id)}
+                  className="h-8 rounded-lg bg-white px-3 text-xs font-semibold text-emerald-700 shadow-sm hover:bg-white/90 active:scale-95 transition-transform"
+                >
+                  <CheckCircle2 className="mr-1 h-3.5 w-3.5 text-emerald-600" />
+                  {actionLoading === currentTask.id ? "Guardando..." : "Hecho"}
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        ) : (
+          <Card className="overflow-hidden border-border/80 bg-gradient-to-br from-emerald-500/10 via-teal-500/5 to-background text-foreground shadow-sm">
+            <CardContent className="flex items-center justify-between p-4">
+              <div className="space-y-0.5">
+                <span className="text-emerald-600 dark:text-emerald-400 text-[10px] font-bold tracking-wider uppercase flex items-center gap-1">
+                  <PartyPopper className="h-3 w-3" />
+                  ¡Todo al día!
+                </span>
+                <h3 className="text-sm font-bold">No tienes tareas pendientes</h3>
+                <p className="text-muted-foreground text-xs">
+                  Has completado tus tareas de esta semana. ¡Buen trabajo!
+                </p>
+              </div>
+              <Link
+                href="/tareas"
+                className="rounded-xl border border-border/80 bg-secondary/80 px-3 py-1.5 text-xs font-semibold hover:bg-secondary transition-colors"
               >
-                <CheckCircle2 className="mr-1 h-3.5 w-3.5 text-emerald-600" />
-                Hecho
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
+                Ver todas
+              </Link>
+            </CardContent>
+          </Card>
+        )}
 
         {/* Balances Summary Card */}
         <Card>
@@ -146,22 +180,27 @@ export default function HomePage() {
         {/* Quick Grid: Tareas & Compra */}
         <div className="grid grid-cols-2 gap-3">
           {/* Tareas Card */}
-          <Card className="cursor-pointer transition-colors hover:border-emerald-500/40">
-            <CardContent className="space-y-2 p-4">
-              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-blue-500/10 text-blue-600">
-                <CheckSquare className="h-4 w-4" />
-              </div>
-              <div>
-                <h4 className="text-foreground text-xs font-bold tracking-wider uppercase">
-                  Tareas
-                </h4>
-                <p className="text-foreground mt-0.5 text-sm font-extrabold">
-                  6 pendientes
-                </p>
-              </div>
-              <p className="text-muted-foreground text-[11px]">Rotación semanal</p>
-            </CardContent>
-          </Card>
+          <Link href="/tareas">
+            <Card
+              data-testid="home-tasks-card"
+              className="cursor-pointer transition-colors hover:border-emerald-500/40 h-full"
+            >
+              <CardContent className="space-y-2 p-4">
+                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-blue-500/10 text-blue-600">
+                  <CheckSquare className="h-4 w-4" />
+                </div>
+                <div>
+                  <h4 className="text-foreground text-xs font-bold tracking-wider uppercase">
+                    Tareas
+                  </h4>
+                  <p className="text-foreground mt-0.5 text-sm font-extrabold">
+                    {pendingTasks.length} pendientes
+                  </p>
+                </div>
+                <p className="text-muted-foreground text-[11px]">Rotación semanal</p>
+              </CardContent>
+            </Card>
+          </Link>
 
           {/* Compra Card */}
           <Card className="cursor-pointer transition-colors hover:border-emerald-500/40">
