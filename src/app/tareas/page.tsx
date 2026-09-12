@@ -6,21 +6,45 @@ import { BottomNav } from "@/components/layout/BottomNav";
 import { useAuth } from "@/features/auth/AuthContext";
 import { ProfileSelectorModal } from "@/features/auth/components/ProfileSelectorModal";
 import { AdminModal } from "@/features/admin/components/AdminModal";
-import { ChoresView } from "@/features/chores/components/ChoresView";
-import { Loader2 } from "lucide-react";
+import { useCleaning } from "@/features/cleaning/useCleaning";
+import { ZoneCard } from "@/features/cleaning/components/ZoneCard";
+import { LotterySection } from "@/features/cleaning/components/LotterySection";
+import { HelpRequestBanner } from "@/features/cleaning/components/HelpRequestBanner";
+import { TrashHistoryView } from "@/features/cleaning/components/TrashHistoryView";
+import { ContributionStatsView } from "@/features/cleaning/components/ContributionStatsView";
+import { AdminCleaningModal } from "@/features/cleaning/components/AdminCleaningModal";
+import { Loader2, Settings2, RotateCw } from "lucide-react";
 
 export default function TareasPage() {
-  const { currentUser, isLoading, logout } = useAuth();
+  const { currentUser, isLoading: isAuthLoading, logout } = useAuth();
   const [isAdminModalOpen, setIsAdminModalOpen] = useState(false);
+  const [isCleaningAdminModalOpen, setIsCleaningAdminModalOpen] = useState(false);
+  const [activeTab, setActiveTab] = useState<"zones" | "trash" | "stats">("zones");
 
-  if (isLoading) {
+  const {
+    assignments,
+    lottery,
+    activeHelpRequests,
+    actionError,
+    clearActionError,
+    isLoading: isCleaningLoading,
+    executeLottery,
+    toggleTask,
+    requestHelp,
+    acceptHelp,
+    refresh,
+  } = useCleaning();
+
+  const isAdmin = currentUser?.role === "admin";
+
+  if (isAuthLoading) {
     return (
       <div className="bg-[#FAFBFC] flex min-h-screen flex-col items-center justify-center space-y-3 p-4 text-center">
         <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[#31405F] text-white shadow-xs">
           <Loader2 className="h-6 w-6 animate-spin" />
         </div>
         <p className="text-[#607283] text-xs font-semibold tracking-wide uppercase">
-          Cargando Tareas...
+          Cargando Limpieza y Tareas...
         </p>
       </div>
     );
@@ -31,7 +55,7 @@ export default function TareasPage() {
   }
 
   return (
-    <div className="flex min-h-screen flex-col pb-20">
+    <div className="flex min-h-screen flex-col pb-24 bg-[#FAFBFC]">
       <TopHeader
         title="PisoPro"
         userName={currentUser.name}
@@ -45,8 +69,140 @@ export default function TareasPage() {
         onClose={() => setIsAdminModalOpen(false)}
       />
 
-      <main className="flex-1 px-4 py-4">
-        <ChoresView />
+      {isAdmin && (
+        <AdminCleaningModal
+          isOpen={isCleaningAdminModalOpen}
+          onClose={() => setIsCleaningAdminModalOpen(false)}
+          assignments={assignments}
+          adminId={currentUser.id}
+          onRefresh={refresh}
+        />
+      )}
+
+      <main className="flex-1 px-4 py-4 max-w-2xl mx-auto w-full space-y-4">
+        {/* Encabezado y Navegación entre Zonas, Basura y Contribución */}
+        <div className="flex items-center justify-between gap-2">
+          <div>
+            <h1 className="text-xl font-black text-slate-900 tracking-tight">
+              Limpieza y Contribución
+            </h1>
+            <p className="text-xs text-slate-500">
+              Rotación semanal estricta de zonas principales y basura
+            </p>
+          </div>
+
+          <div className="flex items-center space-x-1.5">
+            {isAdmin && (
+              <button
+                onClick={() => setIsCleaningAdminModalOpen(true)}
+                title="Configuración de Limpieza (Admin)"
+                className="p-2 bg-white hover:bg-slate-100 text-slate-700 rounded-xl border border-slate-200 shadow-2xs transition-colors flex items-center gap-1 text-xs font-semibold"
+              >
+                <Settings2 className="w-4 h-4 text-[#31405F]" />
+                <span className="hidden sm:inline">Admin</span>
+              </button>
+            )}
+            <button
+              onClick={() => void refresh()}
+              title="Actualizar datos"
+              className="p-2 bg-white hover:bg-slate-100 text-slate-500 rounded-xl border border-slate-200 shadow-2xs transition-colors"
+            >
+              <RotateCw className={`w-4 h-4 ${isCleaningLoading ? "animate-spin" : ""}`} />
+            </button>
+          </div>
+        </div>
+
+        {/* Pestañas de Vista */}
+        <div className="grid grid-cols-3 gap-1.5 bg-slate-100 p-1.5 rounded-2xl border border-slate-200/80 text-xs font-bold">
+          <button
+            onClick={() => setActiveTab("zones")}
+            className={`py-2 px-2.5 rounded-xl transition-all text-center flex items-center justify-center space-x-1.5 ${
+              activeTab === "zones"
+                ? "bg-white text-slate-900 shadow-2xs"
+                : "text-slate-500 hover:text-slate-800"
+            }`}
+          >
+            <span>🧹</span>
+            <span>Zonas</span>
+          </button>
+          <button
+            onClick={() => setActiveTab("trash")}
+            className={`py-2 px-2.5 rounded-xl transition-all text-center flex items-center justify-center space-x-1.5 ${
+              activeTab === "trash"
+                ? "bg-white text-slate-900 shadow-2xs"
+                : "text-slate-500 hover:text-slate-800"
+            }`}
+          >
+            <span>🗑️</span>
+            <span>Basura</span>
+          </button>
+          <button
+            onClick={() => setActiveTab("stats")}
+            className={`py-2 px-2.5 rounded-xl transition-all text-center flex items-center justify-center space-x-1.5 ${
+              activeTab === "stats"
+                ? "bg-white text-slate-900 shadow-2xs"
+                : "text-slate-500 hover:text-slate-800"
+            }`}
+          >
+            <span>📊</span>
+            <span>Contribución</span>
+          </button>
+        </div>
+
+        {/* Notificación de Error de Negocio (ej: Intento de limpiar zona ajena) */}
+        {actionError && (
+          <div className="p-3.5 bg-rose-50 border border-rose-300 rounded-2xl text-xs text-rose-800 font-semibold flex items-center justify-between animate-fade-in shadow-xs">
+            <div className="flex items-center space-x-2">
+              <span className="text-lg">🔒</span>
+              <span>{actionError}</span>
+            </div>
+            <button
+              onClick={clearActionError}
+              className="ml-2 font-black text-rose-500 hover:text-rose-700 px-1"
+            >
+              ✕
+            </button>
+          </div>
+        )}
+
+        {/* Tab 1: ZONAS DE LIMPIEZA */}
+        {activeTab === "zones" && (
+          <div className="space-y-4">
+            {/* Banner de Sorteo Inicial / Estado */}
+            <LotterySection
+              lottery={lottery}
+              assignments={assignments}
+              isAdmin={isAdmin}
+              onExecuteLottery={executeLottery}
+            />
+
+            {/* Solicitudes de ayuda activas */}
+            <HelpRequestBanner
+              helpRequests={activeHelpRequests}
+              onAcceptHelp={acceptHelp}
+            />
+
+            {/* Lista de las 3 zonas principales */}
+            <div className="space-y-4">
+              {assignments.map((zone) => (
+                <ZoneCard
+                  key={zone.zone_id}
+                  zone={zone}
+                  currentUserId={currentUser.id}
+                  onToggleTask={toggleTask}
+                  onRequestHelp={requestHelp}
+                  onAcceptHelp={acceptHelp}
+                />
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Tab 2: HISTORIAL DE BASURA */}
+        {activeTab === "trash" && <TrashHistoryView />}
+
+        {/* Tab 3: ESTADÍSTICAS DE CONTRIBUCIÓN */}
+        {activeTab === "stats" && <ContributionStatsView />}
       </main>
 
       <BottomNav />
