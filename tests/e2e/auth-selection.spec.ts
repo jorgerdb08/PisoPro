@@ -30,7 +30,16 @@ test.describe("Profile Selection & Concurrency Flow", () => {
 
     // Concurrent project safety: Desktop tests Jorge, Mobile tests David
     const targetName = isMobile ? "David" : "Jorge";
-    await page.getByText(targetName).click();
+    const profileCard = page.locator(`[data-testid="profile-card-${targetName.toLowerCase()}"]`);
+    await expect(profileCard).toBeVisible({ timeout: 15000 });
+
+    const releaseBtn = profileCard.locator(`[data-testid="force-release-profile-${targetName.toLowerCase()}"]`);
+    if (await releaseBtn.isVisible()) {
+      await releaseBtn.click();
+      await page.waitForTimeout(600);
+    }
+
+    await profileCard.click();
 
     // Verify dashboard rendered for target user
     await expect(

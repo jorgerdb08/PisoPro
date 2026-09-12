@@ -78,22 +78,22 @@ export function CreateChoreModal({ isOpen, onClose, onCreate }: CreateChoreModal
       />
 
       {/* Modal Dialog */}
-      <div className="relative w-full max-w-md rounded-3xl border border-border/80 bg-background/95 p-5 shadow-2xl backdrop-blur-xl animate-in fade-in-50 zoom-in-95 max-h-[90vh] overflow-y-auto">
-        <div className="flex items-center justify-between pb-3 border-b border-border/70">
+      <div className="relative w-full max-w-md rounded-3xl border border-[#BFC6CC]/60 bg-white p-5 shadow-2xl backdrop-blur-xl animate-in fade-in-50 zoom-in-95 max-h-[90vh] overflow-y-auto">
+        <div className="flex items-center justify-between pb-3 border-b border-[#BFC6CC]/40">
           <div className="flex items-center gap-2">
-            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
-              <CheckSquare className="h-5 w-5" />
+            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#31405F]/10 text-[#31405F]">
+              <CheckSquare className="h-5 w-5 stroke-[2]" />
             </div>
             <div>
-              <h3 className="text-foreground text-base font-bold">Nueva Tarea del Piso</h3>
-              <p className="text-muted-foreground text-xs">Añadir al reparto semanal</p>
+              <h3 className="text-[#31405F] text-base font-bold">Nueva Tarea del Piso</h3>
+              <p className="text-[#607283] text-xs">Añadir al reparto semanal</p>
             </div>
           </div>
           <button
             type="button"
             data-testid="create-chore-close"
             onClick={onClose}
-            className="text-muted-foreground hover:text-foreground flex h-8 w-8 items-center justify-center rounded-lg border border-border/60 transition-colors"
+            className="text-[#607283] hover:text-[#31405F] flex h-8 w-8 items-center justify-center rounded-lg border border-[#BFC6CC]/60 transition-colors"
           >
             <X className="h-4 w-4" />
           </button>
@@ -101,14 +101,14 @@ export function CreateChoreModal({ isOpen, onClose, onCreate }: CreateChoreModal
 
         <form onSubmit={handleSubmit} className="space-y-4 pt-4 text-xs">
           {error && (
-            <div className="rounded-xl bg-destructive/10 border border-destructive/20 p-2.5 text-xs text-destructive font-medium">
+            <div className="rounded-xl bg-[#C995A2]/15 border border-[#C995A2]/30 p-2.5 text-xs text-[#8B4B5B] font-medium">
               {error}
             </div>
           )}
 
           {/* Title */}
           <div className="space-y-1">
-            <label htmlFor="chore-title" className="text-foreground font-semibold">
+            <label htmlFor="chore-title" className="text-[#31405F] font-semibold">
               Título de la tarea *
             </label>
             <input
@@ -119,13 +119,13 @@ export function CreateChoreModal({ isOpen, onClose, onCreate }: CreateChoreModal
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               placeholder="Ej: Fregar el horno, Limpiar terraza..."
-              className="w-full rounded-xl border border-border/80 bg-card px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+              className="w-full rounded-xl border border-[#BFC6CC]/80 bg-white px-3 py-2 text-sm text-[#31405F] placeholder:text-[#607283]/60 focus:border-[#194F6B] focus:outline-none focus:ring-1 focus:ring-[#194F6B]"
             />
           </div>
 
           {/* Description */}
           <div className="space-y-1">
-            <label htmlFor="chore-desc" className="text-foreground font-semibold">
+            <label htmlFor="chore-desc" className="text-[#31405F] font-semibold">
               Descripción / Notas (opcional)
             </label>
             <textarea
@@ -135,14 +135,14 @@ export function CreateChoreModal({ isOpen, onClose, onCreate }: CreateChoreModal
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               placeholder="Detalles sobre cómo debe quedar..."
-              className="w-full rounded-xl border border-border/80 bg-card px-3 py-2 text-xs text-foreground placeholder:text-muted-foreground focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+              className="w-full rounded-xl border border-[#BFC6CC]/80 bg-white px-3 py-2 text-xs text-[#31405F] placeholder:text-[#607283]/60 focus:border-[#194F6B] focus:outline-none focus:ring-1 focus:ring-[#194F6B]"
             />
           </div>
 
           {/* Category & Points Grid */}
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1">
-              <label htmlFor="chore-category" className="text-foreground font-semibold">
+              <label htmlFor="chore-category" className="text-[#31405F] font-semibold">
                 Zona / Categoría
               </label>
               <select
@@ -150,7 +150,7 @@ export function CreateChoreModal({ isOpen, onClose, onCreate }: CreateChoreModal
                 data-testid="chore-category-select"
                 value={category}
                 onChange={(e) => setCategory(e.target.value)}
-                className="w-full rounded-xl border border-border/80 bg-card px-3 py-2 text-xs text-foreground focus:border-emerald-500 focus:outline-none"
+                className="w-full rounded-xl border border-[#BFC6CC]/80 bg-white px-3 py-2 text-xs text-[#31405F] focus:border-[#194F6B] focus:outline-none"
               >
                 {CHORE_CATEGORIES.map((c) => (
                   <option key={c.value} value={c.value}>
@@ -161,7 +161,7 @@ export function CreateChoreModal({ isOpen, onClose, onCreate }: CreateChoreModal
             </div>
 
             <div className="space-y-1">
-              <label htmlFor="chore-points" className="text-foreground font-semibold">
+              <label htmlFor="chore-points" className="text-[#31405F] font-semibold">
                 Puntos asignados
               </label>
               <select
@@ -169,7 +169,7 @@ export function CreateChoreModal({ isOpen, onClose, onCreate }: CreateChoreModal
                 data-testid="chore-points-select"
                 value={points}
                 onChange={(e) => setPoints(Number(e.target.value))}
-                className="w-full rounded-xl border border-border/80 bg-card px-3 py-2 text-xs text-foreground focus:border-emerald-500 focus:outline-none"
+                className="w-full rounded-xl border border-[#BFC6CC]/80 bg-white px-3 py-2 text-xs text-[#31405F] focus:border-[#194F6B] focus:outline-none"
               >
                 <option value={1}>1 pt (Fácil)</option>
                 <option value={2}>2 pts (Normal)</option>
@@ -183,7 +183,7 @@ export function CreateChoreModal({ isOpen, onClose, onCreate }: CreateChoreModal
           {/* Frequency & Assignee Grid */}
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1">
-              <label htmlFor="chore-freq" className="text-foreground font-semibold">
+              <label htmlFor="chore-freq" className="text-[#31405F] font-semibold">
                 Frecuencia
               </label>
               <select
@@ -192,7 +192,7 @@ export function CreateChoreModal({ isOpen, onClose, onCreate }: CreateChoreModal
                 onChange={(e) =>
                   setFrequency(e.target.value as "daily" | "weekly" | "biweekly" | "monthly")
                 }
-                className="w-full rounded-xl border border-border/80 bg-card px-3 py-2 text-xs text-foreground focus:border-emerald-500 focus:outline-none"
+                className="w-full rounded-xl border border-[#BFC6CC]/80 bg-white px-3 py-2 text-xs text-[#31405F] focus:border-[#194F6B] focus:outline-none"
               >
                 <option value="daily">Diaria</option>
                 <option value="weekly">Semanal</option>
@@ -202,7 +202,7 @@ export function CreateChoreModal({ isOpen, onClose, onCreate }: CreateChoreModal
             </div>
 
             <div className="space-y-1">
-              <label htmlFor="chore-assignee" className="text-foreground font-semibold">
+              <label htmlFor="chore-assignee" className="text-[#31405F] font-semibold">
                 Asignar este turno a
               </label>
               <select
@@ -210,7 +210,7 @@ export function CreateChoreModal({ isOpen, onClose, onCreate }: CreateChoreModal
                 data-testid="chore-assignee-select"
                 value={assignedUserId}
                 onChange={(e) => setAssignedUserId(e.target.value)}
-                className="w-full rounded-xl border border-border/80 bg-card px-3 py-2 text-xs text-foreground focus:border-emerald-500 focus:outline-none"
+                className="w-full rounded-xl border border-[#BFC6CC]/80 bg-white px-3 py-2 text-xs text-[#31405F] focus:border-[#194F6B] focus:outline-none"
               >
                 {FLATMATES.map((f) => (
                   <option key={f.id} value={f.id}>
@@ -226,7 +226,7 @@ export function CreateChoreModal({ isOpen, onClose, onCreate }: CreateChoreModal
             <button
               type="button"
               onClick={onClose}
-              className="flex-1 rounded-xl border border-border/80 py-2 text-xs font-semibold text-muted-foreground hover:bg-secondary transition-colors"
+              className="flex-1 rounded-xl border border-[#BFC6CC]/80 py-2 text-xs font-semibold text-[#607283] hover:bg-[#F4F7F8] transition-colors"
             >
               Cancelar
             </button>
@@ -234,7 +234,7 @@ export function CreateChoreModal({ isOpen, onClose, onCreate }: CreateChoreModal
               type="submit"
               data-testid="chore-submit-btn"
               disabled={isSubmitting}
-              className="flex-1 rounded-xl bg-emerald-600 py-2 text-xs font-bold text-white shadow-sm hover:bg-emerald-700 active:scale-95 transition-all disabled:opacity-50 inline-flex items-center justify-center gap-1.5"
+              className="flex-1 rounded-xl bg-[#31405F] py-2 text-xs font-bold text-white shadow-xs hover:bg-[#194F6B] active:scale-95 transition-all disabled:opacity-50 inline-flex items-center justify-center gap-1.5"
             >
               <Sparkles className="h-3.5 w-3.5" />
               <span>{isSubmitting ? "Guardando..." : "Crear Tarea"}</span>

@@ -11,8 +11,14 @@ test.describe("Chores Module & Weekly Rotation Flow", () => {
     await expect(page.getByText("Cargando PisoPro...")).not.toBeVisible({ timeout: 15000 });
     await expect(page.getByText("Conectando con Supabase...")).not.toBeVisible({ timeout: 15000 });
 
-    await expect(page.getByText("Jorge")).toBeVisible({ timeout: 15000 });
-    await page.getByText("Jorge").click();
+    const jorgeCard = page.locator('[data-testid="profile-card-jorge"]');
+    await expect(jorgeCard).toBeVisible({ timeout: 15000 });
+    const releaseBtn = jorgeCard.locator('[data-testid="force-release-profile-jorge"]');
+    if (await releaseBtn.isVisible()) {
+      await releaseBtn.click();
+      await page.waitForTimeout(600);
+    }
+    await jorgeCard.click();
     await expect(page.getByText(/Hola, Jorge/i)).toBeVisible({ timeout: 15000 });
 
     // 2. Navigate to /tareas

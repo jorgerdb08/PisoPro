@@ -14,8 +14,14 @@ test.describe("Expenses Module & Debt Minimization Flow", () => {
     await expect(page.getByText("Cargando PisoPro...")).not.toBeVisible({ timeout: 15000 });
     await expect(page.getByText("Conectando con Supabase...")).not.toBeVisible({ timeout: 15000 });
 
-    await expect(page.getByText(userName)).toBeVisible({ timeout: 15000 });
-    await page.getByText(userName).click();
+    const userCard = page.locator(`[data-testid="profile-card-${userName.toLowerCase()}"]`);
+    await expect(userCard).toBeVisible({ timeout: 15000 });
+    const releaseBtn = userCard.locator(`[data-testid="force-release-profile-${userName.toLowerCase()}"]`);
+    if (await releaseBtn.isVisible()) {
+      await releaseBtn.click();
+      await page.waitForTimeout(600);
+    }
+    await userCard.click();
     await expect(page.getByText(new RegExp(`Hola, ${userName}`, "i"))).toBeVisible({ timeout: 15000 });
 
     try {
