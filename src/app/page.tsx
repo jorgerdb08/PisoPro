@@ -97,13 +97,13 @@ export default function HomePage() {
 
         {/* Hoy te toca Banner */}
         {currentTask ? (
-          <Card className="overflow-hidden border-[#BFC6CC]/60 bg-white text-[#31405F] shadow-xs">
+          <Card className="overflow-hidden border-[#BFC6CC]/70 bg-gradient-to-br from-white via-[#F4F8FA] to-[#E6F0F4] text-[#31405F] shadow-xs">
             <CardContent className="space-y-3 p-4">
               <div className="flex items-center justify-between text-xs">
                 <span className="text-[10px] font-bold tracking-wider uppercase text-[#607283]">
                   Hoy te toca
                 </span>
-                <span className="rounded-full bg-[#C995A2]/15 border border-[#C995A2]/40 px-2 py-0.5 text-[10px] font-semibold text-[#8B4B5B]">
+                <span className="rounded-full bg-[#C995A2]/20 border border-[#C995A2]/40 px-2 py-0.5 text-[10px] font-semibold text-[#8B4B5B]">
                   +{currentTask.points} {currentTask.points === 1 ? "pt" : "pts"}
                 </span>
               </div>
@@ -113,7 +113,7 @@ export default function HomePage() {
                   {currentTask.description || "Tarea asignada a ti esta semana"}
                 </p>
               </div>
-              <div className="flex items-center justify-between pt-1 border-t border-[#BFC6CC]/30">
+              <div className="flex items-center justify-between pt-1 border-t border-[#BFC6CC]/40">
                 <span className="text-[11px] text-[#607283]">
                   {myPendingTasks.length > 1
                     ? `Tienes ${myPendingTasks.length} tareas pendientes`
@@ -124,7 +124,7 @@ export default function HomePage() {
                   size="sm"
                   disabled={actionLoading === currentTask.id}
                   onClick={() => toggleTask(currentTask.id)}
-                  className="h-8 rounded-lg bg-[#31405F] text-white px-3 text-xs font-medium shadow-xs hover:bg-[#194F6B] active:scale-95 transition"
+                  className="h-8 rounded-lg bg-gradient-to-r from-[#31405F] to-[#194F6B] text-white px-3 text-xs font-medium shadow-xs hover:opacity-95 active:scale-95 transition"
                 >
                   <CheckCircle2 className="mr-1 h-3.5 w-3.5 text-white" />
                   {actionLoading === currentTask.id ? "Guardando..." : "Hecho"}
@@ -133,7 +133,7 @@ export default function HomePage() {
             </CardContent>
           </Card>
         ) : (
-          <Card className="overflow-hidden border-[#BFC6CC]/60 bg-white text-[#31405F] shadow-xs">
+          <Card className="overflow-hidden border-[#BFC6CC]/60 bg-gradient-to-br from-white via-[#F6F9FB] to-[#EEF4F8] text-[#31405F] shadow-xs">
             <CardContent className="flex items-center justify-between p-4">
               <div className="space-y-0.5">
                 <span className="text-[#607283] text-[10px] font-bold tracking-wider uppercase flex items-center gap-1">

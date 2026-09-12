@@ -26,7 +26,7 @@ export function TopHeader({
   return (
     <header
       className={cn(
-        "border-[#BFC6CC]/60 bg-white/95 sticky top-0 z-30 flex h-16 items-center justify-between border-b px-4 backdrop-blur-md",
+        "border-[#BFC6CC]/60 bg-[#EEF2F6]/95 sticky top-0 z-30 flex h-16 items-center justify-between border-b px-4 backdrop-blur-md",
         className
       )}
     >
@@ -44,7 +44,7 @@ export function TopHeader({
         <div className="flex items-center gap-2">
           <NotificationToggle />
 
-          <div className="border-[#BFC6CC]/60 bg-[#F4F7F8] text-[#31405F] flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-medium">
+          <div className="border-[#BFC6CC]/60 bg-white text-[#31405F] flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-medium shadow-2xs">
             <span className="h-1.5 w-1.5 rounded-full bg-[#094152]" />
             {userRole === "admin" && <Shield className="h-3 w-3 text-[#31405F]" />}
             <span>{userName}</span>
@@ -56,7 +56,7 @@ export function TopHeader({
               data-testid="admin-panel-trigger"
               onClick={onOpenAdmin}
               title="Panel de Administración del Piso"
-              className="border-[#BFC6CC]/60 text-[#31405F] bg-[#F4F7F8] hover:bg-[#BFC6CC]/20 flex h-8 w-8 items-center justify-center rounded-lg border transition-colors active:scale-95"
+              className="border-[#BFC6CC]/60 text-[#31405F] bg-white hover:bg-[#F4F7F8] flex h-8 w-8 items-center justify-center rounded-lg border transition-colors active:scale-95 shadow-2xs"
             >
               <Shield className="h-4 w-4" />
             </button>
@@ -68,7 +68,7 @@ export function TopHeader({
               data-testid="logout-trigger"
               onClick={onLogout}
               title="Cerrar sesión y liberar perfil"
-              className="border-[#BFC6CC]/60 text-[#607283] hover:bg-[#F4F7F8] hover:text-[#31405F] flex h-8 w-8 items-center justify-center rounded-lg border transition-colors active:scale-95"
+              className="border-[#BFC6CC]/60 text-[#607283] bg-white hover:bg-[#F4F7F8] hover:text-[#31405F] flex h-8 w-8 items-center justify-center rounded-lg border transition-colors active:scale-95 shadow-2xs"
             >
               <LogOut className="h-4 w-4" />
             </button>
