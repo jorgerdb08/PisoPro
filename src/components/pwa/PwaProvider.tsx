@@ -2,7 +2,7 @@
 
 import React, { createContext, useContext } from "react";
 import { usePWA } from "@/hooks/usePWA";
-import { OfflineIndicator } from "./OfflineIndicator";
+import { OfflineBanner } from "@/components/common/OfflineBanner";
 import { Download } from "lucide-react";
 
 interface PwaContextType {
@@ -24,7 +24,7 @@ export function PwaProvider({ children }: { children: React.ReactNode }) {
 
   return (
     <PwaContext.Provider value={{ isInstallable, isInstalled, promptInstall }}>
-      <OfflineIndicator />
+      <OfflineBanner />
       {children}
       {isInstallable && (
         <aside

@@ -1,5 +1,6 @@
 import React from "react";
 import { Shield, Sparkles, LogOut } from "lucide-react";
+import { NotificationToggle } from "@/features/notifications/components/NotificationToggle";
 import { cn } from "@/lib/utils";
 
 interface TopHeaderProps {
@@ -24,12 +25,12 @@ export function TopHeader({
   return (
     <header
       className={cn(
-        "border-border/70 bg-background/85 pt-safe sticky top-0 z-30 flex items-center justify-between border-b px-4 py-3.5 backdrop-blur-md",
+        "border-border/80 bg-background/90 sticky top-0 z-30 flex h-16 items-center justify-between border-b px-4 backdrop-blur-md",
         className
       )}
     >
       <div className="flex items-center gap-2.5">
-        <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-emerald-600 font-bold text-white shadow-sm shadow-emerald-600/30">
+        <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-emerald-600 text-white shadow-sm shadow-emerald-600/25">
           <Sparkles className="h-4 w-4" />
         </div>
         <div>
@@ -40,6 +41,8 @@ export function TopHeader({
 
       {userName && (
         <div className="flex items-center gap-2">
+          <NotificationToggle />
+
           <div className="border-border/80 bg-secondary/80 text-foreground flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-medium">
             <span className="h-2 w-2 animate-pulse rounded-full bg-emerald-500" />
             {userRole === "admin" && <Shield className="h-3 w-3 text-emerald-600" />}
