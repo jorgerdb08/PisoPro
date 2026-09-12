@@ -39,11 +39,11 @@ export function ChoreCard({
     <div
       data-testid={`chore-card-${task.id}`}
       className={cn(
-        "group relative flex items-start gap-3 rounded-2xl border p-3.5 transition-all duration-200",
+        "group relative flex items-start gap-3 rounded-2xl border p-3.5 transition-all duration-150",
         isCompleted
-          ? "border-emerald-500/30 bg-emerald-500/5 text-muted-foreground"
-          : "border-border/80 bg-card hover:border-emerald-500/50 hover:shadow-xs",
-        isCurrentUserAssigned && !isCompleted && "ring-1 ring-emerald-500/30"
+          ? "border-slate-200 bg-slate-50/70 text-slate-400"
+          : "border-slate-200 bg-white hover:border-slate-300 hover:shadow-xs",
+        isCurrentUserAssigned && !isCompleted && "border-slate-900 ring-1 ring-slate-900 shadow-xs"
       )}
     >
       {/* Interactive Completion Toggle Button */}
@@ -54,16 +54,16 @@ export function ChoreCard({
         onClick={() => onToggle(task.id)}
         aria-label={isCompleted ? "Marcar como pendiente" : "Marcar como completada"}
         className={cn(
-          "flex h-7 w-7 shrink-0 items-center justify-center rounded-xl border transition-all active:scale-90 mt-0.5",
+          "flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border transition-all active:scale-90 mt-0.5",
           isCompleted
-            ? "border-emerald-500 bg-emerald-500 text-white shadow-xs shadow-emerald-500/30"
-            : "border-border/90 bg-secondary/80 hover:border-emerald-500 hover:bg-emerald-500/10 text-muted-foreground"
+            ? "border-slate-900 bg-slate-900 text-white shadow-xs"
+            : "border-slate-200 bg-slate-50 hover:border-slate-400 hover:bg-slate-100 text-slate-400"
         )}
       >
         {isCompleted ? (
           <Check className="h-4 w-4 stroke-[2.5]" />
         ) : (
-          <span className="h-2.5 w-2.5 rounded-full bg-border group-hover:bg-emerald-500 transition-colors" />
+          <span className="h-2 w-2 rounded-full bg-slate-300 group-hover:bg-slate-500 transition-colors" />
         )}
       </button>
 
@@ -130,20 +130,20 @@ export function ChoreCard({
                 <span
                   className={cn(
                     isCurrentUserAssigned
-                      ? "text-emerald-600 dark:text-emerald-400 font-semibold"
-                      : "text-muted-foreground"
+                      ? "text-slate-900 font-semibold"
+                      : "text-slate-500"
                   )}
                 >
                   {isCurrentUserAssigned ? "Te toca a ti" : assignedFlatmate.name}
                 </span>
               </div>
             ) : (
-              <span className="text-muted-foreground text-[11px] italic">Sin asignar</span>
+              <span className="text-slate-400 text-[11px] italic">Sin asignar</span>
             )}
           </div>
 
           {isCompleted && (
-            <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-emerald-600 dark:text-emerald-400">
+            <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-emerald-700">
               <CheckCircle2 className="h-3 w-3" />
               Hecho
             </span>
