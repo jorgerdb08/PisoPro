@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { useAuth } from "@/features/auth/AuthContext";
 import { useChores } from "@/features/chores/useChores";
 import { useExpenses } from "@/features/expenses/useExpenses";
+import { useShopping } from "@/features/shopping/useShopping";
 import { ProfileSelectorModal } from "@/features/auth/components/ProfileSelectorModal";
 import { AdminModal } from "@/features/admin/components/AdminModal";
 import {
@@ -29,6 +30,7 @@ export default function HomePage() {
   const [isAdminModalOpen, setIsAdminModalOpen] = useState(false);
   const { myPendingTasks, pendingTasks, toggleTask, actionLoading } = useChores();
   const { userSummary } = useExpenses();
+  const { pendingItems } = useShopping();
 
   const currentTask = myPendingTasks[0];
 
@@ -211,22 +213,35 @@ export default function HomePage() {
           </Link>
 
           {/* Compra Card */}
-          <Card className="cursor-pointer transition-colors hover:border-emerald-500/40">
-            <CardContent className="space-y-2 p-4">
-              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-amber-500/10 text-amber-600">
-                <ShoppingCart className="h-4 w-4" />
-              </div>
-              <div>
-                <h4 className="text-foreground text-xs font-bold tracking-wider uppercase">
-                  Compra
-                </h4>
-                <p className="text-foreground mt-0.5 text-sm font-extrabold">
-                  3 productos
+          <Link href="/compra" className="h-full">
+            <Card
+              data-testid="home-shopping-card"
+              className="cursor-pointer transition-colors hover:border-emerald-500/40 h-full"
+            >
+              <CardContent className="space-y-2 p-4">
+                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-amber-500/10 text-amber-600">
+                  <ShoppingCart className="h-4 w-4" />
+                </div>
+                <div>
+                  <h4 className="text-foreground text-xs font-bold tracking-wider uppercase">
+                    Compra
+                  </h4>
+                  <p className="text-foreground mt-0.5 text-sm font-extrabold">
+                    {pendingItems.length}{" "}
+                    {pendingItems.length === 1 ? "producto" : "productos"}
+                  </p>
+                </div>
+                <p className="text-muted-foreground text-[11px] truncate">
+                  {pendingItems.length > 0
+                    ? pendingItems
+                        .slice(0, 3)
+                        .map((i) => i.name)
+                        .join(", ")
+                    : "Todo al día"}
                 </p>
-              </div>
-              <p className="text-muted-foreground text-[11px]">Leche, café, papel...</p>
-            </CardContent>
-          </Card>
+              </CardContent>
+            </Card>
+          </Link>
         </div>
 
         {/* Chat del Piso Preview */}
