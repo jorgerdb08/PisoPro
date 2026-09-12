@@ -23,7 +23,7 @@ export function BottomNav({ onQuickAction }: BottomNavProps) {
   return (
     <nav
       aria-label="Navegación principal"
-      className="border-[#BFC6CC]/60 bg-white/95 pb-safe fixed right-0 bottom-0 left-0 z-40 mx-auto max-w-md border-t px-3 backdrop-blur-lg"
+      className="border-[#BFC6CC]/60 bg-[#EEF2F6]/95 pb-safe fixed right-0 bottom-0 left-0 z-40 mx-auto max-w-md border-t px-3 backdrop-blur-lg"
     >
       <div className="flex h-16 items-center justify-around">
         {navItems.slice(0, 2).map((item) => {

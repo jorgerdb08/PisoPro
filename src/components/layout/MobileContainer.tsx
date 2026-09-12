@@ -9,7 +9,7 @@ export function MobileContainer({ children, className, ...props }: MobileContain
   return (
     <div
       className={cn(
-        "bg-white text-slate-900 sm:border-slate-200/80 relative mx-auto flex min-h-screen w-full max-w-md flex-col shadow-xs sm:border-x",
+        "bg-[#FAFBFC] text-slate-900 sm:border-[#BFC6CC]/50 relative mx-auto flex min-h-screen w-full max-w-md flex-col shadow-xs sm:border-x",
         className
       )}
       {...props}
