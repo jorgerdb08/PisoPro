@@ -5,7 +5,6 @@ import { getIsoWeekMonday } from "./cleaningService";
 import type { DateRangeFilter } from "./trashService";
 export type { DateRangeFilter };
 
-
 interface SupabaseClientAny {
   rpc: (
     fn: string,
@@ -19,6 +18,16 @@ function getClient(): SupabaseClientAny {
   return getSupabaseBrowserClient() as unknown as SupabaseClientAny;
 }
 
+function getLocalItem<T>(key: string, fallback: T): T {
+  if (typeof window === "undefined") return fallback;
+  try {
+    const item = localStorage.getItem(key);
+    return item ? JSON.parse(item) : fallback;
+  } catch {
+    return fallback;
+  }
+}
+
 export const pointsService = {
   /**
    * Obtiene las transacciones del libro mayor de puntos
@@ -28,53 +37,66 @@ export const pointsService = {
     filter: DateRangeFilter = "week"
   ): Promise<PointTransaction[]> {
     const supabase = getClient();
-    let query = supabase
-      .from("point_transactions")
+    try {
+      let query = supabase
+        .from("point_transactions")
+        .select("id, household_id, user_id, points, type, reference_id, description, created_at, profiles(name)")
+        .eq("household_id", householdId)
+        .order("created_at", { ascending: false });
 
-      .select("id, household_id, user_id, points, type, reference_id, description, created_at, profiles(name)")
-      .eq("household_id", householdId)
-      .order("created_at", { ascending: false });
+      const now = new Date();
+      if (filter === "week") {
+        const weekMonday = getIsoWeekMonday(now);
+        query = query.gte("created_at", `${weekMonday}T00:00:00Z`);
+      } else if (filter === "month") {
+        const firstDayMonth = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
+        query = query.gte("created_at", firstDayMonth);
+      }
 
+      const { data, error } = await query;
+      if (!error && Array.isArray(data)) {
+        return data.map((row: unknown) => {
+          const r = row as {
+            id: string;
+            household_id: string;
+            user_id: string;
+            points: number;
+            type: "cleaning" | "helping" | "trash" | "admin_adjustment";
+            reference_id: string | null;
+            description: string;
+            created_at: string;
+            profiles?: { name: "Jorge" | "Samuel" | "David" } | null;
+          };
+          return {
+            id: r.id,
+            household_id: r.household_id,
+            user_id: r.user_id,
+            user_name: r.profiles?.name,
+            points: r.points,
+            type: r.type,
+            reference_id: r.reference_id || undefined,
+            description: r.description,
+            created_at: r.created_at,
+          };
+        });
+      }
+
+    } catch {
+      // fallback
+    }
+
+    // Fallback local
+    const transactions = getLocalItem<PointTransaction[]>("pisopro_point_transactions", []);
     const now = new Date();
     if (filter === "week") {
       const weekMonday = getIsoWeekMonday(now);
-      query = query.gte("created_at", `${weekMonday}T00:00:00Z`);
+      return transactions.filter((t) => t.created_at >= `${weekMonday}T00:00:00Z`);
     } else if (filter === "month") {
       const firstDayMonth = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
-      query = query.gte("created_at", firstDayMonth);
+      return transactions.filter((t) => t.created_at >= firstDayMonth);
     }
 
-    const { data, error } = await query;
-
-    if (error) {
-      console.error("[pointsService] Error fetching point transactions:", error);
-      return [];
-    }
-
-    return (data || []).map((row: unknown) => {
-      const r = row as {
-        id: string;
-        household_id: string;
-        user_id: string;
-        points: number;
-        type: "cleaning" | "helping" | "trash" | "admin_adjustment";
-        reference_id: string | null;
-        description: string;
-        created_at: string;
-        profiles?: { name: "Jorge" | "Samuel" | "David" } | null;
-      };
-      return {
-        id: r.id,
-        household_id: r.household_id,
-        user_id: r.user_id,
-        user_name: r.profiles?.name,
-        points: r.points,
-        type: r.type,
-        reference_id: r.reference_id || undefined,
-        description: r.description,
-        created_at: r.created_at,
-      };
-    });
+    return transactions;
   },
 
   /**
