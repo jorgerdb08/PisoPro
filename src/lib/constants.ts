@@ -72,3 +72,98 @@ export const QUICK_SHOPPING_PRESETS = [
   { name: "Agua", quantity: "1 pack 6x1.5L", category: "drinks" },
 ] as const;
 
+export const FLAT_INFO = {
+  name: "Nuestro piso",
+  address: "Calle Mayor 14, 3ºB",
+  city: "Madrid, 28013",
+  wifiSsid: "PisoPro_5G_Fibra",
+  wifiPass: "PisoPro2026!WiFi",
+  landlordName: "D. Manuel García",
+  landlordPhone: "+34 612 345 678",
+  landlordEmail: "alquiler.mayor14@gmail.com",
+  rentAmount: "1.200 €/mes (400 €/persona)",
+  rentDueDay: "Día 1 al 5 de cada mes",
+  rooms: [
+    { number: 1, name: "Habitación Principal (Exterior)", occupantId: "22222222-2222-4222-8222-222222222222", occupantName: "Jorge" },
+    { number: 2, name: "Habitación Mediana (Balcón)", occupantId: "33333333-3333-4333-8333-333333333333", occupantName: "Samuel" },
+    { number: 3, name: "Habitación Estudio (Tranquila)", occupantId: "44444444-4444-4444-8444-444444444444", occupantName: "David" },
+  ],
+} as const;
+
+export const FLAT_RULES = [
+  {
+    id: "rule-1",
+    title: "Horario de Silencio",
+    description: "De domingo a jueves a partir de las 23:00h y viernes/sábados a partir de la 01:00h respeto al descanso.",
+    icon: "🌙",
+    category: "descanso",
+  },
+  {
+    id: "rule-2",
+    title: "Cocina y Platos",
+    description: "Fregar los platos y sartenes inmediatamente o antes de ir a dormir. Dejar la encimera despejada.",
+    icon: "🍳",
+    category: "limpieza",
+  },
+  {
+    id: "rule-3",
+    title: "Visitas y Quedadas",
+    description: "Avisar por el chat del piso si van a venir visitas a dormir o si se planea cena con amigos.",
+    icon: "👥",
+    category: "convivencia",
+  },
+  {
+    id: "rule-4",
+    title: "Basura y Reciclaje",
+    description: "Bajar la basura al contenedor al llenarse la bolsa, no dejar acumulado en la cocina.",
+    icon: "🗑️",
+    category: "limpieza",
+  },
+  {
+    id: "rule-5",
+    title: "Climatización Responsable",
+    description: "Apagar calefacción y aire acondicionado al salir de las habitaciones o del piso.",
+    icon: "💡",
+    category: "suministros",
+  },
+] as const;
+
+export const EMERGENCY_CONTACTS = [
+  {
+    name: "Emergencias Generales",
+    role: "Policía, Bomberos, Ambulancia",
+    phone: "112",
+    icon: "🚨",
+    isUrgent: true,
+  },
+  {
+    name: "Seguro del Hogar",
+    role: "Póliza Nº 8492041-H (Mapfre)",
+    phone: "+34 918 000 112",
+    icon: "🛡️",
+    isUrgent: false,
+  },
+  {
+    name: "Fontanero / Averías de Agua",
+    role: "Servicio de guardia de la finca",
+    phone: "+34 600 112 233",
+    icon: "🔧",
+    isUrgent: false,
+  },
+  {
+    name: "Portería / Administrador",
+    role: "Comunidad de Propietarios",
+    phone: "+34 915 223 344",
+    icon: "🏢",
+    isUrgent: false,
+  },
+  {
+    name: "Casero (Manuel)",
+    role: "Propietario del piso",
+    phone: "+34 612 345 678",
+    icon: "🔑",
+    isUrgent: false,
+  },
+] as const;
+
+
