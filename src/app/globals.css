@@ -1,26 +1,33 @@
 @import "tailwindcss";
 
 :root {
-  --background: #f8fafc;
-  --foreground: #0f172a;
+  --background: #fafbfc;
+  --foreground: #31405f;
   --card: #ffffff;
-  --card-foreground: #0f172a;
+  --card-foreground: #31405f;
   --popover: #ffffff;
-  --popover-foreground: #0f172a;
-  --primary: #0f172a;
+  --popover-foreground: #31405f;
+  --primary: #31405f;
   --primary-foreground: #ffffff;
-  --secondary: #f1f5f9;
-  --secondary-foreground: #0f172a;
-  --muted: #f8fafc;
-  --muted-foreground: #64748b;
-  --accent: #f1f5f9;
-  --accent-foreground: #0f172a;
-  --destructive: #ef4444;
+  --secondary: #f0f4f6;
+  --secondary-foreground: #194f6b;
+  --muted: #f4f7f8;
+  --muted-foreground: #607283;
+  --accent: #f0f4f6;
+  --accent-foreground: #094152;
+  --destructive: #c995a2;
   --destructive-foreground: #ffffff;
-  --border: #e2e8f0;
-  --input: #e2e8f0;
-  --ring: #0f172a;
+  --border: #bfc6cc;
+  --input: #bfc6cc;
+  --ring: #194f6b;
   --radius: 0.75rem;
+
+  /* Custom Nordic Light Palette */
+  --piso-navy: #31405f;
+  --piso-petrol: #094152;
+  --piso-ocean: #194f6b;
+  --piso-rose: #c995a2;
+  --piso-silver: #bfc6cc;
 }
 
 @theme inline {
@@ -43,6 +50,13 @@
   --color-border: var(--border);
   --color-input: var(--input);
   --color-ring: var(--ring);
+
+  --color-piso-navy: #31405f;
+  --color-piso-petrol: #094152;
+  --color-piso-ocean: #194f6b;
+  --color-piso-rose: #c995a2;
+  --color-piso-silver: #bfc6cc;
+
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 }

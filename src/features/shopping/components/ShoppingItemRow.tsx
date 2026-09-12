@@ -34,8 +34,8 @@ export function ShoppingItemRow({
       className={cn(
         "group flex items-center justify-between gap-3 rounded-2xl border p-3.5 transition-all",
         item.completed
-          ? "border-slate-200 bg-slate-50/70 opacity-60"
-          : "border-slate-200 bg-white hover:border-slate-300 hover:shadow-xs"
+          ? "border-[#BFC6CC]/40 bg-[#F4F7F8]/80 opacity-60"
+          : "border-[#BFC6CC]/60 bg-white hover:border-[#194F6B]/40 hover:shadow-xs"
       )}
     >
       <div className="flex items-center gap-3 min-w-0 flex-1">
@@ -49,8 +49,8 @@ export function ShoppingItemRow({
           className={cn(
             "flex h-6 w-6 shrink-0 items-center justify-center rounded-full border transition-all active:scale-90",
             item.completed
-              ? "border-slate-900 bg-slate-900 text-white"
-              : "border-slate-300 hover:border-slate-600 bg-white"
+              ? "border-[#31405F] bg-[#31405F] text-white"
+              : "border-[#BFC6CC] hover:border-[#31405F] bg-white"
           )}
         >
           {isLoading ? (
@@ -67,8 +67,8 @@ export function ShoppingItemRow({
               className={cn(
                 "text-sm font-semibold transition-all truncate",
                 item.completed
-                  ? "text-muted-foreground line-through decoration-emerald-500/60 decoration-2"
-                  : "text-foreground"
+                  ? "text-[#607283] line-through decoration-[#094152]/60 decoration-2"
+                  : "text-[#31405F]"
               )}
             >
               {item.name}
@@ -76,7 +76,7 @@ export function ShoppingItemRow({
 
             {/* Quantity Badge */}
             {item.quantity && (
-              <span className="rounded-md bg-secondary px-1.5 py-0.5 text-[10px] font-bold text-secondary-foreground">
+              <span className="rounded-md bg-[#F4F7F8] border border-[#BFC6CC]/40 px-1.5 py-0.5 text-[10px] font-bold text-[#31405F]">
                 {item.quantity}
               </span>
             )}
@@ -94,15 +94,15 @@ export function ShoppingItemRow({
           </div>
 
           {/* Subtitle / User info */}
-          <div className="flex items-center gap-2 text-[11px] text-muted-foreground">
+          <div className="flex items-center gap-2 text-[11px] text-[#607283]">
             {item.completed && boughtByUser ? (
-              <span className="flex items-center gap-1 text-emerald-600 dark:text-emerald-400 font-medium">
+              <span className="flex items-center gap-1 text-[#094152] font-medium">
                 Comprado por {boughtByUser.name}
               </span>
             ) : (
               addedByUser && (
                 <span>
-                  Pedido por <strong className="font-semibold">{addedByUser.name}</strong>
+                  Pedido por <strong className="font-semibold text-[#31405F]">{addedByUser.name}</strong>
                 </span>
               )
             )}
