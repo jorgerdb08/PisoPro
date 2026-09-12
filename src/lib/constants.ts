@@ -12,19 +12,19 @@ export const FLATMATES: Flatmate[] = [
     id: "22222222-2222-4222-8222-222222222222",
     name: "Jorge",
     role: "admin",
-    color: "bg-blue-600",
+    color: "bg-slate-900 text-white",
   },
   {
     id: "33333333-3333-4333-8333-333333333333",
     name: "Samuel",
     role: "member",
-    color: "bg-amber-600",
+    color: "bg-emerald-800 text-white",
   },
   {
     id: "44444444-4444-4444-8444-444444444444",
     name: "David",
     role: "member",
-    color: "bg-emerald-600",
+    color: "bg-zinc-800 text-white",
   },
 ];
 
