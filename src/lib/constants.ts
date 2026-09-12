@@ -36,3 +36,13 @@ export const CHORE_CATEGORIES = [
   { value: "living", label: "Salón", icon: "🛋️", color: "bg-purple-500/10 text-purple-600 border-purple-500/20" },
   { value: "general", label: "General", icon: "📦", color: "bg-slate-500/10 text-slate-600 border-slate-500/20" },
 ] as const;
+
+export const EXPENSE_CATEGORIES = [
+  { value: "groceries", label: "Supermercado", icon: "🛒", color: "bg-emerald-500/10 text-emerald-600 border-emerald-500/20" },
+  { value: "cleaning", label: "Limpieza / Hogar", icon: "🧼", color: "bg-blue-500/10 text-blue-600 border-blue-500/20" },
+  { value: "utilities", label: "Facturas / Luz / Gas", icon: "💡", color: "bg-amber-500/10 text-amber-600 border-amber-500/20" },
+  { value: "internet", label: "Internet / WiFi", icon: "📶", color: "bg-indigo-500/10 text-indigo-600 border-indigo-500/20" },
+  { value: "dining", label: "Comida / Ocio", icon: "🍕", color: "bg-rose-500/10 text-rose-600 border-rose-500/20" },
+  { value: "other", label: "Otros gastos", icon: "📦", color: "bg-slate-500/10 text-slate-600 border-slate-500/20" },
+  { value: "settlement", label: "Liquidación", icon: "💸", color: "bg-teal-500/10 text-teal-600 border-teal-500/20" },
+] as const;

@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/features/auth/AuthContext";
 import { useChores } from "@/features/chores/useChores";
+import { useExpenses } from "@/features/expenses/useExpenses";
 import { ProfileSelectorModal } from "@/features/auth/components/ProfileSelectorModal";
 import { AdminModal } from "@/features/admin/components/AdminModal";
 import {
@@ -27,6 +28,7 @@ export default function HomePage() {
   const { currentUser, isLoading, logout } = useAuth();
   const [isAdminModalOpen, setIsAdminModalOpen] = useState(false);
   const { myPendingTasks, pendingTasks, toggleTask, actionLoading } = useChores();
+  const { userSummary } = useExpenses();
 
   const currentTask = myPendingTasks[0];
 
@@ -149,33 +151,39 @@ export default function HomePage() {
         )}
 
         {/* Balances Summary Card */}
-        <Card>
-          <CardContent className="space-y-3 p-4">
-            <div className="flex items-center justify-between">
-              <span className="text-muted-foreground flex items-center gap-1.5 text-xs font-bold tracking-wider uppercase">
-                <Wallet className="h-3.5 w-3.5" />
-                <span>Balance Compartido</span>
-              </span>
-              <span className="flex cursor-pointer items-center text-xs font-semibold text-emerald-600 hover:underline">
-                Detalles <ArrowRight className="ml-0.5 h-3 w-3" />
-              </span>
-            </div>
-            <div className="grid grid-cols-2 gap-3 pt-1">
-              <div className="border-border/80 bg-secondary/50 rounded-xl border p-3">
-                <span className="text-muted-foreground text-[11px] font-medium">
-                  Debes
+        <Link href="/gastos">
+          <Card data-testid="home-balance-card" className="cursor-pointer transition-colors hover:border-emerald-500/40">
+            <CardContent className="space-y-3 p-4">
+              <div className="flex items-center justify-between">
+                <span className="text-muted-foreground flex items-center gap-1.5 text-xs font-bold tracking-wider uppercase">
+                  <Wallet className="h-3.5 w-3.5" />
+                  <span>Balance Compartido</span>
                 </span>
-                <p className="text-foreground text-base font-bold">0,00 €</p>
-              </div>
-              <div className="border-border/80 bg-secondary/50 rounded-xl border p-3">
-                <span className="text-muted-foreground text-[11px] font-medium">
-                  Te deben
+                <span className="flex cursor-pointer items-center text-xs font-semibold text-emerald-600 hover:underline">
+                  Detalles <ArrowRight className="ml-0.5 h-3 w-3" />
                 </span>
-                <p className="text-base font-bold text-emerald-600">0,00 €</p>
               </div>
-            </div>
-          </CardContent>
-        </Card>
+              <div className="grid grid-cols-2 gap-3 pt-1">
+                <div className="border-border/80 bg-secondary/50 rounded-xl border p-3">
+                  <span className="text-muted-foreground text-[11px] font-medium">
+                    Debes
+                  </span>
+                  <p className="text-foreground text-base font-bold">
+                    {userSummary.totalOwedByMe.toFixed(2).replace(".", ",")} €
+                  </p>
+                </div>
+                <div className="border-border/80 bg-secondary/50 rounded-xl border p-3">
+                  <span className="text-muted-foreground text-[11px] font-medium">
+                    Te deben
+                  </span>
+                  <p className="text-base font-bold text-emerald-600">
+                    {userSummary.totalOwedToMe.toFixed(2).replace(".", ",")} €
+                  </p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </Link>
 
         {/* Quick Grid: Tareas & Compra */}
         <div className="grid grid-cols-2 gap-3">
