@@ -82,10 +82,10 @@ export function ChatMessageBubble({
           className={cn(
             "relative rounded-2xl px-3.5 py-2.5 shadow-xs text-sm break-words transition-all",
             isMine
-              ? "rounded-br-xs bg-emerald-600 text-white"
+              ? "rounded-br-xs bg-slate-900 text-white"
               : cn(
-                  "rounded-bl-xs border border-border/80 bg-card text-foreground",
-                  mentionedMe && "ring-2 ring-emerald-500/50 bg-emerald-500/5 border-emerald-500/30"
+                  "rounded-bl-xs border border-slate-200 bg-white text-slate-900",
+                  mentionedMe && "ring-1 ring-slate-900 bg-slate-50 border-slate-300"
                 )
           )}
         >

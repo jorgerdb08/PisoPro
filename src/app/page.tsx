@@ -21,10 +21,8 @@ import {
   CheckSquare,
   ShoppingCart,
   MessageSquare,
-  Sparkles,
   Loader2,
   ArrowRight,
-  PartyPopper,
 } from "lucide-react";
 
 export default function HomePage() {
@@ -100,24 +98,24 @@ export default function HomePage() {
 
         {/* Hoy te toca Banner */}
         {currentTask ? (
-          <Card className="overflow-hidden border-emerald-500/30 bg-gradient-to-br from-emerald-600 to-teal-700 text-white shadow-lg shadow-emerald-600/20">
+          <Card className="overflow-hidden border-slate-200 bg-white text-slate-900 shadow-xs">
             <CardContent className="space-y-3 p-4">
-              <div className="flex items-center justify-between text-xs font-medium text-emerald-100">
-                <span className="text-[10px] font-bold tracking-wider uppercase">
+              <div className="flex items-center justify-between text-xs">
+                <span className="text-[10px] font-bold tracking-wider uppercase text-slate-500">
                   Hoy te toca
                 </span>
-                <span className="rounded-full bg-white/20 px-2 py-0.5 text-[10px] font-bold">
+                <span className="rounded-full bg-slate-100 border border-slate-200 px-2 py-0.5 text-[10px] font-semibold text-slate-700">
                   +{currentTask.points} {currentTask.points === 1 ? "pt" : "pts"}
                 </span>
               </div>
               <div>
-                <h3 className="text-lg font-bold">{currentTask.title}</h3>
-                <p className="text-xs text-emerald-100/90">
+                <h3 className="text-base font-semibold text-slate-900">{currentTask.title}</h3>
+                <p className="text-xs text-slate-500 mt-0.5">
                   {currentTask.description || "Tarea asignada a ti esta semana"}
                 </p>
               </div>
-              <div className="flex items-center justify-between pt-1">
-                <span className="text-[11px] text-emerald-200">
+              <div className="flex items-center justify-between pt-1 border-t border-slate-100">
+                <span className="text-[11px] text-slate-500">
                   {myPendingTasks.length > 1
                     ? `Tienes ${myPendingTasks.length} tareas pendientes`
                     : "Asignada a ti esta semana"}
@@ -127,30 +125,29 @@ export default function HomePage() {
                   size="sm"
                   disabled={actionLoading === currentTask.id}
                   onClick={() => toggleTask(currentTask.id)}
-                  className="h-8 rounded-lg bg-white px-3 text-xs font-semibold text-emerald-700 shadow-sm hover:bg-white/90 active:scale-95 transition-transform"
+                  className="h-8 rounded-lg bg-slate-900 text-white px-3 text-xs font-medium shadow-xs hover:bg-slate-800 active:scale-95 transition"
                 >
-                  <CheckCircle2 className="mr-1 h-3.5 w-3.5 text-emerald-600" />
+                  <CheckCircle2 className="mr-1 h-3.5 w-3.5 text-white" />
                   {actionLoading === currentTask.id ? "Guardando..." : "Hecho"}
                 </Button>
               </div>
             </CardContent>
           </Card>
         ) : (
-          <Card className="overflow-hidden border-border/80 bg-gradient-to-br from-emerald-500/10 via-teal-500/5 to-background text-foreground shadow-sm">
+          <Card className="overflow-hidden border-slate-200 bg-white text-slate-900 shadow-xs">
             <CardContent className="flex items-center justify-between p-4">
               <div className="space-y-0.5">
-                <span className="text-emerald-600 dark:text-emerald-400 text-[10px] font-bold tracking-wider uppercase flex items-center gap-1">
-                  <PartyPopper className="h-3 w-3" />
+                <span className="text-slate-500 text-[10px] font-bold tracking-wider uppercase flex items-center gap-1">
                   ¡Todo al día!
                 </span>
-                <h3 className="text-sm font-bold">No tienes tareas pendientes</h3>
-                <p className="text-muted-foreground text-xs">
-                  Has completado tus tareas de esta semana. ¡Buen trabajo!
+                <h3 className="text-sm font-semibold text-slate-900">No tienes tareas pendientes</h3>
+                <p className="text-slate-500 text-xs">
+                  Has completado tus tareas de esta semana.
                 </p>
               </div>
               <Link
                 href="/tareas"
-                className="rounded-xl border border-border/80 bg-secondary/80 px-3 py-1.5 text-xs font-semibold hover:bg-secondary transition-colors"
+                className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-100 transition"
               >
                 Ver todas
               </Link>
@@ -160,31 +157,31 @@ export default function HomePage() {
 
         {/* Balances Summary Card */}
         <Link href="/gastos">
-          <Card data-testid="home-balance-card" className="cursor-pointer transition-colors hover:border-emerald-500/40">
+          <Card data-testid="home-balance-card" className="cursor-pointer border-slate-200 bg-white shadow-xs hover:border-slate-300 transition">
             <CardContent className="space-y-3 p-4">
               <div className="flex items-center justify-between">
-                <span className="text-muted-foreground flex items-center gap-1.5 text-xs font-bold tracking-wider uppercase">
+                <span className="text-slate-500 flex items-center gap-1.5 text-xs font-bold tracking-wider uppercase">
                   <Wallet className="h-3.5 w-3.5" />
                   <span>Balance Compartido</span>
                 </span>
-                <span className="flex cursor-pointer items-center text-xs font-semibold text-emerald-600 hover:underline">
+                <span className="flex items-center text-xs font-medium text-slate-600 hover:text-slate-900">
                   Detalles <ArrowRight className="ml-0.5 h-3 w-3" />
                 </span>
               </div>
               <div className="grid grid-cols-2 gap-3 pt-1">
-                <div className="border-border/80 bg-secondary/50 rounded-xl border p-3">
-                  <span className="text-muted-foreground text-[11px] font-medium">
+                <div className="border-slate-100 bg-slate-50 rounded-xl border p-3">
+                  <span className="text-slate-500 text-[11px] font-medium">
                     Debes
                   </span>
-                  <p className="text-foreground text-base font-bold">
+                  <p className="text-slate-900 text-base font-semibold">
                     {userSummary.totalOwedByMe.toFixed(2).replace(".", ",")} €
                   </p>
                 </div>
-                <div className="border-border/80 bg-secondary/50 rounded-xl border p-3">
-                  <span className="text-muted-foreground text-[11px] font-medium">
+                <div className="border-slate-100 bg-slate-50 rounded-xl border p-3">
+                  <span className="text-slate-500 text-[11px] font-medium">
                     Te deben
                   </span>
-                  <p className="text-base font-bold text-emerald-600">
+                  <p className="text-base font-semibold text-emerald-700">
                     {userSummary.totalOwedToMe.toFixed(2).replace(".", ",")} €
                   </p>
                 </div>
@@ -199,21 +196,21 @@ export default function HomePage() {
           <Link href="/tareas">
             <Card
               data-testid="home-tasks-card"
-              className="cursor-pointer transition-colors hover:border-emerald-500/40 h-full"
+              className="cursor-pointer border-slate-200 bg-white shadow-xs hover:border-slate-300 transition h-full"
             >
               <CardContent className="space-y-2 p-4">
-                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-blue-500/10 text-blue-600">
+                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-slate-100 text-slate-800">
                   <CheckSquare className="h-4 w-4" />
                 </div>
                 <div>
-                  <h4 className="text-foreground text-xs font-bold tracking-wider uppercase">
+                  <h4 className="text-slate-500 text-xs font-bold tracking-wider uppercase">
                     Tareas
                   </h4>
-                  <p className="text-foreground mt-0.5 text-sm font-extrabold">
+                  <p className="text-slate-900 mt-0.5 text-sm font-bold">
                     {pendingTasks.length} pendientes
                   </p>
                 </div>
-                <p className="text-muted-foreground text-[11px]">Rotación semanal</p>
+                <p className="text-slate-500 text-[11px]">Rotación semanal</p>
               </CardContent>
             </Card>
           </Link>
@@ -222,22 +219,22 @@ export default function HomePage() {
           <Link href="/compra" className="h-full">
             <Card
               data-testid="home-shopping-card"
-              className="cursor-pointer transition-colors hover:border-emerald-500/40 h-full"
+              className="cursor-pointer border-slate-200 bg-white shadow-xs hover:border-slate-300 transition h-full"
             >
               <CardContent className="space-y-2 p-4">
-                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-amber-500/10 text-amber-600">
+                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-slate-100 text-slate-800">
                   <ShoppingCart className="h-4 w-4" />
                 </div>
                 <div>
-                  <h4 className="text-foreground text-xs font-bold tracking-wider uppercase">
+                  <h4 className="text-slate-500 text-xs font-bold tracking-wider uppercase">
                     Compra
                   </h4>
-                  <p className="text-foreground mt-0.5 text-sm font-extrabold">
+                  <p className="text-slate-900 mt-0.5 text-sm font-bold">
                     {pendingItems.length}{" "}
                     {pendingItems.length === 1 ? "producto" : "productos"}
                   </p>
                 </div>
-                <p className="text-muted-foreground text-[11px] truncate">
+                <p className="text-slate-500 text-[11px] truncate">
                   {pendingItems.length > 0
                     ? pendingItems
                         .slice(0, 3)
@@ -254,15 +251,15 @@ export default function HomePage() {
         <Link href="/chat">
           <Card
             data-testid="home-chat-card"
-            className="cursor-pointer transition-colors hover:border-emerald-500/40"
+            className="cursor-pointer border-slate-200 bg-white shadow-xs hover:border-slate-300 transition"
           >
             <CardContent className="space-y-2.5 p-4">
               <div className="flex items-center justify-between">
-                <span className="text-muted-foreground flex items-center gap-1.5 text-xs font-bold tracking-wider uppercase">
+                <span className="text-slate-500 flex items-center gap-1.5 text-xs font-bold tracking-wider uppercase">
                   <MessageSquare className="h-3.5 w-3.5" />
                   <span>Chat del Piso</span>
                 </span>
-                <span className="text-muted-foreground text-[11px]">
+                <span className="text-slate-400 text-[11px]">
                   {lastMessage
                     ? (() => {
                         try {
@@ -277,16 +274,16 @@ export default function HomePage() {
                     : "En vivo"}
                 </span>
               </div>
-              <div className="border-border/80 bg-secondary/30 space-y-1 rounded-xl border p-3">
+              <div className="border-slate-100 bg-slate-50 space-y-1 rounded-xl border p-3">
                 <div className="flex items-center justify-between">
-                  <span className="text-foreground text-xs font-semibold">
+                  <span className="text-slate-900 text-xs font-semibold">
                     {lastSenderName}
                   </span>
-                  <span className="text-muted-foreground text-[10px]">
+                  <span className="text-slate-400 text-[10px]">
                     {lastMessage ? "Último mensaje" : "Sin mensajes"}
                   </span>
                 </div>
-                <p className="text-muted-foreground line-clamp-2 text-xs">
+                <p className="text-slate-600 line-clamp-2 text-xs">
                   {lastMessage?.content ||
                     "Pulsa para chatear con tus compañeros de piso..."}
                 </p>
@@ -296,9 +293,9 @@ export default function HomePage() {
         </Link>
 
         {/* Active Session Lease Info */}
-        <div className="border-border/60 bg-muted/30 rounded-xl border p-3 text-center">
-          <div className="text-muted-foreground flex items-center justify-center gap-1.5 text-[11px] font-medium">
-            <Sparkles className="h-3.5 w-3.5 text-emerald-600" />
+        <div className="border-slate-200 bg-white rounded-xl border p-3 text-center shadow-xs">
+          <div className="text-slate-500 flex items-center justify-center gap-1.5 text-[11px] font-medium">
+            <span className="h-1.5 w-1.5 rounded-full bg-emerald-600" />
             <span>Perfil bloqueado para este dispositivo · Heartbeat activo</span>
           </div>
         </div>

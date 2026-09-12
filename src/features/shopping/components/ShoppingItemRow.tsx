@@ -34,8 +34,8 @@ export function ShoppingItemRow({
       className={cn(
         "group flex items-center justify-between gap-3 rounded-2xl border p-3.5 transition-all",
         item.completed
-          ? "border-border/40 bg-secondary/30 opacity-70"
-          : "border-border/80 bg-card hover:border-emerald-500/30 hover:shadow-sm"
+          ? "border-slate-200 bg-slate-50/70 opacity-60"
+          : "border-slate-200 bg-white hover:border-slate-300 hover:shadow-xs"
       )}
     >
       <div className="flex items-center gap-3 min-w-0 flex-1">
@@ -47,16 +47,16 @@ export function ShoppingItemRow({
           onClick={() => onToggle(item.id)}
           aria-label={item.completed ? "Marcar como pendiente" : "Marcar como comprado"}
           className={cn(
-            "flex h-7 w-7 shrink-0 items-center justify-center rounded-full border transition-all active:scale-90",
+            "flex h-6 w-6 shrink-0 items-center justify-center rounded-full border transition-all active:scale-90",
             item.completed
-              ? "border-emerald-500 bg-emerald-500 text-white"
-              : "border-muted-foreground/40 hover:border-emerald-500 bg-background"
+              ? "border-slate-900 bg-slate-900 text-white"
+              : "border-slate-300 hover:border-slate-600 bg-white"
           )}
         >
           {isLoading ? (
-            <Loader2 className="h-3.5 w-3.5 animate-spin" />
+            <Loader2 className="h-3 w-3 animate-spin" />
           ) : item.completed ? (
-            <Check className="h-4 w-4 stroke-[3]" />
+            <Check className="h-3.5 w-3.5 stroke-[2.5]" />
           ) : null}
         </button>
 
