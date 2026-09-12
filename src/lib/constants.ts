@@ -164,6 +164,55 @@ export const EMERGENCY_CONTACTS = [
     icon: "🔑",
     isUrgent: false,
   },
+] as const;export const CLEANING_ZONES_CONFIG = [
+  {
+    slug: "cocina" as const,
+    name: "Cocina",
+    icon: "🍳",
+    defaultPoints: 1,
+    helpPoints: 1,
+    rotationOrder: 0,
+    tasks: [
+      "Limpiar encimera",
+      "Limpiar fogones",
+      "Limpiar fregadero",
+      "Barrer / fregar",
+      "Ordenar",
+    ],
+  },
+  {
+    slug: "salon" as const,
+    name: "Salón",
+    icon: "🛋️",
+    defaultPoints: 3,
+    helpPoints: 1,
+    rotationOrder: 1,
+    tasks: [
+      "Barrer / aspirar",
+      "Fregar",
+      "Limpiar superficies",
+      "Ordenar",
+    ],
+  },
+  {
+    slug: "bano" as const,
+    name: "Baño",
+    icon: "🚿",
+    defaultPoints: 2,
+    helpPoints: 1,
+    rotationOrder: 2,
+    tasks: [
+      "Limpiar lavabo",
+      "Limpiar WC",
+      "Limpiar ducha / bañera",
+      "Limpiar espejo",
+      "Barrer / fregar",
+    ],
+  },
 ] as const;
 
-
+export const CLEANING_ROTATION_ORDER: ("cocina" | "salon" | "bano")[] = [
+  "cocina", // 0
+  "salon",   // 1
+  "bano",    // 2
+];

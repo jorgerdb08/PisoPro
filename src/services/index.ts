@@ -9,3 +9,14 @@ export interface IServiceResponse<T> {
   error: string | null;
   success: boolean;
 }
+
+export * from "./authService";
+export * from "./choresService";
+export * from "./expensesService";
+export * from "./shoppingService";
+export * from "./chatService";
+export * from "./flatService";
+export * from "./cleaningService";
+export * from "./trashService";
+export * from "./pointsService";
+
