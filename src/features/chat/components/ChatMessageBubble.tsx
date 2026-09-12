@@ -82,10 +82,10 @@ export function ChatMessageBubble({
           className={cn(
             "relative rounded-2xl px-3.5 py-2.5 shadow-xs text-sm break-words transition-all",
             isMine
-              ? "rounded-br-xs bg-slate-900 text-white"
+              ? "rounded-br-xs bg-[#31405F] text-white"
               : cn(
-                  "rounded-bl-xs border border-slate-200 bg-white text-slate-900",
-                  mentionedMe && "ring-1 ring-slate-900 bg-slate-50 border-slate-300"
+                  "rounded-bl-xs border border-[#BFC6CC]/60 bg-white text-[#31405F]",
+                  mentionedMe && "ring-1 ring-[#194F6B] bg-[#F4F7F8] border-[#BFC6CC]"
                 )
           )}
         >
@@ -105,8 +105,8 @@ export function ChatMessageBubble({
                       isMine
                         ? "bg-white/20 text-white"
                         : isTargetMe
-                        ? "bg-emerald-500 text-white font-extrabold shadow-xs"
-                        : "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 font-semibold"
+                        ? "bg-[#094152] text-white font-extrabold shadow-xs"
+                        : "bg-[#094152]/15 text-[#094152] font-semibold"
                     )}
                   >
                     {segment.value}
@@ -121,7 +121,7 @@ export function ChatMessageBubble({
           <div
             className={cn(
               "mt-1 flex items-center justify-end text-[10px] font-medium select-none",
-              isMine ? "text-emerald-100/80" : "text-muted-foreground"
+              isMine ? "text-white/70" : "text-[#607283]"
             )}
           >
             <span>{formattedTime}</span>

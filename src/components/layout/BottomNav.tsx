@@ -24,7 +24,7 @@ export function BottomNav({ onQuickAction }: BottomNavProps) {
   return (
     <nav
       aria-label="Navegación principal"
-      className="border-slate-200/80 bg-white/95 pb-safe fixed right-0 bottom-0 left-0 z-40 mx-auto max-w-md border-t px-3 backdrop-blur-lg"
+      className="border-[#BFC6CC]/60 bg-white/95 pb-safe fixed right-0 bottom-0 left-0 z-40 mx-auto max-w-md border-t px-3 backdrop-blur-lg"
     >
       <div className="flex h-16 items-center justify-around">
         {navItems.slice(0, 2).map((item) => {
@@ -37,8 +37,8 @@ export function BottomNav({ onQuickAction }: BottomNavProps) {
               className={cn(
                 "flex flex-1 flex-col items-center justify-center gap-1 py-1 text-[11px] font-medium transition-colors",
                 isActive
-                  ? "font-semibold text-slate-900"
-                  : "text-slate-400 hover:text-slate-700"
+                  ? "font-bold text-[#194F6B]"
+                  : "text-[#607283] hover:text-[#31405F]"
               )}
             >
               <Icon className={cn("h-5 w-5", isActive ? "stroke-[2.25px]" : "stroke-[1.75px]")} />
@@ -53,7 +53,7 @@ export function BottomNav({ onQuickAction }: BottomNavProps) {
             type="button"
             onClick={onQuickAction}
             aria-label="Crear nuevo elemento"
-            className="flex h-10 w-10 items-center justify-center rounded-full bg-slate-900 text-white shadow-xs transition-all hover:bg-slate-800 active:scale-95"
+            className="flex h-10 w-10 items-center justify-center rounded-full bg-[#194F6B] text-white shadow-xs transition-all hover:bg-[#31405F] active:scale-95"
           >
             <Plus className="h-5 w-5 stroke-[2.25]" />
           </button>
@@ -69,8 +69,8 @@ export function BottomNav({ onQuickAction }: BottomNavProps) {
               className={cn(
                 "flex flex-1 flex-col items-center justify-center gap-1 py-1 text-[11px] font-medium transition-colors",
                 isActive
-                  ? "font-semibold text-slate-900"
-                  : "text-slate-400 hover:text-slate-700"
+                  ? "font-bold text-[#194F6B]"
+                  : "text-[#607283] hover:text-[#31405F]"
               )}
             >
               <Icon className={cn("h-5 w-5", isActive ? "stroke-[2.25px]" : "stroke-[1.75px]")} />

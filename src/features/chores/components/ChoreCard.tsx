@@ -41,9 +41,9 @@ export function ChoreCard({
       className={cn(
         "group relative flex items-start gap-3 rounded-2xl border p-3.5 transition-all duration-150",
         isCompleted
-          ? "border-slate-200 bg-slate-50/70 text-slate-400"
-          : "border-slate-200 bg-white hover:border-slate-300 hover:shadow-xs",
-        isCurrentUserAssigned && !isCompleted && "border-slate-900 ring-1 ring-slate-900 shadow-xs"
+          ? "border-[#BFC6CC]/40 bg-[#F4F7F8]/80 text-[#607283]"
+          : "border-[#BFC6CC]/60 bg-white hover:border-[#194F6B]/40 hover:shadow-xs",
+        isCurrentUserAssigned && !isCompleted && "border-[#31405F] ring-1 ring-[#31405F] shadow-xs"
       )}
     >
       {/* Interactive Completion Toggle Button */}
@@ -56,14 +56,14 @@ export function ChoreCard({
         className={cn(
           "flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border transition-all active:scale-90 mt-0.5",
           isCompleted
-            ? "border-slate-900 bg-slate-900 text-white shadow-xs"
-            : "border-slate-200 bg-slate-50 hover:border-slate-400 hover:bg-slate-100 text-slate-400"
+            ? "border-[#31405F] bg-[#31405F] text-white shadow-xs"
+            : "border-[#BFC6CC] bg-[#F4F7F8] hover:border-[#31405F] hover:bg-white text-[#607283]"
         )}
       >
         {isCompleted ? (
           <Check className="h-4 w-4 stroke-[2.5]" />
         ) : (
-          <span className="h-2 w-2 rounded-full bg-slate-300 group-hover:bg-slate-500 transition-colors" />
+          <span className="h-2 w-2 rounded-full bg-[#BFC6CC] group-hover:bg-[#31405F] transition-colors" />
         )}
       </button>
 
@@ -82,13 +82,13 @@ export function ChoreCard({
           </span>
 
           {/* Points Badge */}
-          <span className="inline-flex items-center rounded-md bg-secondary/80 px-1.5 py-0.5 text-[10px] font-bold text-foreground border border-border/60">
+          <span className="inline-flex items-center rounded-md bg-[#C995A2]/15 px-1.5 py-0.5 text-[10px] font-bold text-[#8B4B5B] border border-[#C995A2]/40">
             +{task.points} {task.points === 1 ? "pt" : "pts"}
           </span>
 
           {/* Frequency */}
           {task.frequency && (
-            <span className="text-muted-foreground inline-flex items-center gap-0.5 text-[10px]">
+            <span className="text-[#607283] inline-flex items-center gap-0.5 text-[10px]">
               <Clock className="h-2.5 w-2.5" />
               <span>{task.frequency === "daily" ? "Diaria" : "Semanal"}</span>
             </span>
@@ -100,8 +100,8 @@ export function ChoreCard({
           className={cn(
             "text-sm font-semibold tracking-tight mt-1 transition-all",
             isCompleted
-              ? "line-through text-muted-foreground"
-              : "text-foreground"
+              ? "line-through text-[#607283]"
+              : "text-[#31405F]"
           )}
         >
           {task.title}
@@ -109,13 +109,13 @@ export function ChoreCard({
 
         {/* Description */}
         {task.description && (
-          <p className="text-muted-foreground text-xs line-clamp-1 mt-0.5">
+          <p className="text-[#607283] text-xs line-clamp-1 mt-0.5">
             {task.description}
           </p>
         )}
 
         {/* Assigned User Footer */}
-        <div className="flex items-center justify-between mt-2 pt-1 border-t border-border/40 text-xs">
+        <div className="flex items-center justify-between mt-2 pt-1 border-t border-[#BFC6CC]/30 text-xs">
           <div className="flex items-center gap-1.5">
             {assignedFlatmate ? (
               <div className="flex items-center gap-1 text-[11px] font-medium">
@@ -130,20 +130,20 @@ export function ChoreCard({
                 <span
                   className={cn(
                     isCurrentUserAssigned
-                      ? "text-slate-900 font-semibold"
-                      : "text-slate-500"
+                      ? "text-[#31405F] font-semibold"
+                      : "text-[#607283]"
                   )}
                 >
                   {isCurrentUserAssigned ? "Te toca a ti" : assignedFlatmate.name}
                 </span>
               </div>
             ) : (
-              <span className="text-slate-400 text-[11px] italic">Sin asignar</span>
+              <span className="text-[#607283] text-[11px] italic">Sin asignar</span>
             )}
           </div>
 
           {isCompleted && (
-            <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-emerald-700">
+            <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-[#094152]">
               <CheckCircle2 className="h-3 w-3" />
               Hecho
             </span>
