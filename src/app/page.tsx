@@ -290,14 +290,6 @@ export default function HomePage() {
             </CardContent>
           </Card>
         </Link>
-
-        {/* Active Session Lease Info */}
-        <div className="border-[#BFC6CC]/60 bg-white rounded-xl border p-3 text-center shadow-xs">
-          <div className="text-[#607283] flex items-center justify-center gap-1.5 text-[11px] font-medium">
-            <span className="h-1.5 w-1.5 rounded-full bg-[#094152]" />
-            <span>Perfil bloqueado para este dispositivo · Heartbeat activo</span>
-          </div>
-        </div>
       </main>
 
       <BottomNav />
