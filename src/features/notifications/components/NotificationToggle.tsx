@@ -53,8 +53,8 @@ export function NotificationToggle() {
       className={cn(
         "flex h-8 w-8 items-center justify-center rounded-lg border transition-all active:scale-95",
         isEnabled
-          ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/20"
-          : "border-border/80 bg-secondary/80 text-muted-foreground hover:bg-secondary hover:text-foreground"
+          ? "border-[#094152]/30 bg-[#094152]/10 text-[#094152] hover:bg-[#094152]/20"
+          : "border-[#BFC6CC]/60 bg-[#F4F7F8] text-[#607283] hover:bg-[#BFC6CC]/20 hover:text-[#31405F]"
       )}
     >
       {isEnabled ? (

@@ -20,10 +20,10 @@ export function ChatView() {
   if (isLoading) {
     return (
       <div className="flex flex-col items-center justify-center py-20 text-center space-y-3">
-        <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-emerald-600/10 text-emerald-600">
+        <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[#31405F]/10 text-[#31405F]">
           <Loader2 className="h-6 w-6 animate-spin" />
         </div>
-        <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+        <p className="text-xs font-semibold uppercase tracking-wider text-[#607283]">
           Conectando al chat del piso...
         </p>
       </div>
@@ -35,9 +35,9 @@ export function ChatView() {
   return (
     <div className="flex flex-col h-[calc(100dvh-130px)] max-h-[calc(100dvh-130px)]">
       {/* Pinned Info Banner */}
-      <div className="mx-4 mt-2 mb-1 flex items-center justify-between rounded-xl border border-emerald-500/20 bg-emerald-500/5 px-3 py-2 text-xs text-emerald-700 dark:text-emerald-300">
+      <div className="mx-4 mt-2 mb-1 flex items-center justify-between rounded-xl border border-[#094152]/30 bg-[#094152]/10 px-3 py-2 text-xs text-[#094152]">
         <div className="flex items-center gap-2">
-          <Sparkles className="h-3.5 w-3.5 text-emerald-600" />
+          <Sparkles className="h-3.5 w-3.5 text-[#094152]" />
           <span className="font-medium">
             Canal en vivo del piso. Usa <strong className="font-bold">@Jorge</strong>, <strong className="font-bold">@Samuel</strong> o <strong className="font-bold">@todos</strong>
           </span>
@@ -58,11 +58,11 @@ export function ChatView() {
             />
           ))
         ) : (
-          <div className="flex flex-col items-center justify-center h-full text-center space-y-2 text-muted-foreground p-6">
-            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-secondary">
+          <div className="flex flex-col items-center justify-center h-full text-center space-y-2 text-[#607283] p-6">
+            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[#F4F7F8] text-[#31405F]">
               <MessageSquare className="h-6 w-6" />
             </div>
-            <h3 className="text-sm font-bold text-foreground">El chat está tranquilo</h3>
+            <h3 className="text-sm font-bold text-[#31405F]">El chat está tranquilo</h3>
             <p className="text-xs max-w-xs">
               Envía el primer mensaje o aviso para tus compañeros de piso.
             </p>

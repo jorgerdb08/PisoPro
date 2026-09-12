@@ -43,11 +43,11 @@ export function ChatInputBar({ onSendMessage, isSending }: ChatInputBarProps) {
   };
 
   return (
-    <div className="border-t border-border/80 bg-background/95 p-3 backdrop-blur-md space-y-2">
+    <div className="border-t border-[#BFC6CC]/60 bg-white/95 p-3 backdrop-blur-md space-y-2">
       {/* Quick Mention Suggestions */}
       <div className="flex items-center gap-1.5 overflow-x-auto pb-0.5 scrollbar-none">
-        <div className="flex items-center gap-1 text-[11px] font-semibold text-muted-foreground mr-1">
-          <AtSign className="h-3 w-3 text-emerald-600" />
+        <div className="flex items-center gap-1 text-[11px] font-semibold text-[#607283] mr-1">
+          <AtSign className="h-3 w-3 text-[#194F6B]" />
           <span>Mencionar:</span>
         </div>
         {AVAILABLE_MENTIONS.map((mention) => (
@@ -55,7 +55,7 @@ export function ChatInputBar({ onSendMessage, isSending }: ChatInputBarProps) {
             key={mention.value}
             type="button"
             onClick={() => handleInsertMention(mention.value)}
-            className="shrink-0 rounded-full border border-border/80 bg-secondary/70 px-2.5 py-0.5 text-xs font-semibold text-foreground hover:border-emerald-500/30 hover:bg-emerald-500/10 hover:text-emerald-600 transition-colors"
+            className="shrink-0 rounded-full border border-[#BFC6CC]/60 bg-[#F4F7F8] px-2.5 py-0.5 text-xs font-semibold text-[#31405F] hover:border-[#194F6B]/30 hover:bg-[#194F6B]/10 hover:text-[#194F6B] transition-colors"
           >
             {mention.label}
           </button>
@@ -72,7 +72,7 @@ export function ChatInputBar({ onSendMessage, isSending }: ChatInputBarProps) {
           onChange={(e) => setContent(e.target.value)}
           onKeyDown={handleKeyDown}
           placeholder="Escribe un mensaje o aviso..."
-          className="flex-1 rounded-2xl border border-border/80 bg-card px-4 py-2.5 text-sm text-foreground placeholder:text-muted-foreground/60 focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 transition-all"
+          className="flex-1 rounded-2xl border border-[#BFC6CC]/80 bg-white px-4 py-2.5 text-sm text-[#31405F] placeholder:text-[#607283]/60 focus:border-[#194F6B] focus:outline-none focus:ring-1 focus:ring-[#194F6B]/20 transition-all"
         />
 
         <button
@@ -80,7 +80,7 @@ export function ChatInputBar({ onSendMessage, isSending }: ChatInputBarProps) {
           data-testid="chat-send-btn"
           disabled={!content.trim() || isSending}
           aria-label="Enviar mensaje"
-          className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-emerald-600 text-white shadow-md shadow-emerald-600/20 hover:bg-emerald-700 disabled:opacity-40 disabled:hover:bg-emerald-600 active:scale-95 transition-all"
+          className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-[#31405F] text-white shadow-xs hover:bg-[#194F6B] disabled:opacity-40 disabled:hover:bg-[#31405F] active:scale-95 transition-all"
         >
           {isSending ? (
             <Loader2 className="h-4 w-4 animate-spin" />

@@ -1,6 +1,7 @@
 import React from "react";
 import { Shield, Home, LogOut } from "lucide-react";
 import { NotificationToggle } from "@/features/notifications/components/NotificationToggle";
+import { FLAT_INFO } from "@/lib/constants";
 import { cn } from "@/lib/utils";
 
 interface TopHeaderProps {
@@ -15,7 +16,7 @@ interface TopHeaderProps {
 
 export function TopHeader({
   title = "PisoPro",
-  subtitle = "Nuestro piso",
+  subtitle = FLAT_INFO.address,
   userName,
   userRole,
   onLogout,

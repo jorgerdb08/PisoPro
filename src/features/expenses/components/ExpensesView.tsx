@@ -40,17 +40,17 @@ export function ExpensesView() {
   return (
     <div className="space-y-4 pb-20">
       {/* Header Banner */}
-      <div className="rounded-3xl border border-border/80 bg-gradient-to-br from-card via-card/90 to-secondary/30 p-5 shadow-xs backdrop-blur-md space-y-3">
+      <div className="rounded-3xl border border-[#BFC6CC]/60 bg-white p-5 shadow-xs space-y-3">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2.5">
-            <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-emerald-600 text-white shadow-md shadow-emerald-600/30">
-              <Wallet className="h-5 w-5" />
+            <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-[#31405F] text-white shadow-xs">
+              <Wallet className="h-5 w-5 stroke-[2]" />
             </div>
             <div>
-              <h2 className="text-foreground text-lg font-bold tracking-tight">
+              <h2 className="text-[#31405F] text-lg font-bold tracking-tight">
                 Gastos Compartidos
               </h2>
-              <p className="text-muted-foreground text-xs">
+              <p className="text-[#607283] text-xs">
                 Cuentas claras y reparto equitativo
               </p>
             </div>
@@ -60,19 +60,19 @@ export function ExpensesView() {
             type="button"
             onClick={() => void refreshExpenses()}
             title="Actualizar cuentas"
-            className="text-muted-foreground hover:text-foreground flex h-8 w-8 items-center justify-center rounded-xl border border-border/60 transition-colors"
+            className="text-[#607283] hover:text-[#31405F] flex h-8 w-8 items-center justify-center rounded-xl border border-[#BFC6CC]/60 transition-colors"
           >
             <RotateCw className={cn("h-4 w-4", isLoading && "animate-spin")} />
           </button>
         </div>
 
         {/* Total Month Spend & Action Button */}
-        <div className="flex items-center justify-between pt-2 border-t border-border/60">
+        <div className="flex items-center justify-between pt-2 border-t border-[#BFC6CC]/30">
           <div>
-            <span className="text-muted-foreground text-[10px] font-semibold uppercase tracking-wider block">
+            <span className="text-[#607283] text-[10px] font-semibold uppercase tracking-wider block">
               Gasto Total del Piso
             </span>
-            <p className="text-foreground text-lg font-extrabold tracking-tight">
+            <p className="text-[#31405F] text-lg font-extrabold tracking-tight">
               {formatEuro(totalHouseholdSpend)}
             </p>
           </div>
@@ -81,16 +81,16 @@ export function ExpensesView() {
             type="button"
             data-testid="open-create-expense-btn"
             onClick={() => setIsCreateOpen(true)}
-            className="inline-flex items-center gap-1.5 rounded-xl bg-emerald-600 px-3.5 py-2 text-xs font-bold text-white shadow-xs hover:bg-emerald-700 active:scale-95 transition-all"
+            className="inline-flex items-center gap-1.5 rounded-xl bg-[#31405F] px-3.5 py-2 text-xs font-bold text-white shadow-xs hover:bg-[#194F6B] active:scale-95 transition-all"
           >
-            <Plus className="h-4 w-4" />
+            <Plus className="h-4 w-4 stroke-[2.25]" />
             <span>Nuevo Gasto</span>
           </button>
         </div>
       </div>
 
       {/* Tabs */}
-      <div className="flex gap-1.5 p-1 rounded-2xl bg-secondary/80 border border-border/60">
+      <div className="flex gap-1.5 p-1 rounded-2xl bg-[#F4F7F8] border border-[#BFC6CC]/60">
         <button
           type="button"
           data-testid="tab-balances"
@@ -98,8 +98,8 @@ export function ExpensesView() {
           className={cn(
             "flex-1 flex items-center justify-center gap-1.5 rounded-xl py-2 text-xs font-semibold transition-all",
             activeTab === "balances"
-              ? "bg-background text-foreground shadow-xs"
-              : "text-muted-foreground hover:text-foreground"
+              ? "bg-white text-[#31405F] shadow-xs font-bold"
+              : "text-[#607283] hover:text-[#31405F]"
           )}
         >
           <Scale className="h-3.5 w-3.5" />
@@ -113,8 +113,8 @@ export function ExpensesView() {
           className={cn(
             "flex-1 flex items-center justify-center gap-1.5 rounded-xl py-2 text-xs font-semibold transition-all",
             activeTab === "history"
-              ? "bg-background text-foreground shadow-xs"
-              : "text-muted-foreground hover:text-foreground"
+              ? "bg-white text-[#31405F] shadow-xs font-bold"
+              : "text-[#607283] hover:text-[#31405F]"
           )}
         >
           <Receipt className="h-3.5 w-3.5" />
@@ -124,8 +124,8 @@ export function ExpensesView() {
 
       {/* Main Content Area */}
       {isLoading ? (
-        <div className="flex flex-col items-center justify-center py-12 space-y-2 text-center text-xs text-muted-foreground">
-          <Loader2 className="h-6 w-6 animate-spin text-emerald-600" />
+        <div className="flex flex-col items-center justify-center py-12 space-y-2 text-center text-xs text-[#607283]">
+          <Loader2 className="h-6 w-6 animate-spin text-[#31405F]" />
           <span>Cargando cuentas del piso...</span>
         </div>
       ) : activeTab === "balances" ? (
@@ -148,12 +148,12 @@ export function ExpensesView() {
               />
             ))
           ) : (
-            <div className="flex flex-col items-center justify-center rounded-3xl border border-dashed border-border/80 p-8 text-center space-y-2 bg-card/50">
-              <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
+            <div className="flex flex-col items-center justify-center rounded-3xl border border-dashed border-[#BFC6CC]/80 p-8 text-center space-y-2 bg-white">
+              <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[#094152]/10 text-[#094152]">
                 <Sparkles className="h-6 w-6" />
               </div>
-              <h4 className="text-foreground text-sm font-bold">Sin gastos registrados</h4>
-              <p className="text-muted-foreground text-xs max-w-xs">
+              <h4 className="text-[#31405F] text-sm font-bold">Sin gastos registrados</h4>
+              <p className="text-[#607283] text-xs max-w-xs">
                 Añade el primer ticket del piso para empezar a repartir costes equitativamente.
               </p>
             </div>
