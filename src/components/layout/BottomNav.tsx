@@ -3,7 +3,7 @@
 import React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Home, CheckSquare, Wallet, MessageSquare, Users, Plus } from "lucide-react";
+import { Home, CheckSquare, Wallet, MessageSquare, Plus } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface BottomNavProps {
@@ -18,7 +18,6 @@ export function BottomNav({ onQuickAction }: BottomNavProps) {
     { label: "Tareas", href: "/tareas", icon: CheckSquare },
     { label: "Gastos", href: "/gastos", icon: Wallet },
     { label: "Chat", href: "/chat", icon: MessageSquare },
-    { label: "Piso", href: "/piso", icon: Users },
   ];
 
   return (

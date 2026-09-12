@@ -74,7 +74,7 @@ export const QUICK_SHOPPING_PRESETS = [
 
 export const FLAT_INFO = {
   name: "Nuestro piso",
-  address: "Calle Mayor 14, 3ºB",
+  address: "C/ Jose Luis Cotallo, 1º C",
   city: "Madrid, 28013",
   wifiSsid: "PisoPro_5G_Fibra",
   wifiPass: "PisoPro2026!WiFi",

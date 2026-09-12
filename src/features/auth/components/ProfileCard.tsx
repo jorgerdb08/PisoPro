@@ -24,6 +24,7 @@ export function ProfileCard({
 }: ProfileCardProps) {
   const isBusyOtherDevice = profile.is_busy && !profile.is_current_device;
   const isAvailable = !profile.is_busy || profile.is_current_device;
+  const canForceRelease = Boolean((isCurrentAdmin || profile.role === "admin") && onForceRelease);
 
   const getAvatarStyles = (name: string) => {
     switch (name) {
@@ -40,6 +41,7 @@ export function ProfileCard({
 
   return (
     <Card
+      data-testid={`profile-card-${profile.name.toLowerCase()}`}
       className={cn(
         "relative overflow-hidden transition-all duration-150 border-[#BFC6CC]/60 bg-white",
         isAvailable && !isClaiming
@@ -121,6 +123,7 @@ export function ProfileCard({
           ) : profile.is_current_device ? (
             <button
               type="button"
+              data-testid={`select-profile-${profile.name.toLowerCase()}`}
               className="rounded-lg bg-[#31405F] px-3 py-1.5 text-xs font-medium text-white transition hover:bg-[#194F6B] active:scale-95"
             >
               Entrar
@@ -130,13 +133,14 @@ export function ProfileCard({
               <Badge variant="outline" className="border-[#C995A2]/50 text-[#8B4B5B] px-2 py-0.5 text-[11px]">
                 En uso
               </Badge>
-              {isCurrentAdmin && onForceRelease && (
+              {canForceRelease && (
                 <button
                   type="button"
+                  data-testid={`force-release-profile-${profile.name.toLowerCase()}`}
                   title="Forzar liberación de sesión (Admin)"
                   onClick={(e) => {
                     e.stopPropagation();
-                    onForceRelease(profile.id);
+                    onForceRelease?.(profile.id);
                   }}
                   className="text-[#607283] hover:bg-[#F4F7F8] hover:text-[#31405F] rounded-lg p-1.5 transition"
                 >
@@ -147,6 +151,7 @@ export function ProfileCard({
           ) : (
             <button
               type="button"
+              data-testid={`select-profile-${profile.name.toLowerCase()}`}
               className="flex items-center gap-1 rounded-lg border border-[#BFC6CC]/70 bg-[#F4F7F8] px-3 py-1.5 text-xs font-medium text-[#31405F] transition hover:bg-[#31405F] hover:text-white hover:border-[#31405F] active:scale-95"
             >
               <span>Seleccionar</span>

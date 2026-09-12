@@ -158,7 +158,7 @@ export function ChoreCard({
             type="button"
             data-testid={`chore-admin-menu-${task.id}`}
             onClick={() => setShowAdminMenu((prev) => !prev)}
-            className="text-muted-foreground hover:text-foreground flex h-7 w-7 items-center justify-center rounded-lg hover:bg-secondary/80 transition-colors"
+            className="text-[#607283] hover:text-[#31405F] flex h-7 w-7 items-center justify-center rounded-lg hover:bg-[#F4F7F8] transition-colors"
           >
             <MoreVertical className="h-3.5 w-3.5" />
           </button>
@@ -169,8 +169,8 @@ export function ChoreCard({
                 className="fixed inset-0 z-40"
                 onClick={() => setShowAdminMenu(false)}
               />
-              <div className="absolute right-0 top-8 z-50 w-44 rounded-2xl border border-border/80 bg-background/95 p-1.5 shadow-xl backdrop-blur-md animate-in fade-in-50 zoom-in-95">
-                <div className="text-muted-foreground px-2 py-1 text-[10px] font-bold uppercase tracking-wider">
+              <div className="absolute right-0 top-8 z-50 w-44 rounded-2xl border border-[#BFC6CC]/60 bg-white p-1.5 shadow-xl backdrop-blur-md animate-in fade-in-50 zoom-in-95">
+                <div className="text-[#607283] px-2 py-1 text-[10px] font-bold uppercase tracking-wider">
                   Reasignar a
                 </div>
                 {FLATMATES.map((f) => (
@@ -184,8 +184,8 @@ export function ChoreCard({
                     className={cn(
                       "flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-xs transition-colors",
                       task.assigned_user_id === f.id
-                        ? "bg-secondary font-semibold text-foreground"
-                        : "text-muted-foreground hover:bg-secondary/60 hover:text-foreground"
+                        ? "bg-[#F4F7F8] font-bold text-[#31405F]"
+                        : "text-[#607283] hover:bg-[#F4F7F8] hover:text-[#31405F]"
                     )}
                   >
                     <UserCheck className="h-3.5 w-3.5" />
@@ -194,7 +194,7 @@ export function ChoreCard({
                 ))}
                 {onDelete && (
                   <>
-                    <div className="my-1 border-t border-border/60" />
+                    <div className="my-1 border-t border-[#BFC6CC]/40" />
                     <button
                       type="button"
                       data-testid={`chore-delete-${task.id}`}
@@ -202,7 +202,7 @@ export function ChoreCard({
                         setShowAdminMenu(false);
                         onDelete(task.id);
                       }}
-                      className="text-destructive hover:bg-destructive/10 flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-xs transition-colors"
+                      className="text-[#8B4B5B] hover:bg-[#C995A2]/15 flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-xs transition-colors font-medium"
                     >
                       <Trash2 className="h-3.5 w-3.5" />
                       <span>Eliminar tarea</span>

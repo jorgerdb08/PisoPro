@@ -62,7 +62,6 @@ export default function HomePage() {
     <div className="flex min-h-screen flex-col pb-24">
       <TopHeader
         title="PisoPro"
-        subtitle="Nuestro piso"
         userName={currentUser.name}
         userRole={currentUser.role}
         onOpenAdmin={() => setIsAdminModalOpen(true)}

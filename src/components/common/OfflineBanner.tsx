@@ -34,7 +34,7 @@ export function OfflineBanner() {
         data-testid="online-restored-banner"
         role="status"
         aria-live="polite"
-        className="fixed top-0 left-0 right-0 z-50 mx-auto max-w-md bg-emerald-600 px-4 py-2 text-white shadow-lg animate-in slide-in-from-top duration-200"
+        className="fixed top-0 left-0 right-0 z-50 mx-auto max-w-md bg-[#094152] px-4 py-2 text-white shadow-lg animate-in slide-in-from-top duration-200"
       >
         <div className="flex items-center gap-2 text-xs font-semibold">
           <CheckCircle2 className="h-4 w-4 shrink-0" />

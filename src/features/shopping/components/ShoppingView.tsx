@@ -72,10 +72,10 @@ export function ShoppingView() {
   if (isLoading) {
     return (
       <div className="flex flex-col items-center justify-center py-16 text-center space-y-3">
-        <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-emerald-600/10 text-emerald-600">
+        <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[#31405F]/10 text-[#31405F]">
           <Loader2 className="h-6 w-6 animate-spin" />
         </div>
-        <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+        <p className="text-xs font-semibold uppercase tracking-wider text-[#607283]">
           Cargando lista de la compra...
         </p>
       </div>
@@ -87,11 +87,11 @@ export function ShoppingView() {
       {/* Header Summary & New Item Action */}
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-xl font-black tracking-tight text-foreground flex items-center gap-2">
+          <h2 className="text-xl font-bold tracking-tight text-[#31405F] flex items-center gap-2">
             <span>Lista de la Compra</span>
-            <span className="text-base font-medium text-muted-foreground">🛒</span>
+            <span className="text-base font-medium text-[#607283]">🛒</span>
           </h2>
-          <p className="text-xs text-muted-foreground">
+          <p className="text-xs text-[#607283]">
             {pendingItems.length === 0
               ? "¡Todo comprado! La despensa está llena."
               : `${pendingItems.length} producto${pendingItems.length === 1 ? "" : "s"} pendiente${pendingItems.length === 1 ? "" : "s"}`}
@@ -102,7 +102,7 @@ export function ShoppingView() {
           type="button"
           data-testid="open-create-item-btn"
           onClick={() => setIsCreateModalOpen(true)}
-          className="h-9 gap-1.5 rounded-xl bg-emerald-600 px-3.5 text-xs font-bold text-white shadow-md shadow-emerald-600/20 hover:bg-emerald-700 active:scale-95 transition-all"
+          className="h-9 gap-1.5 rounded-xl bg-[#31405F] px-3.5 text-xs font-bold text-white shadow-xs hover:bg-[#194F6B] active:scale-95 transition-all"
         >
           <Plus className="h-4 w-4 stroke-[2.5]" />
           <span>Añadir</span>
@@ -110,7 +110,7 @@ export function ShoppingView() {
       </div>
 
       {/* Tabs */}
-      <div className="grid grid-cols-2 rounded-2xl border border-border/80 bg-secondary/40 p-1">
+      <div className="grid grid-cols-2 rounded-2xl border border-[#BFC6CC]/60 bg-[#F4F7F8] p-1">
         <button
           type="button"
           data-testid="tab-pending-items"
@@ -118,14 +118,14 @@ export function ShoppingView() {
           className={cn(
             "flex items-center justify-center gap-1.5 rounded-xl py-2 text-xs font-bold transition-all",
             activeTab === "pending"
-              ? "bg-card text-foreground shadow-sm"
-              : "text-muted-foreground hover:text-foreground"
+              ? "bg-white text-[#31405F] shadow-xs"
+              : "text-[#607283] hover:text-[#31405F]"
           )}
         >
           <ShoppingCart className="h-3.5 w-3.5" />
           <span>Por Comprar</span>
           {pendingItems.length > 0 && (
-            <span className="ml-1 rounded-full bg-emerald-500/15 px-1.5 py-0.2 text-[10px] font-extrabold text-emerald-600 dark:text-emerald-400">
+            <span className="ml-1 rounded-full bg-[#094152]/15 px-1.5 py-0.2 text-[10px] font-extrabold text-[#094152]">
               {pendingItems.length}
             </span>
           )}
@@ -138,14 +138,14 @@ export function ShoppingView() {
           className={cn(
             "flex items-center justify-center gap-1.5 rounded-xl py-2 text-xs font-bold transition-all",
             activeTab === "completed"
-              ? "bg-card text-foreground shadow-sm"
-              : "text-muted-foreground hover:text-foreground"
+              ? "bg-white text-[#31405F] shadow-xs"
+              : "text-[#607283] hover:text-[#31405F]"
           )}
         >
           <CheckCircle2 className="h-3.5 w-3.5" />
           <span>Comprados</span>
           {completedItems.length > 0 && (
-            <span className="ml-1 rounded-full bg-secondary px-1.5 py-0.2 text-[10px] font-bold text-muted-foreground">
+            <span className="ml-1 rounded-full bg-[#BFC6CC]/30 px-1.5 py-0.2 text-[10px] font-bold text-[#607283]">
               {completedItems.length}
             </span>
           )}
@@ -155,14 +155,14 @@ export function ShoppingView() {
       {/* Search Bar & Category Filter */}
       <div className="space-y-2">
         <div className="relative">
-          <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-[#607283]" />
           <input
             type="text"
             data-testid="search-shopping-input"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Buscar productos..."
-            className="w-full rounded-xl border border-border/80 bg-card pl-9 pr-4 py-2 text-xs text-foreground placeholder:text-muted-foreground/60 focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 transition-all"
+            className="w-full rounded-xl border border-[#BFC6CC]/80 bg-white pl-9 pr-4 py-2 text-xs text-[#31405F] placeholder:text-[#607283]/60 focus:border-[#194F6B] focus:outline-none focus:ring-1 focus:ring-[#194F6B]/20 transition-all"
           />
         </div>
 
@@ -174,8 +174,8 @@ export function ShoppingView() {
             className={cn(
               "shrink-0 rounded-full border px-2.5 py-1 text-[11px] font-semibold transition-colors",
               selectedCategory === "all"
-                ? "border-emerald-500 bg-emerald-500 text-white shadow-xs"
-                : "border-border/80 bg-card text-muted-foreground hover:text-foreground"
+                ? "border-[#094152] bg-[#094152] text-white shadow-xs"
+                : "border-[#BFC6CC]/80 bg-white text-[#607283] hover:text-[#31405F]"
             )}
           >
             Todos
@@ -188,8 +188,8 @@ export function ShoppingView() {
               className={cn(
                 "shrink-0 rounded-full border px-2.5 py-1 text-[11px] font-medium transition-colors flex items-center gap-1",
                 selectedCategory === cat.value
-                  ? "border-emerald-500 bg-emerald-500 text-white shadow-xs"
-                  : "border-border/80 bg-card text-muted-foreground hover:text-foreground"
+                  ? "border-[#094152] bg-[#094152] text-white shadow-xs"
+                  : "border-[#BFC6CC]/80 bg-white text-[#607283] hover:text-[#31405F]"
               )}
             >
               <span>{cat.icon}</span>
@@ -207,7 +207,7 @@ export function ShoppingView() {
             data-testid="clear-completed-btn"
             disabled={isClearing}
             onClick={handleClearCompleted}
-            className="flex items-center gap-1.5 text-xs font-semibold text-destructive hover:underline active:scale-95 transition-all"
+            className="flex items-center gap-1.5 text-xs font-semibold text-[#8B4B5B] hover:underline active:scale-95 transition-all"
           >
             {isClearing ? (
               <Loader2 className="h-3.5 w-3.5 animate-spin" />
@@ -232,23 +232,23 @@ export function ShoppingView() {
             />
           ))
         ) : (
-          <div className="rounded-2xl border border-dashed border-border/80 p-8 text-center space-y-3 bg-secondary/10">
-            <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-secondary text-muted-foreground">
+          <div className="rounded-2xl border border-dashed border-[#BFC6CC]/80 p-8 text-center space-y-3 bg-white">
+            <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-[#094152]/10 text-[#094152]">
               {activeTab === "pending" ? (
-                <Sparkles className="h-6 w-6 text-amber-500" />
+                <Sparkles className="h-6 w-6 text-[#094152]" />
               ) : (
-                <CheckCircle2 className="h-6 w-6 text-emerald-500" />
+                <CheckCircle2 className="h-6 w-6 text-[#094152]" />
               )}
             </div>
             <div className="space-y-1">
-              <h3 className="text-sm font-bold text-foreground">
+              <h3 className="text-sm font-bold text-[#31405F]">
                 {activeTab === "pending"
                   ? searchQuery || selectedCategory !== "all"
                     ? "No se encontraron productos"
                     : "No hay productos pendientes"
                   : "Aún no hay productos comprados"}
               </h3>
-              <p className="text-xs text-muted-foreground max-w-xs mx-auto">
+              <p className="text-xs text-[#607283] max-w-xs mx-auto">
                 {activeTab === "pending"
                   ? searchQuery || selectedCategory !== "all"
                     ? "Prueba a cambiar el término de búsqueda o categoría."
@@ -261,7 +261,7 @@ export function ShoppingView() {
                 type="button"
                 onClick={() => setIsCreateModalOpen(true)}
                 size="sm"
-                className="rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs shadow-sm"
+                className="rounded-xl bg-[#31405F] hover:bg-[#194F6B] text-white font-semibold text-xs shadow-xs"
               >
                 <Plus className="mr-1.5 h-3.5 w-3.5" />
                 Añadir producto

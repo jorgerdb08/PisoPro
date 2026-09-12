@@ -75,17 +75,17 @@ export function ChoresView() {
   return (
     <div className="space-y-4 pb-20">
       {/* Header Banner & Progress */}
-      <div className="rounded-3xl border border-border/80 bg-gradient-to-br from-card via-card/90 to-secondary/30 p-5 shadow-sm backdrop-blur-md space-y-3">
+      <div className="rounded-3xl border border-[#BFC6CC]/60 bg-white p-5 shadow-xs space-y-3">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2.5">
-            <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-emerald-600 text-white shadow-md shadow-emerald-600/30">
-              <CheckCircle2 className="h-5 w-5" />
+            <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-[#31405F] text-white shadow-xs">
+              <CheckCircle2 className="h-5 w-5 stroke-[2]" />
             </div>
             <div>
-              <h2 className="text-foreground text-lg font-bold tracking-tight">
+              <h2 className="text-[#31405F] text-lg font-bold tracking-tight">
                 Tareas del Hogar
               </h2>
-              <p className="text-muted-foreground text-xs">
+              <p className="text-[#607283] text-xs">
                 Rotación y puntos de limpieza del piso
               </p>
             </div>
@@ -95,7 +95,7 @@ export function ChoresView() {
             type="button"
             onClick={() => void refreshTasks()}
             title="Actualizar lista"
-            className="text-muted-foreground hover:text-foreground flex h-8 w-8 items-center justify-center rounded-xl border border-border/60 transition-colors"
+            className="text-[#607283] hover:text-[#31405F] flex h-8 w-8 items-center justify-center rounded-xl border border-[#BFC6CC]/60 transition-colors"
           >
             <RotateCw className={cn("h-4 w-4", isLoading && "animate-spin")} />
           </button>
@@ -104,17 +104,17 @@ export function ChoresView() {
         {/* Progress Bar */}
         <div className="space-y-1.5 pt-1">
           <div className="flex items-center justify-between text-xs font-semibold">
-            <span className="text-foreground flex items-center gap-1.5">
-              <Sparkles className="h-3.5 w-3.5 text-emerald-600" />
+            <span className="text-[#31405F] flex items-center gap-1.5">
+              <Sparkles className="h-3.5 w-3.5 text-[#094152]" />
               <span>Progreso de la semana</span>
             </span>
-            <span className="text-emerald-600 dark:text-emerald-400">
+            <span className="text-[#094152] font-bold">
               {completedCount} de {totalCount} ({progressPercent}%)
             </span>
           </div>
-          <div className="h-2 w-full overflow-hidden rounded-full bg-secondary">
+          <div className="h-2 w-full overflow-hidden rounded-full bg-[#F4F7F8]">
             <div
-              className="h-full rounded-full bg-emerald-500 transition-all duration-500 ease-out shadow-xs"
+              className="h-full rounded-full bg-[#094152] transition-all duration-500 ease-out shadow-xs"
               style={{ width: `${progressPercent}%` }}
             />
           </div>
@@ -122,15 +122,15 @@ export function ChoresView() {
 
         {/* Admin Quick Action Toolbar */}
         {isAdmin && (
-          <div className="flex items-center gap-2 pt-2 border-t border-border/60">
+          <div className="flex items-center gap-2 pt-2 border-t border-[#BFC6CC]/30">
             <button
               type="button"
               data-testid="rotate-chores-btn"
               disabled={isRotating}
               onClick={handleRotate}
-              className="flex-1 inline-flex items-center justify-center gap-1.5 rounded-xl border border-border/80 bg-secondary/80 py-2 text-xs font-semibold text-foreground hover:bg-secondary transition-colors active:scale-95 disabled:opacity-50"
+              className="flex-1 inline-flex items-center justify-center gap-1.5 rounded-xl border border-[#BFC6CC]/60 bg-[#F4F7F8] py-2 text-xs font-semibold text-[#31405F] hover:bg-[#BFC6CC]/20 transition-colors active:scale-95 disabled:opacity-50"
             >
-              <RotateCw className={cn("h-3.5 w-3.5 text-emerald-600", isRotating && "animate-spin")} />
+              <RotateCw className={cn("h-3.5 w-3.5 text-[#194F6B]", isRotating && "animate-spin")} />
               <span>{isRotating ? "Rotando..." : "Rotar Semana"}</span>
             </button>
 
@@ -138,9 +138,9 @@ export function ChoresView() {
               type="button"
               data-testid="create-chore-btn"
               onClick={() => setIsCreateOpen(true)}
-              className="flex-1 inline-flex items-center justify-center gap-1.5 rounded-xl bg-emerald-600 py-2 text-xs font-bold text-white shadow-xs hover:bg-emerald-700 transition-all active:scale-95"
+              className="flex-1 inline-flex items-center justify-center gap-1.5 rounded-xl bg-[#31405F] py-2 text-xs font-bold text-white shadow-xs hover:bg-[#194F6B] transition-all active:scale-95"
             >
-              <Plus className="h-3.5 w-3.5" />
+              <Plus className="h-3.5 w-3.5 stroke-[2.25]" />
               <span>Nueva Tarea</span>
             </button>
           </div>
@@ -153,8 +153,8 @@ export function ChoresView() {
           className={cn(
             "flex items-center gap-2 rounded-2xl p-3 text-xs font-medium animate-in fade-in-50",
             notice.type === "success"
-              ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20"
-              : "bg-destructive/10 text-destructive border border-destructive/20"
+              ? "bg-[#094152]/10 text-[#094152] border border-[#094152]/20"
+              : "bg-[#C995A2]/15 text-[#8B4B5B] border border-[#C995A2]/30"
           )}
         >
           {notice.type === "success" ? (
@@ -167,7 +167,7 @@ export function ChoresView() {
       )}
 
       {/* Tab Selectors */}
-      <div className="flex gap-1.5 p-1 rounded-2xl bg-secondary/80 border border-border/60">
+      <div className="flex gap-1.5 p-1 rounded-2xl bg-[#F4F7F8] border border-[#BFC6CC]/60">
         <button
           type="button"
           data-testid="tab-my-chores"
@@ -175,8 +175,8 @@ export function ChoresView() {
           className={cn(
             "flex-1 flex items-center justify-center gap-1.5 rounded-xl py-2 text-xs font-semibold transition-all",
             activeTab === "mine"
-              ? "bg-background text-foreground shadow-xs"
-              : "text-muted-foreground hover:text-foreground"
+              ? "bg-white text-[#31405F] shadow-xs font-bold"
+              : "text-[#607283] hover:text-[#31405F]"
           )}
         >
           <Calendar className="h-3.5 w-3.5" />
@@ -190,8 +190,8 @@ export function ChoresView() {
           className={cn(
             "flex-1 flex items-center justify-center gap-1.5 rounded-xl py-2 text-xs font-semibold transition-all",
             activeTab === "all"
-              ? "bg-background text-foreground shadow-xs"
-              : "text-muted-foreground hover:text-foreground"
+              ? "bg-white text-[#31405F] shadow-xs font-bold"
+              : "text-[#607283] hover:text-[#31405F]"
           )}
         >
           <ListTodo className="h-3.5 w-3.5" />
@@ -205,8 +205,8 @@ export function ChoresView() {
           className={cn(
             "flex-1 flex items-center justify-center gap-1.5 rounded-xl py-2 text-xs font-semibold transition-all",
             activeTab === "completed"
-              ? "bg-background text-foreground shadow-xs"
-              : "text-muted-foreground hover:text-foreground"
+              ? "bg-white text-[#31405F] shadow-xs font-bold"
+              : "text-[#607283] hover:text-[#31405F]"
           )}
         >
           <CheckCircle2 className="h-3.5 w-3.5" />
@@ -217,8 +217,8 @@ export function ChoresView() {
       {/* Tasks List */}
       <div className="space-y-2.5">
         {isLoading ? (
-          <div className="flex flex-col items-center justify-center py-12 space-y-2 text-center text-xs text-muted-foreground">
-            <Loader2 className="h-6 w-6 animate-spin text-emerald-600" />
+          <div className="flex flex-col items-center justify-center py-12 space-y-2 text-center text-xs text-[#607283]">
+            <Loader2 className="h-6 w-6 animate-spin text-[#31405F]" />
             <span>Cargando tareas del piso...</span>
           </div>
         ) : displayedTasks.length > 0 ? (
@@ -235,18 +235,18 @@ export function ChoresView() {
             />
           ))
         ) : (
-          <div className="flex flex-col items-center justify-center rounded-3xl border border-dashed border-border/80 p-8 text-center space-y-2 bg-card/50">
-            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
+          <div className="flex flex-col items-center justify-center rounded-3xl border border-dashed border-[#BFC6CC]/80 p-8 text-center space-y-2 bg-white">
+            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[#094152]/10 text-[#094152]">
               <Sparkles className="h-6 w-6" />
             </div>
-            <h4 className="text-foreground text-sm font-bold">
+            <h4 className="text-[#31405F] text-sm font-bold">
               {activeTab === "mine"
                 ? "¡Estás al día!"
                 : activeTab === "completed"
                 ? "Ninguna tarea completada todavía"
                 : "No hay tareas registradas"}
             </h4>
-            <p className="text-muted-foreground text-xs max-w-xs">
+            <p className="text-[#607283] text-xs max-w-xs">
               {activeTab === "mine"
                 ? "No tienes tareas pendientes asignadas en este momento. ¡Disfruta del descanso!"
                 : activeTab === "completed"

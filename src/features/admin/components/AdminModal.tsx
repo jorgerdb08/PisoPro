@@ -134,21 +134,21 @@ export function AdminModal({ isOpen, onClose }: AdminModalProps) {
                     Compañeros Registrados (3)
                   </span>
                   <div className="mt-2 space-y-1.5">
-                    <div className="flex items-center justify-between p-2 rounded-xl bg-secondary/50">
-                      <span className="font-medium text-foreground">Jorge</span>
-                      <span className="text-[10px] font-semibold text-emerald-600 bg-emerald-500/10 px-2 py-0.5 rounded-full">
+                    <div className="flex items-center justify-between p-2 rounded-xl bg-[#F4F7F8]">
+                      <span className="font-medium text-[#31405F]">Jorge</span>
+                      <span className="text-[10px] font-semibold text-[#094152] bg-[#094152]/10 px-2 py-0.5 rounded-full">
                         Administrador
                       </span>
                     </div>
-                    <div className="flex items-center justify-between p-2 rounded-xl bg-secondary/50">
-                      <span className="font-medium text-foreground">Samuel</span>
-                      <span className="text-[10px] font-medium text-muted-foreground bg-secondary px-2 py-0.5 rounded-full">
+                    <div className="flex items-center justify-between p-2 rounded-xl bg-[#F4F7F8]">
+                      <span className="font-medium text-[#31405F]">Samuel</span>
+                      <span className="text-[10px] font-medium text-[#607283] bg-[#BFC6CC]/30 px-2 py-0.5 rounded-full">
                         Miembro
                       </span>
                     </div>
-                    <div className="flex items-center justify-between p-2 rounded-xl bg-secondary/50">
-                      <span className="font-medium text-foreground">David</span>
-                      <span className="text-[10px] font-medium text-muted-foreground bg-secondary px-2 py-0.5 rounded-full">
+                    <div className="flex items-center justify-between p-2 rounded-xl bg-[#F4F7F8]">
+                      <span className="font-medium text-[#31405F]">David</span>
+                      <span className="text-[10px] font-medium text-[#607283] bg-[#BFC6CC]/30 px-2 py-0.5 rounded-full">
                         Miembro
                       </span>
                     </div>
@@ -160,47 +160,47 @@ export function AdminModal({ isOpen, onClose }: AdminModalProps) {
 
           {activeTab === "roles" && (
             <div className="space-y-3 text-xs">
-              <div className="rounded-2xl border border-border/80 bg-card p-4 space-y-3">
-                <div className="flex items-center gap-2 text-foreground font-semibold">
-                  <Info className="h-4 w-4 text-emerald-600" />
+              <div className="rounded-2xl border border-[#BFC6CC]/60 bg-white p-4 space-y-3">
+                <div className="flex items-center gap-2 text-[#31405F] font-semibold">
+                  <Info className="h-4 w-4 text-[#194F6B]" />
                   <span>Matriz de Permisos del Piso</span>
                 </div>
 
-                <div className="divide-y divide-border/60 border border-border/60 rounded-xl overflow-hidden text-[11px]">
-                  <div className="grid grid-cols-3 p-2 bg-secondary/80 font-semibold text-muted-foreground">
+                <div className="divide-y divide-[#BFC6CC]/40 border border-[#BFC6CC]/60 rounded-xl overflow-hidden text-[11px]">
+                  <div className="grid grid-cols-3 p-2 bg-[#F4F7F8] font-semibold text-[#607283]">
                     <span>Acción</span>
                     <span className="text-center">Admin (Jorge)</span>
                     <span className="text-center">Miembros</span>
                   </div>
                   <div className="grid grid-cols-3 p-2 items-center">
-                    <span className="font-medium">Liberar sesiones colgadas</span>
-                    <span className="text-center text-emerald-600 font-bold flex justify-center"><Check className="h-3.5 w-3.5" /></span>
-                    <span className="text-center text-muted-foreground font-medium">—</span>
+                    <span className="font-medium text-[#31405F]">Liberar sesiones colgadas</span>
+                    <span className="text-center text-[#094152] font-bold flex justify-center"><Check className="h-3.5 w-3.5" /></span>
+                    <span className="text-center text-[#607283] font-medium">—</span>
                   </div>
-                  <div className="grid grid-cols-3 p-2 items-center bg-secondary/20">
-                    <span className="font-medium">Reasignar tareas de otros</span>
-                    <span className="text-center text-emerald-600 font-bold flex justify-center"><Check className="h-3.5 w-3.5" /></span>
-                    <span className="text-center text-muted-foreground font-medium">—</span>
-                  </div>
-                  <div className="grid grid-cols-3 p-2 items-center">
-                    <span className="font-medium">Configuración del piso</span>
-                    <span className="text-center text-emerald-600 font-bold flex justify-center"><Check className="h-3.5 w-3.5" /></span>
-                    <span className="text-center text-muted-foreground font-medium">—</span>
-                  </div>
-                  <div className="grid grid-cols-3 p-2 items-center bg-secondary/20">
-                    <span className="font-medium">Completar tareas propias</span>
-                    <span className="text-center text-emerald-600 font-bold flex justify-center"><Check className="h-3.5 w-3.5" /></span>
-                    <span className="text-center text-emerald-600 font-bold flex justify-center"><Check className="h-3.5 w-3.5" /></span>
+                  <div className="grid grid-cols-3 p-2 items-center bg-[#F4F7F8]/50">
+                    <span className="font-medium text-[#31405F]">Reasignar tareas de otros</span>
+                    <span className="text-center text-[#094152] font-bold flex justify-center"><Check className="h-3.5 w-3.5" /></span>
+                    <span className="text-center text-[#607283] font-medium">—</span>
                   </div>
                   <div className="grid grid-cols-3 p-2 items-center">
-                    <span className="font-medium">Añadir gastos y tickets</span>
-                    <span className="text-center text-emerald-600 font-bold flex justify-center"><Check className="h-3.5 w-3.5" /></span>
-                    <span className="text-center text-emerald-600 font-bold flex justify-center"><Check className="h-3.5 w-3.5" /></span>
+                    <span className="font-medium text-[#31405F]">Configuración del piso</span>
+                    <span className="text-center text-[#094152] font-bold flex justify-center"><Check className="h-3.5 w-3.5" /></span>
+                    <span className="text-center text-[#607283] font-medium">—</span>
                   </div>
-                  <div className="grid grid-cols-3 p-2 items-center bg-secondary/20">
-                    <span className="font-medium">Lista de compra y chat</span>
-                    <span className="text-center text-emerald-600 font-bold flex justify-center"><Check className="h-3.5 w-3.5" /></span>
-                    <span className="text-center text-emerald-600 font-bold flex justify-center"><Check className="h-3.5 w-3.5" /></span>
+                  <div className="grid grid-cols-3 p-2 items-center bg-[#F4F7F8]/50">
+                    <span className="font-medium text-[#31405F]">Completar tareas propias</span>
+                    <span className="text-center text-[#094152] font-bold flex justify-center"><Check className="h-3.5 w-3.5" /></span>
+                    <span className="text-center text-[#094152] font-bold flex justify-center"><Check className="h-3.5 w-3.5" /></span>
+                  </div>
+                  <div className="grid grid-cols-3 p-2 items-center">
+                    <span className="font-medium text-[#31405F]">Añadir gastos y tickets</span>
+                    <span className="text-center text-[#094152] font-bold flex justify-center"><Check className="h-3.5 w-3.5" /></span>
+                    <span className="text-center text-[#094152] font-bold flex justify-center"><Check className="h-3.5 w-3.5" /></span>
+                  </div>
+                  <div className="grid grid-cols-3 p-2 items-center bg-[#F4F7F8]/50">
+                    <span className="font-medium text-[#31405F]">Lista de compra y chat</span>
+                    <span className="text-center text-[#094152] font-bold flex justify-center"><Check className="h-3.5 w-3.5" /></span>
+                    <span className="text-center text-[#094152] font-bold flex justify-center"><Check className="h-3.5 w-3.5" /></span>
                   </div>
                 </div>
               </div>

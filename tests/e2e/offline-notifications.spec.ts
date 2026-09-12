@@ -16,7 +16,7 @@ test.describe("Offline Resilience & Notification Controls Flow", () => {
     await expect(page.getByText("Conectando con Supabase...")).not.toBeVisible({ timeout: 15000 });
 
     // Select the first available flatmate
-    const selectBtn = page.getByRole("button", { name: /Seleccionar/i }).first();
+    const selectBtn = page.getByRole("button", { name: /(Seleccionar|Entrar)/i }).first();
     await expect(selectBtn).toBeVisible({ timeout: 15000 });
     await selectBtn.click();
     await expect(page.getByText(/Hola,/i)).toBeVisible({ timeout: 15000 });

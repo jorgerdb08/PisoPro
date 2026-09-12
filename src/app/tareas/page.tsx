@@ -15,11 +15,11 @@ export default function TareasPage() {
 
   if (isLoading) {
     return (
-      <div className="bg-background flex min-h-screen flex-col items-center justify-center space-y-3 p-4 text-center">
-        <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-emerald-600 text-white shadow-lg shadow-emerald-600/30">
+      <div className="bg-[#FAFBFC] flex min-h-screen flex-col items-center justify-center space-y-3 p-4 text-center">
+        <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[#31405F] text-white shadow-xs">
           <Loader2 className="h-6 w-6 animate-spin" />
         </div>
-        <p className="text-muted-foreground text-xs font-semibold tracking-wide uppercase">
+        <p className="text-[#607283] text-xs font-semibold tracking-wide uppercase">
           Cargando Tareas...
         </p>
       </div>
@@ -33,8 +33,7 @@ export default function TareasPage() {
   return (
     <div className="flex min-h-screen flex-col pb-20">
       <TopHeader
-        title="Tareas"
-        subtitle="Organización del piso"
+        title="PisoPro"
         userName={currentUser.name}
         userRole={currentUser.role}
         onOpenAdmin={() => setIsAdminModalOpen(true)}
