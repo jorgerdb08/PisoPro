@@ -28,25 +28,25 @@ export function ProfileCard({
   const getAvatarStyles = (name: string) => {
     switch (name) {
       case "Jorge":
-        return "bg-slate-900 text-white border-slate-900";
+        return "bg-[#31405F] text-white border-[#31405F]";
       case "Samuel":
-        return "bg-emerald-800 text-white border-emerald-800";
+        return "bg-[#094152] text-white border-[#094152]";
       case "David":
-        return "bg-zinc-800 text-white border-zinc-800";
+        return "bg-[#194F6B] text-white border-[#194F6B]";
       default:
-        return "bg-slate-800 text-white border-slate-800";
+        return "bg-[#31405F] text-white border-[#31405F]";
     }
   };
 
   return (
     <Card
       className={cn(
-        "relative overflow-hidden transition-all duration-150 border-slate-200 bg-white",
+        "relative overflow-hidden transition-all duration-150 border-[#BFC6CC]/60 bg-white",
         isAvailable && !isClaiming
-          ? "cursor-pointer hover:border-slate-300 hover:shadow-xs active:scale-[0.99]"
+          ? "cursor-pointer hover:border-[#31405F]/40 hover:shadow-xs active:scale-[0.99]"
           : "opacity-80",
-        profile.is_current_device && "border-slate-900 ring-1 ring-slate-900 shadow-xs",
-        isBusyOtherDevice && "cursor-not-allowed border-rose-200 bg-rose-50/30"
+        profile.is_current_device && "border-[#31405F] ring-1 ring-[#31405F] shadow-xs",
+        isBusyOtherDevice && "cursor-not-allowed border-[#C995A2]/40 bg-[#C995A2]/10"
       )}
       onClick={() => {
         if (isAvailable && !isClaiming) {
@@ -71,7 +71,7 @@ export function ProfileCard({
             <span
               className={cn(
                 "absolute -right-0.5 -bottom-0.5 flex h-3.5 w-3.5 items-center justify-center rounded-full border-2 border-white",
-                isBusyOtherDevice ? "bg-rose-500" : "bg-emerald-500"
+                isBusyOtherDevice ? "bg-[#C995A2]" : "bg-[#094152]"
               )}
             />
           </div>
@@ -79,13 +79,13 @@ export function ProfileCard({
           {/* User Details */}
           <div>
             <div className="flex items-center gap-2">
-              <span className="text-slate-900 text-base font-semibold tracking-tight">
+              <span className="text-[#31405F] text-base font-semibold tracking-tight">
                 {profile.name}
               </span>
               {profile.role === "admin" && (
                 <Badge
                   variant="secondary"
-                  className="gap-1 border-slate-200 bg-slate-100 px-2 py-0 text-[10px] font-medium text-slate-700"
+                  className="gap-1 border-[#BFC6CC]/60 bg-[#F4F7F8] px-2 py-0 text-[10px] font-medium text-[#31405F]"
                 >
                   Admin
                 </Badge>
@@ -95,18 +95,18 @@ export function ProfileCard({
             {/* Availability State */}
             <div className="mt-0.5 flex items-center gap-1.5 text-xs">
               {profile.is_current_device ? (
-                <span className="flex items-center gap-1 font-medium text-emerald-700">
+                <span className="flex items-center gap-1 font-medium text-[#094152]">
                   <CheckCircle2 className="h-3.5 w-3.5" />
                   Sesión activa en este dispositivo
                 </span>
               ) : isBusyOtherDevice ? (
-                <span className="flex items-center gap-1 font-medium text-rose-600">
+                <span className="flex items-center gap-1 font-medium text-[#8B4B5B]">
                   <Lock className="h-3.5 w-3.5" />
                   En uso en otro dispositivo
                 </span>
               ) : (
-                <span className="flex items-center gap-1 font-medium text-emerald-700">
-                  <span className="h-1.5 w-1.5 rounded-full bg-emerald-600" />
+                <span className="flex items-center gap-1 font-medium text-[#094152]">
+                  <span className="h-1.5 w-1.5 rounded-full bg-[#094152]" />
                   Disponible
                 </span>
               )}
@@ -117,17 +117,17 @@ export function ProfileCard({
         {/* Action button / Status Icon */}
         <div className="flex items-center gap-2">
           {isClaiming ? (
-            <Loader2 className="h-4 w-4 animate-spin text-slate-700" />
+            <Loader2 className="h-4 w-4 animate-spin text-[#31405F]" />
           ) : profile.is_current_device ? (
             <button
               type="button"
-              className="rounded-lg bg-slate-900 px-3 py-1.5 text-xs font-medium text-white transition hover:bg-slate-800 active:scale-95"
+              className="rounded-lg bg-[#31405F] px-3 py-1.5 text-xs font-medium text-white transition hover:bg-[#194F6B] active:scale-95"
             >
               Entrar
             </button>
           ) : isBusyOtherDevice ? (
             <div className="flex items-center gap-1">
-              <Badge variant="outline" className="border-rose-200 text-rose-700 px-2 py-0.5 text-[11px]">
+              <Badge variant="outline" className="border-[#C995A2]/50 text-[#8B4B5B] px-2 py-0.5 text-[11px]">
                 En uso
               </Badge>
               {isCurrentAdmin && onForceRelease && (
@@ -138,7 +138,7 @@ export function ProfileCard({
                     e.stopPropagation();
                     onForceRelease(profile.id);
                   }}
-                  className="text-slate-400 hover:bg-slate-100 hover:text-slate-700 rounded-lg p-1.5 transition"
+                  className="text-[#607283] hover:bg-[#F4F7F8] hover:text-[#31405F] rounded-lg p-1.5 transition"
                 >
                   <RefreshCw className="h-3.5 w-3.5" />
                 </button>
@@ -147,7 +147,7 @@ export function ProfileCard({
           ) : (
             <button
               type="button"
-              className="flex items-center gap-1 rounded-lg border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-medium text-slate-700 transition hover:bg-slate-900 hover:text-white hover:border-slate-900 active:scale-95"
+              className="flex items-center gap-1 rounded-lg border border-[#BFC6CC]/70 bg-[#F4F7F8] px-3 py-1.5 text-xs font-medium text-[#31405F] transition hover:bg-[#31405F] hover:text-white hover:border-[#31405F] active:scale-95"
             >
               <span>Seleccionar</span>
               <ArrowRight className="h-3 w-3" />

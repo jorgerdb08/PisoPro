@@ -40,30 +40,30 @@ export function AdminModal({ isOpen, onClose }: AdminModalProps) {
       />
 
       {/* Modal Card */}
-      <div className="relative w-full max-w-lg rounded-3xl border border-border/80 bg-background/95 p-6 shadow-2xl backdrop-blur-xl transition-all max-h-[90vh] flex flex-col">
+      <div className="relative w-full max-w-lg rounded-3xl border border-[#BFC6CC]/60 bg-white/95 p-6 shadow-2xl backdrop-blur-xl transition-all max-h-[90vh] flex flex-col">
         {/* Header */}
-        <div className="flex items-center justify-between pb-4 border-b border-border/70">
+        <div className="flex items-center justify-between pb-4 border-b border-[#BFC6CC]/40">
           <div className="flex items-center gap-2.5">
-            <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
+            <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-[#094152]/10 text-[#094152]">
               <Shield className="h-5 w-5" />
             </div>
             <div>
-              <h2 className="text-foreground text-lg font-bold">Administración del Piso</h2>
-              <p className="text-muted-foreground text-xs">Exclusivo para Jorge (Admin)</p>
+              <h2 className="text-[#31405F] text-lg font-bold">Administración del Piso</h2>
+              <p className="text-[#607283] text-xs">Exclusivo para Jorge (Admin)</p>
             </div>
           </div>
           <button
             type="button"
             data-testid="admin-modal-close"
             onClick={onClose}
-            className="text-muted-foreground hover:text-foreground flex h-9 w-9 items-center justify-center rounded-xl border border-border/60 transition-colors"
+            className="text-[#607283] hover:text-[#31405F] flex h-9 w-9 items-center justify-center rounded-xl border border-[#BFC6CC]/60 transition-colors"
           >
             <X className="h-5 w-5" />
           </button>
         </div>
 
         {/* Navigation Tabs */}
-        <div className="flex gap-1.5 p-1 my-4 rounded-xl bg-secondary/80 border border-border/60">
+        <div className="flex gap-1.5 p-1 my-4 rounded-xl bg-[#F4F7F8] border border-[#BFC6CC]/60">
           <button
             type="button"
             data-testid="admin-tab-sessions"
@@ -71,8 +71,8 @@ export function AdminModal({ isOpen, onClose }: AdminModalProps) {
             className={cn(
               "flex-1 flex items-center justify-center gap-1.5 rounded-lg py-2 text-xs font-semibold transition-all",
               activeTab === "sessions"
-                ? "bg-background text-foreground shadow-sm"
-                : "text-muted-foreground hover:text-foreground"
+                ? "bg-white text-[#31405F] shadow-xs"
+                : "text-[#607283] hover:text-[#31405F]"
             )}
           >
             <Key className="h-3.5 w-3.5" />
@@ -85,8 +85,8 @@ export function AdminModal({ isOpen, onClose }: AdminModalProps) {
             className={cn(
               "flex-1 flex items-center justify-center gap-1.5 rounded-lg py-2 text-xs font-semibold transition-all",
               activeTab === "house"
-                ? "bg-background text-foreground shadow-sm"
-                : "text-muted-foreground hover:text-foreground"
+                ? "bg-white text-[#31405F] shadow-xs"
+                : "text-[#607283] hover:text-[#31405F]"
             )}
           >
             <Home className="h-3.5 w-3.5" />
@@ -99,8 +99,8 @@ export function AdminModal({ isOpen, onClose }: AdminModalProps) {
             className={cn(
               "flex-1 flex items-center justify-center gap-1.5 rounded-lg py-2 text-xs font-semibold transition-all",
               activeTab === "roles"
-                ? "bg-background text-foreground shadow-sm"
-                : "text-muted-foreground hover:text-foreground"
+                ? "bg-white text-[#31405F] shadow-xs"
+                : "text-[#607283] hover:text-[#31405F]"
             )}
           >
             <Users className="h-3.5 w-3.5" />

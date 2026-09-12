@@ -29,17 +29,17 @@ export function FlatView() {
   return (
     <div className="space-y-4 pb-12">
       {/* Header Info Banner */}
-      <div className="rounded-3xl border border-border/80 bg-card p-4 shadow-xs space-y-1">
+      <div className="rounded-3xl border border-[#BFC6CC]/60 bg-white p-4 shadow-xs space-y-1">
         <div className="flex items-center justify-between">
-          <h2 className="text-lg font-black tracking-tight text-foreground">
+          <h2 className="text-lg font-bold tracking-tight text-[#31405F]">
             {flatInfo.name}
           </h2>
-          <span className="rounded-full border border-emerald-500/20 bg-emerald-500/10 px-2.5 py-0.5 text-[11px] font-bold text-emerald-600 dark:text-emerald-400">
+          <span className="rounded-full border border-[#094152]/30 bg-[#094152]/10 px-2.5 py-0.5 text-[11px] font-bold text-[#094152]">
             3 Habitaciones
           </span>
         </div>
-        <p className="text-xs text-muted-foreground flex items-center gap-1">
-          <MapPin className="h-3.5 w-3.5 text-emerald-600 shrink-0" />
+        <p className="text-xs text-[#607283] flex items-center gap-1">
+          <MapPin className="h-3.5 w-3.5 text-[#094152] shrink-0" />
           <span>
             {flatInfo.address} · {flatInfo.city}
           </span>
@@ -47,7 +47,7 @@ export function FlatView() {
       </div>
 
       {/* Navigation Tabs */}
-      <div className="grid grid-cols-3 rounded-2xl border border-border/80 bg-secondary/40 p-1 text-xs font-bold">
+      <div className="grid grid-cols-3 rounded-2xl border border-[#BFC6CC]/60 bg-[#F4F7F8] p-1 text-xs font-bold">
         <button
           type="button"
           data-testid="tab-flat-general"
@@ -55,8 +55,8 @@ export function FlatView() {
           className={cn(
             "flex items-center justify-center gap-1.5 rounded-xl py-2 transition-all",
             activeTab === "general"
-              ? "bg-card text-foreground shadow-sm"
-              : "text-muted-foreground hover:text-foreground"
+              ? "bg-white text-[#31405F] shadow-xs"
+              : "text-[#607283] hover:text-[#31405F]"
           )}
         >
           <Wifi className="h-3.5 w-3.5" />
@@ -70,8 +70,8 @@ export function FlatView() {
           className={cn(
             "flex items-center justify-center gap-1.5 rounded-xl py-2 transition-all",
             activeTab === "rules"
-              ? "bg-card text-foreground shadow-sm"
-              : "text-muted-foreground hover:text-foreground"
+              ? "bg-white text-[#31405F] shadow-xs"
+              : "text-[#607283] hover:text-[#31405F]"
           )}
         >
           <BookOpen className="h-3.5 w-3.5" />
@@ -85,8 +85,8 @@ export function FlatView() {
           className={cn(
             "flex items-center justify-center gap-1.5 rounded-xl py-2 transition-all",
             activeTab === "contacts"
-              ? "bg-card text-foreground shadow-sm"
-              : "text-muted-foreground hover:text-foreground"
+              ? "bg-white text-[#31405F] shadow-xs"
+              : "text-[#607283] hover:text-[#31405F]"
           )}
         >
           <Phone className="h-3.5 w-3.5" />
