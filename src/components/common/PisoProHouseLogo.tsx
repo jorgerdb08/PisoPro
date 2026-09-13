@@ -17,16 +17,16 @@ export function PisoProHouseLogo({ className = "h-14 w-14", size = 56 }: PisoPro
     >
       <defs>
         <linearGradient id="logoBgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-          <stop offset="0%" stop-color="#38496D" />
-          <stop offset="50%" stop-color="#31405F" />
-          <stop offset="100%" stop-color="#243048" />
+          <stop offset="0%" stopColor="#38496D" />
+          <stop offset="50%" stopColor="#31405F" />
+          <stop offset="100%" stopColor="#243048" />
         </linearGradient>
         <linearGradient id="logoHouseGrad" x1="0%" y1="0%" x2="0%" y2="100%">
-          <stop offset="0%" stop-color="#FFFFFF" />
-          <stop offset="100%" stop-color="#F1F5F9" />
+          <stop offset="0%" stopColor="#FFFFFF" />
+          <stop offset="100%" stopColor="#F1F5F9" />
         </linearGradient>
         <filter id="logoGlow" x="-20%" y="-20%" width="140%" height="140%">
-          <feDropShadow dx="0" dy="10" stdDeviation="16" flood-color="#000000" flood-opacity="0.32" />
+          <feDropShadow dx="0" dy="10" stdDeviation="16" floodColor="#000000" floodOpacity="0.32" />
         </filter>
       </defs>
 
