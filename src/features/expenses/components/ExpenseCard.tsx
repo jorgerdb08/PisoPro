@@ -5,6 +5,7 @@ import { EXPENSE_CATEGORIES, FLATMATES } from "@/lib/constants";
 import { cn } from "@/lib/utils";
 import { Trash2, ArrowRight } from "lucide-react";
 import type { ExpenseItem } from "@/features/expenses/calculations";
+import { ExpenseCategoryIcon } from "./ExpenseCategoryIcon";
 
 interface ExpenseCardProps {
   expense: ExpenseItem;
@@ -23,7 +24,7 @@ export function ExpenseCard({
 
   const category =
     EXPENSE_CATEGORIES.find((c) => c.value === expense.category) ||
-    EXPENSE_CATEGORIES[EXPENSE_CATEGORIES.length - 2]!;
+    EXPENSE_CATEGORIES[0]!;
 
   const payer = FLATMATES.find((f) => f.id === expense.paid_by);
   const canDelete = isAdmin || expense.paid_by === currentUserId;
@@ -42,15 +43,8 @@ export function ExpenseCard({
     >
       <div className="flex items-start justify-between gap-3">
         <div className="flex items-start gap-2.5">
-          {/* Category Icon Badge */}
-          <div
-            className={cn(
-              "flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border text-base shadow-xs",
-              category.color
-            )}
-          >
-            <span>{category.icon}</span>
-          </div>
+          {/* Category SVG Icon Badge */}
+          <ExpenseCategoryIcon category={expense.category} size="md" />
 
           <div>
             <div className="flex items-center gap-1.5 flex-wrap">

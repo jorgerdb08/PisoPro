@@ -38,14 +38,25 @@ export const CHORE_CATEGORIES = [
 ] as const;
 
 export const EXPENSE_CATEGORIES = [
-  { value: "groceries", label: "Supermercado", icon: "🛒", color: "bg-emerald-500/10 text-emerald-600 border-emerald-500/20" },
-  { value: "cleaning", label: "Limpieza / Hogar", icon: "🧼", color: "bg-blue-500/10 text-blue-600 border-blue-500/20" },
-  { value: "utilities", label: "Facturas / Luz / Gas", icon: "💡", color: "bg-amber-500/10 text-amber-600 border-amber-500/20" },
-  { value: "internet", label: "Internet / WiFi", icon: "📶", color: "bg-indigo-500/10 text-indigo-600 border-indigo-500/20" },
-  { value: "dining", label: "Comida / Ocio", icon: "🍕", color: "bg-rose-500/10 text-rose-600 border-rose-500/20" },
-  { value: "other", label: "Otros gastos", icon: "📦", color: "bg-slate-500/10 text-slate-600 border-slate-500/20" },
-  { value: "settlement", label: "Liquidación", icon: "💸", color: "bg-teal-500/10 text-teal-600 border-teal-500/20" },
+  { value: "alquiler", label: "Alquiler", icon: "Home", color: "bg-[#31405F]/10 text-[#31405F] border-[#31405F]/25" },
+  { value: "luz", label: "Luz", icon: "Zap", color: "bg-amber-500/10 text-amber-600 border-amber-500/25" },
+  { value: "agua", label: "Agua", icon: "Droplet", color: "bg-sky-500/10 text-sky-600 border-sky-500/25" },
+  { value: "gas", label: "Gas", icon: "Flame", color: "bg-orange-500/10 text-orange-600 border-orange-500/25" },
+  { value: "internet", label: "Internet", icon: "Wifi", color: "bg-[#094152]/10 text-[#094152] border-[#094152]/25" },
+  { value: "compras", label: "Compras", icon: "ShoppingCart", color: "bg-emerald-500/10 text-emerald-600 border-emerald-500/25" },
+  { value: "cenas", label: "Cenas / Salidas", icon: "UtensilsCrossed", color: "bg-purple-500/10 text-purple-600 border-purple-500/25" },
+  { value: "otros", label: "Otros gastos", icon: "Package", color: "bg-slate-500/10 text-slate-600 border-slate-500/25" },
+  { value: "settlement", label: "Liquidación", icon: "Handshake", color: "bg-teal-500/10 text-teal-600 border-teal-500/25" },
+  // Compatibilidad con registros existentes
+  { value: "groceries", label: "Compras", icon: "ShoppingCart", color: "bg-emerald-500/10 text-emerald-600 border-emerald-500/25" },
+  { value: "utilities", label: "Luz / Suministros", icon: "Zap", color: "bg-amber-500/10 text-amber-600 border-amber-500/25" },
+  { value: "dining", label: "Cenas", icon: "UtensilsCrossed", color: "bg-purple-500/10 text-purple-600 border-purple-500/25" },
+  { value: "cleaning", label: "Limpieza", icon: "Sparkles", color: "bg-cyan-500/10 text-cyan-600 border-cyan-500/25" },
+  { value: "other", label: "Otros", icon: "Package", color: "bg-slate-500/10 text-slate-600 border-slate-500/25" },
 ] as const;
+
+export const TOTAL_MONTHLY_RENT = 600;
+export const RENT_PER_FLATMATE = 200;
 
 export const SHOPPING_CATEGORIES = [
   { value: "produce", label: "Frutas y Verduras", icon: "🍎", color: "bg-emerald-500/10 text-emerald-600 border-emerald-500/20" },
@@ -81,8 +92,8 @@ export const FLAT_INFO = {
   landlordName: "D. Manuel García",
   landlordPhone: "+34 612 345 678",
   landlordEmail: "alquiler.mayor14@gmail.com",
-  rentAmount: "1.200 €/mes (400 €/persona)",
-  rentDueDay: "Día 1 al 5 de cada mes",
+  rentAmount: "600 €/mes (200 €/persona)",
+  rentDueDay: "Días 1 al 5 de cada mes",
   rooms: [
     { number: 1, name: "Habitación Principal (Exterior)", occupantId: "22222222-2222-4222-8222-222222222222", occupantName: "Jorge" },
     { number: 2, name: "Habitación Mediana (Balcón)", occupantId: "33333333-3333-4333-8333-333333333333", occupantName: "Samuel" },

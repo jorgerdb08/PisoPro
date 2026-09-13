@@ -1,8 +1,10 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, beforeEach, vi } from "vitest";
 import {
   calculateNetBalances,
   minimizeDebts,
   getUserBalanceSummary,
+  calculateMonthlyUserShares,
+  getMonthlyHistoricalBreakdown,
   type ExpenseItem,
 } from "@/features/expenses/calculations";
 import { EXPENSE_CATEGORIES } from "@/lib/constants";
@@ -166,7 +168,17 @@ describe("Expenses Calculations & Debt Minimization", () => {
 
   describe("EXPENSE_CATEGORIES", () => {
     it("defines valid categories with icons and styles", () => {
-      expect(EXPENSE_CATEGORIES.length).toBeGreaterThanOrEqual(6);
+      expect(EXPENSE_CATEGORIES.length).toBeGreaterThanOrEqual(8);
+      const values = EXPENSE_CATEGORIES.map((c) => c.value);
+      expect(values).toContain("alquiler");
+      expect(values).toContain("luz");
+      expect(values).toContain("agua");
+      expect(values).toContain("gas");
+      expect(values).toContain("internet");
+      expect(values).toContain("compras");
+      expect(values).toContain("cenas");
+      expect(values).toContain("otros");
+
       EXPENSE_CATEGORIES.forEach((c) => {
         expect(c.value).toBeDefined();
         expect(c.label).toBeDefined();
@@ -175,4 +187,128 @@ describe("Expenses Calculations & Debt Minimization", () => {
       });
     });
   });
+
+  describe("Monthly Breakdown & Quotas (calculateMonthlyUserShares)", () => {
+    it("calculates fixed 200€ rent + supplies and variables per flatmate", () => {
+      const mockExpenses: ExpenseItem[] = [
+        {
+          id: "e-luz",
+          household_id: "h1",
+          description: "Factura de la luz",
+          amount: 60,
+          paid_by: jorgeId,
+          date: "2026-09-02",
+          category: "luz",
+          participants: [
+            { user_id: jorgeId, share_amount: 20 },
+            { user_id: samuelId, share_amount: 20 },
+            { user_id: davidId, share_amount: 20 },
+          ],
+        },
+        {
+          id: "e-compras",
+          household_id: "h1",
+          description: "Compra Mercadona",
+          amount: 30,
+          paid_by: samuelId,
+          date: "2026-09-04",
+          category: "compras",
+          participants: [
+            { user_id: jorgeId, share_amount: 10 },
+            { user_id: samuelId, share_amount: 10 },
+            { user_id: davidId, share_amount: 10 },
+          ],
+        },
+      ];
+
+      const res = calculateMonthlyUserShares(mockExpenses, "2026-09");
+
+      // Total piso = 600€ alquiler + 60€ luz + 30€ compras = 690€
+      expect(res.monthTotalSpend).toBe(690);
+      expect(res.monthSuppliesTotal).toBe(60);
+      expect(res.monthVariableTotal).toBe(30);
+
+      // Cada inquilino paga 200€ alquiler + 20€ luz + 10€ compras = 230€
+      res.shares.forEach((share) => {
+        expect(share.rentAmount).toBe(200);
+        expect(share.suppliesShare).toBe(20);
+        expect(share.variableShare).toBe(10);
+        expect(share.totalToPay).toBe(230);
+      });
+
+      // Jorge adelantó 60€ de luz -> neto: 60 adelantado - 230 total a pagar = -170
+      const jorgeShare = res.shares.find((s) => s.userId === jorgeId);
+      expect(jorgeShare?.totalAdvanced).toBe(60);
+      expect(jorgeShare?.netMonthBalance).toBe(-170);
+    });
+  });
+
+  describe("Monthly History Breakdown (getMonthlyHistoricalBreakdown)", () => {
+    it("generates 6 months history including 600€ rent base", () => {
+      const history = getMonthlyHistoricalBreakdown([], 6);
+      expect(history.length).toBe(6);
+      history.forEach((h) => {
+        expect(h.rentTotal).toBe(600);
+        expect(h.grandTotal).toBeGreaterThanOrEqual(600);
+      });
+    });
+  });
+
+  describe("Rent Service & Gamification Rules", () => {
+    beforeEach(async () => {
+      const { chatService } = await import("@/services/chatService");
+      const { notificationService } = await import("@/features/notifications/notificationService");
+      vi.spyOn(chatService, "sendMessage").mockResolvedValue({
+        id: "m1",
+        household_id: "test-h",
+        user_id: "u1",
+        content: "Alquiler pagado",
+        created_at: new Date().toISOString(),
+      });
+      vi.spyOn(notificationService, "dispatchNotification").mockResolvedValue({
+        id: "n1",
+        household_id: "test-h",
+        type: "expense_notice",
+        title: "Alquiler",
+        body: "Notificación de alquiler",
+        read: false,
+        created_at: new Date().toISOString(),
+      });
+    });
+
+    it("reports rent as 600€ total and 200€ per person", async () => {
+      const { rentService } = await import("@/services/rentService");
+      const status = rentService.getMonthlyRentStatus("test-h", "2026-09");
+      expect(status.totalRent).toBe(600);
+      expect(status.rentPerPerson).toBe(200);
+      expect(status.flatmateStatuses.length).toBe(3);
+    });
+
+    it("awards +1 point if rent is paid on or before day 5", async () => {
+      const { rentService } = await import("@/services/rentService");
+      // Paid on 3rd September (within day 1-5 window)
+      const res = await rentService.recordRentPayment({
+        userId: jorgeId,
+        monthStr: "2026-09",
+        paidDate: "2026-09-03",
+      });
+
+      expect(res.isOnTime).toBe(true);
+      expect(res.pointsAwarded).toBe(1);
+    });
+
+    it("penalizes with -1 point if rent is paid after day 5", async () => {
+      const { rentService } = await import("@/services/rentService");
+      // Paid on 10th September (after deadline)
+      const res = await rentService.recordRentPayment({
+        userId: samuelId,
+        monthStr: "2026-09",
+        paidDate: "2026-09-10",
+      });
+
+      expect(res.isOnTime).toBe(false);
+      expect(res.pointsAwarded).toBe(-1);
+    });
+  });
 });
+
