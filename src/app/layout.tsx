@@ -59,8 +59,12 @@ export default function RootLayout({
     <html
       lang="es"
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
+      suppressHydrationWarning
     >
-      <body className="flex min-h-full flex-col bg-slate-50 text-slate-900">
+      <body
+        className="flex min-h-full flex-col bg-slate-50 text-slate-900"
+        suppressHydrationWarning
+      >
         <PwaProvider>
           <AuthProvider>
             <MobileContainer>{children}</MobileContainer>
