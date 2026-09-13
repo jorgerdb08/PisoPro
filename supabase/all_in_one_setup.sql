@@ -69,7 +69,7 @@ CREATE INDEX IF NOT EXISTS idx_user_sessions_device_lookup ON user_sessions(devi
 DROP INDEX IF EXISTS idx_unique_active_user_session;
 CREATE UNIQUE INDEX idx_unique_active_user_session 
 ON user_sessions(user_id) 
-WHERE (status = 'ACTIVE' AND is_active = true AND expires_at > now());
+WHERE (status = 'ACTIVE' AND is_active = true);
 
 CREATE TABLE IF NOT EXISTS tasks (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
