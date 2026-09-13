@@ -13,7 +13,7 @@ import { HelpRequestBanner } from "@/features/cleaning/components/HelpRequestBan
 import { TrashHistoryView } from "@/features/cleaning/components/TrashHistoryView";
 import { ContributionStatsView } from "@/features/cleaning/components/ContributionStatsView";
 import { AdminCleaningModal } from "@/features/cleaning/components/AdminCleaningModal";
-import { Loader2, Settings2, RotateCw } from "lucide-react";
+import { Loader2, Settings2, RotateCw, Sparkles, Trash2, BarChart3, Lock, X } from "lucide-react";
 
 export default function TareasPage() {
   const { currentUser, isLoading: isAuthLoading, logout } = useAuth();
@@ -83,11 +83,11 @@ export default function TareasPage() {
         {/* Encabezado y Navegación entre Zonas, Basura y Contribución */}
         <div className="flex items-center justify-between gap-2">
           <div>
-            <h1 className="text-xl font-black text-slate-900 tracking-tight">
+            <h1 className="text-lg font-bold text-slate-900 tracking-tight">
               Limpieza y Contribución
             </h1>
             <p className="text-xs text-slate-500">
-              Rotación semanal estricta de zonas principales y basura
+              Rotación semanal de zonas principales y gestión de basura
             </p>
           </div>
 
@@ -96,9 +96,9 @@ export default function TareasPage() {
               <button
                 onClick={() => setIsCleaningAdminModalOpen(true)}
                 title="Configuración de Limpieza (Admin)"
-                className="p-2 bg-white hover:bg-slate-100 text-slate-700 rounded-xl border border-slate-200 shadow-2xs transition-colors flex items-center gap-1 text-xs font-semibold"
+                className="px-2.5 py-1.5 bg-white hover:bg-slate-100 text-slate-700 rounded-xl border border-slate-200 shadow-2xs transition-colors flex items-center gap-1.5 text-xs font-medium"
               >
-                <Settings2 className="w-4 h-4 text-[#31405F]" />
+                <Settings2 className="w-3.5 h-3.5 text-[#31405F]" />
                 <span className="hidden sm:inline">Admin</span>
               </button>
             )}
@@ -107,60 +107,60 @@ export default function TareasPage() {
               title="Actualizar datos"
               className="p-2 bg-white hover:bg-slate-100 text-slate-500 rounded-xl border border-slate-200 shadow-2xs transition-colors"
             >
-              <RotateCw className={`w-4 h-4 ${isCleaningLoading ? "animate-spin" : ""}`} />
+              <RotateCw className={`w-3.5 h-3.5 ${isCleaningLoading ? "animate-spin" : ""}`} />
             </button>
           </div>
         </div>
 
         {/* Pestañas de Vista */}
-        <div className="grid grid-cols-3 gap-1.5 bg-slate-100 p-1.5 rounded-2xl border border-slate-200/80 text-xs font-bold">
+        <div className="grid grid-cols-3 gap-1 bg-slate-100 p-1 rounded-xl border border-slate-200/80 text-xs font-medium">
           <button
             onClick={() => setActiveTab("zones")}
-            className={`py-2 px-2.5 rounded-xl transition-all text-center flex items-center justify-center space-x-1.5 ${
+            className={`py-2 px-2.5 rounded-lg transition-all text-center flex items-center justify-center space-x-1.5 ${
               activeTab === "zones"
-                ? "bg-white text-slate-900 shadow-2xs"
+                ? "bg-white text-slate-900 shadow-2xs font-semibold"
                 : "text-slate-500 hover:text-slate-800"
             }`}
           >
-            <span>🧹</span>
+            <Sparkles className="w-3.5 h-3.5" />
             <span>Zonas</span>
           </button>
           <button
             onClick={() => setActiveTab("trash")}
-            className={`py-2 px-2.5 rounded-xl transition-all text-center flex items-center justify-center space-x-1.5 ${
+            className={`py-2 px-2.5 rounded-lg transition-all text-center flex items-center justify-center space-x-1.5 ${
               activeTab === "trash"
-                ? "bg-white text-slate-900 shadow-2xs"
+                ? "bg-white text-slate-900 shadow-2xs font-semibold"
                 : "text-slate-500 hover:text-slate-800"
             }`}
           >
-            <span>🗑️</span>
+            <Trash2 className="w-3.5 h-3.5" />
             <span>Basura</span>
           </button>
           <button
             onClick={() => setActiveTab("stats")}
-            className={`py-2 px-2.5 rounded-xl transition-all text-center flex items-center justify-center space-x-1.5 ${
+            className={`py-2 px-2.5 rounded-lg transition-all text-center flex items-center justify-center space-x-1.5 ${
               activeTab === "stats"
-                ? "bg-white text-slate-900 shadow-2xs"
+                ? "bg-white text-slate-900 shadow-2xs font-semibold"
                 : "text-slate-500 hover:text-slate-800"
             }`}
           >
-            <span>📊</span>
+            <BarChart3 className="w-3.5 h-3.5" />
             <span>Contribución</span>
           </button>
         </div>
 
         {/* Notificación de Error de Negocio (ej: Intento de limpiar zona ajena) */}
         {actionError && (
-          <div className="p-3.5 bg-rose-50 border border-rose-300 rounded-2xl text-xs text-rose-800 font-semibold flex items-center justify-between animate-fade-in shadow-xs">
+          <div className="p-3 bg-rose-50 border border-rose-200 rounded-xl text-xs text-rose-800 font-medium flex items-center justify-between animate-fade-in shadow-xs">
             <div className="flex items-center space-x-2">
-              <span className="text-lg">🔒</span>
+              <Lock className="w-3.5 h-3.5 text-rose-600 flex-shrink-0" />
               <span>{actionError}</span>
             </div>
             <button
               onClick={clearActionError}
-              className="ml-2 font-black text-rose-500 hover:text-rose-700 px-1"
+              className="ml-2 text-rose-500 hover:text-rose-700 p-0.5"
             >
-              ✕
+              <X className="w-3.5 h-3.5" />
             </button>
           </div>
         )}
