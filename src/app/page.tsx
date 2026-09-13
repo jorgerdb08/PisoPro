@@ -299,9 +299,8 @@ export default function HomePage() {
                     <span>Registrar</span>
                     <span className="rounded-md bg-amber-500/10 px-1.5 py-0.5 text-[11px] font-semibold border border-amber-500/20">
                       <span className="inline-block font-extrabold bg-gradient-to-t from-[#FF5722] via-[#F59E0B] to-[#FACC15] bg-clip-text text-transparent">
-                        +1
-                      </span>{" "}
-                      <span className="font-bold text-amber-700">pt</span>
+                        +1 pt
+                      </span>
                     </span>
                   </span>
                 )}
@@ -494,7 +493,7 @@ export default function HomePage() {
                     <span className="inline-block text-xl font-black tracking-tight bg-gradient-to-t from-[#FF5722] via-[#F59E0B] to-[#FACC15] bg-clip-text text-transparent">
                       {mate.points}
                     </span>
-                    <span className="text-[10px] font-bold text-amber-700">pts</span>
+                    <span className="text-[10px] font-semibold text-slate-400">pts</span>
                   </div>
                 </div>
               ))}
