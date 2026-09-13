@@ -32,6 +32,7 @@ import {
   Dices,
   Trash2,
   Trophy,
+  Crown,
 } from "lucide-react";
 import { ZoneIcon } from "@/features/cleaning/components/ZoneIcon";
 
@@ -92,6 +93,10 @@ export default function HomePage() {
       isCurrent,
     };
   });
+
+  // Ranking ordenado por puntuación semanal (de mayor a menor)
+  const rankedFlatmates = [...flatmatePoints].sort((a, b) => b.points - a.points);
+  const maxPoints = Math.max(...rankedFlatmates.map((m) => m.points), 1);
 
   // 1. Loading state while checking session and device lease
   if (isLoading) {
@@ -449,54 +454,114 @@ export default function HomePage() {
           </Card>
         </Link>
 
-        {/* Puntos de Convivencia de los 3 Compañeros (Separado del chat y con acento naranja en puntos) */}
+        {/* Ranking de Convivencia (Gráfica comparativa y ranking del piso) */}
         <Card className="mt-6 border-[#BFC6CC]/60 bg-white shadow-xs overflow-hidden">
-          <CardContent className="p-4 space-y-3">
+          <CardContent className="p-4 space-y-3.5">
             <div className="flex items-center justify-between">
-              <span className="text-[#607283] flex items-center gap-1.5 text-xs font-bold tracking-wider uppercase">
-                <Trophy className="h-3.5 w-3.5 text-[#31405F]" />
-                <span>Puntos de Convivencia</span>
-              </span>
-              <span className="text-[11px] font-medium text-[#7A8C9E]">
+              <div className="flex items-center gap-2">
+                <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-amber-500/10 text-amber-600 border border-amber-500/20">
+                  <Trophy className="h-3.5 w-3.5" />
+                </div>
+                <div>
+                  <h3 className="text-xs font-bold tracking-wider uppercase text-[#607283]">
+                    Ranking de Convivencia
+                  </h3>
+                </div>
+              </div>
+              <span className="text-[11px] font-semibold text-slate-400 bg-slate-50 border border-slate-200/60 px-2 py-0.5 rounded-md">
                 Esta semana
               </span>
             </div>
 
-            <div className="grid grid-cols-3 gap-2.5 pt-0.5">
-              {flatmatePoints.map((mate) => (
-                <div
-                  key={mate.id}
-                  className={cn(
-                    "flex flex-col items-center rounded-2xl p-3 border transition-all text-center relative",
-                    mate.isCurrent
-                      ? "border-[#31405F]/30 bg-[#F4F7F8]/80 shadow-2xs ring-1 ring-[#31405F]/15"
-                      : "border-slate-200/60 bg-white"
-                  )}
-                >
-                  {/* Initial Avatar */}
+            {/* Filas de Ranking con Gráfica Comparativa */}
+            <div className="space-y-2 pt-0.5">
+              {rankedFlatmates.map((mate, index) => {
+                const rank = index + 1;
+                const isLeader = rank === 1 && mate.points > 0;
+                const percentage =
+                  maxPoints > 0 && mate.points > 0
+                    ? Math.round((mate.points / maxPoints) * 100)
+                    : 0;
+
+                return (
                   <div
+                    key={mate.id}
                     className={cn(
-                      "flex h-9 w-9 items-center justify-center rounded-xl text-white text-xs font-bold shadow-2xs mb-1.5",
-                      mate.styles.bg
+                      "p-3 rounded-2xl border transition-all space-y-2",
+                      mate.isCurrent
+                        ? "border-[#31405F]/30 bg-[#F4F7F8]/80 shadow-2xs ring-1 ring-[#31405F]/15"
+                        : "border-slate-200/60 bg-white hover:border-slate-300/80"
                     )}
                   >
-                    {mate.initial}
-                  </div>
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2.5">
+                        {/* Indicador de Posición */}
+                        <div
+                          className={cn(
+                            "flex h-6 w-6 items-center justify-center rounded-lg text-xs font-bold shrink-0",
+                            isLeader
+                              ? "bg-amber-500/15 text-amber-700 border border-amber-400/40"
+                              : rank === 2
+                              ? "bg-slate-100 text-slate-600 border border-slate-200"
+                              : "bg-orange-100/60 text-amber-900/80 border border-orange-200/60"
+                          )}
+                        >
+                          {isLeader ? (
+                            <Crown className="w-3.5 h-3.5 text-amber-600" />
+                          ) : (
+                            <span>{rank}</span>
+                          )}
+                        </div>
 
-                  {/* Flatmate Name */}
-                  <span className="text-xs font-bold text-slate-800 tracking-tight">
-                    {mate.name}
-                  </span>
+                        {/* Avatar */}
+                        <div
+                          className={cn(
+                            "flex h-8 w-8 items-center justify-center rounded-xl text-white text-xs font-bold shadow-2xs shrink-0",
+                            mate.styles.bg
+                          )}
+                        >
+                          {mate.initial}
+                        </div>
 
-                  {/* Total Points */}
-                  <div className="mt-1 flex items-baseline gap-0.5">
-                    <span className="inline-block text-xl font-black tracking-tight bg-gradient-to-t from-[#FF5722] via-[#F59E0B] to-[#FACC15] bg-clip-text text-transparent">
-                      {mate.points}
-                    </span>
-                    <span className="text-[10px] font-semibold text-slate-400">pts</span>
+                        {/* Nombre y Badge 'Tú' */}
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-xs font-bold text-slate-800 tracking-tight">
+                            {mate.name}
+                          </span>
+                          {mate.isCurrent && (
+                            <span className="text-[10px] font-bold text-[#31405F] bg-[#31405F]/10 px-1.5 py-0.5 rounded-md">
+                              Tú
+                            </span>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Puntos con degradado de llama vertical */}
+                      <div className="flex items-baseline gap-0.5">
+                        <span className="inline-block text-base font-black tracking-tight bg-gradient-to-t from-[#FF5722] via-[#F59E0B] to-[#FACC15] bg-clip-text text-transparent">
+                          {mate.points}
+                        </span>
+                        <span className="text-[10px] font-semibold text-slate-400">pts</span>
+                      </div>
+                    </div>
+
+                    {/* Gráfica de barra de progreso proporcional */}
+                    <div className="w-full bg-slate-100 rounded-full h-1.5 overflow-hidden">
+                      <div
+                        className={cn(
+                          "h-full rounded-full transition-all duration-500",
+                          isLeader
+                            ? "bg-gradient-to-r from-orange-500 via-amber-500 to-yellow-400"
+                            : mate.styles.bg
+                        )}
+                        style={{
+                          width: `${Math.max(percentage, mate.points > 0 ? 8 : 4)}%`,
+                        }}
+                      />
+                    </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </CardContent>
         </Card>
