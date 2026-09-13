@@ -63,8 +63,13 @@ CREATE TABLE IF NOT EXISTS user_sessions (
   claimed_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
+-- Asegurar que las columnas existen si la tabla ya había sido creada previamente
+ALTER TABLE user_sessions ADD COLUMN IF NOT EXISTS status TEXT NOT NULL DEFAULT 'ACTIVE';
+ALTER TABLE user_sessions ADD COLUMN IF NOT EXISTS device_name TEXT NOT NULL DEFAULT 'Dispositivo desconocido';
+
 CREATE INDEX IF NOT EXISTS idx_user_sessions_lookup ON user_sessions(user_id, is_active, expires_at);
 CREATE INDEX IF NOT EXISTS idx_user_sessions_token ON user_sessions(session_token);
+DROP INDEX IF EXISTS idx_user_sessions_device_lookup;
 CREATE INDEX IF NOT EXISTS idx_user_sessions_device_lookup ON user_sessions(device_id, is_active, status);
 DROP INDEX IF EXISTS idx_unique_active_user_session;
 CREATE UNIQUE INDEX idx_unique_active_user_session 
@@ -194,9 +199,16 @@ ALTER TABLE expense_participants ENABLE ROW LEVEL SECURITY;
 ALTER TABLE shopping_items ENABLE ROW LEVEL SECURITY;
 ALTER TABLE messages ENABLE ROW LEVEL SECURITY;
 
+DROP FUNCTION IF EXISTS is_admin(UUID) CASCADE;
+DROP FUNCTION IF EXISTS is_admin CASCADE;
+
 CREATE OR REPLACE FUNCTION is_admin(user_id UUID)
 RETURNS BOOLEAN AS $$
 BEGIN
+  IF user_id IS NULL THEN
+    RETURN false;
+  END IF;
+
   RETURN EXISTS (
     SELECT 1 FROM profiles
     WHERE id = user_id AND role = 'admin'
@@ -270,6 +282,10 @@ DROP POLICY IF EXISTS "Messages insert" ON messages;
 CREATE POLICY "Messages insert" ON messages FOR INSERT WITH CHECK (true);
 
 -- 3. FUNCIONES DE BLOQUEO ATÓMICO Y SESIONES (RPC)
+DROP FUNCTION IF EXISTS claim_profile(UUID, TEXT, TEXT, INT) CASCADE;
+DROP FUNCTION IF EXISTS claim_profile(UUID, TEXT) CASCADE;
+DROP FUNCTION IF EXISTS claim_profile CASCADE;
+
 CREATE OR REPLACE FUNCTION claim_profile(
   p_user_id UUID,
   p_device_id TEXT,
@@ -369,16 +385,9 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
--- Overload para compatibilidad con firmas de llamada con 2 argumentos
-CREATE OR REPLACE FUNCTION claim_profile(
-  p_user_id UUID,
-  p_device_id TEXT
-)
-RETURNS JSONB AS $$
-BEGIN
-  RETURN claim_profile(p_user_id, p_device_id, 'Dispositivo desconocido', 30);
-END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
+DROP FUNCTION IF EXISTS heartbeat_session(TEXT, TEXT, INT) CASCADE;
+DROP FUNCTION IF EXISTS heartbeat_session(TEXT) CASCADE;
+DROP FUNCTION IF EXISTS heartbeat_session CASCADE;
 
 CREATE OR REPLACE FUNCTION heartbeat_session(
   p_session_token TEXT,
@@ -430,15 +439,9 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
--- Overload para compatibilidad con heartbeat_session de 1 argumento
-CREATE OR REPLACE FUNCTION heartbeat_session(
-  p_session_token TEXT
-)
-RETURNS JSONB AS $$
-BEGIN
-  RETURN heartbeat_session(p_session_token, NULL, 30);
-END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
+DROP FUNCTION IF EXISTS validate_session(TEXT, TEXT) CASCADE;
+DROP FUNCTION IF EXISTS validate_session(TEXT) CASCADE;
+DROP FUNCTION IF EXISTS validate_session CASCADE;
 
 CREATE OR REPLACE FUNCTION validate_session(
   p_session_token TEXT,
@@ -761,11 +764,14 @@ CREATE TABLE IF NOT EXISTS point_transactions (
   household_id UUID NOT NULL REFERENCES households(id) ON DELETE CASCADE,
   user_id UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
   points INT NOT NULL,
-  type TEXT NOT NULL CHECK (type IN ('cleaning', 'helping', 'trash', 'admin_adjustment')),
+  type TEXT NOT NULL,
   reference_id UUID,
   description TEXT NOT NULL,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
+
+ALTER TABLE point_transactions DROP CONSTRAINT IF EXISTS point_transactions_type_check;
+ALTER TABLE point_transactions ADD CONSTRAINT point_transactions_type_check CHECK (type IN ('cleaning', 'helping', 'trash', 'admin_adjustment', 'rent'));
 
 CREATE INDEX IF NOT EXISTS idx_point_tx_user ON point_transactions(user_id);
 CREATE INDEX IF NOT EXISTS idx_point_tx_household ON point_transactions(household_id);

@@ -47,6 +47,25 @@ export function ExpensesView() {
   const [isSendingReminder, setIsSendingReminder] = useState(false);
   const [feedbackBanner, setFeedbackBanner] = useState<string | null>(null);
 
+  const safeRentSummary = rentSummary || {
+    monthStr: selectedMonth || "2026-09",
+    monthName: "Septiembre 2026",
+    totalRent: 600,
+    rentPerPerson: 200,
+    paidCount: 0,
+    totalCollected: 0,
+    deadlineDay: 5,
+    isDeadlinePassed: false,
+    flatmateStatuses: [],
+  };
+
+  const safeMonthlyData = monthlyData || {
+    shares: [],
+    monthTotalSpend: 600,
+    monthSuppliesTotal: 0,
+    monthVariableTotal: 0,
+  };
+
   const isAdmin = currentUser?.role === "admin";
   const formatEuro = (num: number) => (num || 0).toFixed(2).replace(".", ",") + " €";
 
@@ -120,14 +139,14 @@ export function ExpensesView() {
           <div>
             <div className="flex items-center gap-1.5">
               <span className="text-[#607283] text-[10px] font-semibold uppercase tracking-wider block">
-                Total {rentSummary.monthName}
+                Total {safeRentSummary.monthName}
               </span>
               <span className="rounded-full bg-[#31405F]/10 px-1.5 py-0.2 text-[9px] font-bold text-[#31405F]">
-                {formatEuro(monthlyData.monthTotalSpend / 3)} / pers.
+                {formatEuro(safeMonthlyData.monthTotalSpend / 3)} / pers.
               </span>
             </div>
             <p className="text-[#31405F] text-xl font-extrabold tracking-tight">
-              {formatEuro(monthlyData.monthTotalSpend)}
+              {formatEuro(safeMonthlyData.monthTotalSpend)}
             </p>
           </div>
 
@@ -229,17 +248,17 @@ export function ExpensesView() {
         <div className="space-y-3">
           <div className="flex items-center justify-between px-1">
             <h3 className="text-xs font-bold uppercase tracking-wider text-[#31405F]">
-              Desglose Individual de Cuotas ({rentSummary.monthName})
+              Desglose Individual de Cuotas ({safeRentSummary.monthName})
             </h3>
             <span className="text-[11px] text-[#607283]">
-              {rentSummary.paidCount} de 3 alquileres pagados
+              {safeRentSummary.paidCount} de 3 alquileres pagados
             </span>
           </div>
 
           {/* Tarjetas individuales de cuota por compañero */}
           <div className="space-y-3">
-            {monthlyData.shares.map((share) => {
-              const rentStat = rentSummary.flatmateStatuses.find(
+            {safeMonthlyData.shares.map((share) => {
+              const rentStat = safeRentSummary.flatmateStatuses.find(
                 (s) => s.userId === share.userId
               );
               const isCurrent = currentUser?.id === share.userId;
