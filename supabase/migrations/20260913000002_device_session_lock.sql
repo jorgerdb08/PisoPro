@@ -25,7 +25,7 @@ END $$;
 DROP INDEX IF EXISTS idx_unique_active_user_session;
 CREATE UNIQUE INDEX idx_unique_active_user_session 
 ON user_sessions(user_id) 
-WHERE (status = 'ACTIVE' AND is_active = true AND expires_at > now());
+WHERE (status = 'ACTIVE' AND is_active = true);
 
 DROP INDEX IF EXISTS idx_user_sessions_device_lookup;
 CREATE INDEX idx_user_sessions_device_lookup 
