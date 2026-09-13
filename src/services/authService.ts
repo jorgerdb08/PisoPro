@@ -90,12 +90,23 @@ export const authService = {
     inactivityDays: number = 30
   ): Promise<ClaimResult> {
     const client = getRpcClient();
-    const { data, error } = await client.rpc("claim_profile", {
+    let { data, error } = await client.rpc("claim_profile", {
       p_user_id: userId,
       p_device_id: deviceId,
       p_device_name: deviceName,
       p_inactivity_days: inactivityDays,
     });
+
+    // Fallback: Si la base de datos remota aún no tiene aplicada la migración 20260913000002_device_session_lock.sql
+    if (error && error.message?.includes("schema cache")) {
+      console.warn("[authService] claim_profile v2 no encontrado en schema cache, reintentando con firma v1...");
+      const retry = await client.rpc("claim_profile", {
+        p_user_id: userId,
+        p_device_id: deviceId,
+      });
+      data = retry.data;
+      error = retry.error;
+    }
 
     if (error) {
       return {
@@ -139,11 +150,20 @@ export const authService = {
     extendDays: number = 30
   ): Promise<HeartbeatResult> {
     const client = getRpcClient();
-    const { data, error } = await client.rpc("heartbeat_session", {
+    let { data, error } = await client.rpc("heartbeat_session", {
       p_session_token: sessionToken,
       p_device_name: deviceName || null,
       p_extend_days: extendDays,
     });
+
+    // Fallback: Si la base de datos remota aún tiene la firma v1
+    if (error && error.message?.includes("schema cache")) {
+      const retry = await client.rpc("heartbeat_session", {
+        p_session_token: sessionToken,
+      });
+      data = retry.data;
+      error = retry.error;
+    }
 
     if (error) {
       return {

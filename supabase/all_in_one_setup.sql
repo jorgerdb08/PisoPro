@@ -369,6 +369,17 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
+-- Overload para compatibilidad con firmas de llamada con 2 argumentos
+CREATE OR REPLACE FUNCTION claim_profile(
+  p_user_id UUID,
+  p_device_id TEXT
+)
+RETURNS JSONB AS $$
+BEGIN
+  RETURN claim_profile(p_user_id, p_device_id, 'Dispositivo desconocido', 30);
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
 CREATE OR REPLACE FUNCTION heartbeat_session(
   p_session_token TEXT,
   p_device_name TEXT DEFAULT NULL,
@@ -416,6 +427,16 @@ BEGIN
     'user_id', v_session.user_id,
     'status', 'ACTIVE'
   );
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- Overload para compatibilidad con heartbeat_session de 1 argumento
+CREATE OR REPLACE FUNCTION heartbeat_session(
+  p_session_token TEXT
+)
+RETURNS JSONB AS $$
+BEGIN
+  RETURN heartbeat_session(p_session_token, NULL, 30);
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
