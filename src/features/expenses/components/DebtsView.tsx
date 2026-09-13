@@ -83,8 +83,10 @@ export function DebtsView({
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <div
-                      className="flex h-7 w-7 items-center justify-center rounded-xl text-xs font-bold text-white shadow-2xs"
-                      style={{ backgroundColor: flatmate.color }}
+                      className={cn(
+                        "flex h-7 w-7 items-center justify-center rounded-xl text-xs font-bold shadow-2xs",
+                        flatmate.color || "bg-[#31405F] text-white"
+                      )}
                     >
                       {flatmate.name.charAt(0)}
                     </div>
@@ -152,8 +154,10 @@ export function DebtsView({
                   {/* Persona que debe (DEUDOR) */}
                   <div className="flex items-center gap-3 min-w-[120px]">
                     <div
-                      className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl text-sm font-black text-white shadow-xs"
-                      style={{ backgroundColor: from.color }}
+                      className={cn(
+                        "flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl text-sm font-black shadow-xs",
+                        from.color || "bg-[#31405F] text-white"
+                      )}
                     >
                       {from.name.charAt(0)}
                     </div>
@@ -176,7 +180,7 @@ export function DebtsView({
                       {/* Insignia central con importe y flecha */}
                       <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
                         <div className="flex items-center gap-1.5 rounded-full border border-[#BFC6CC] bg-[#F4F7F8] px-3 py-1 shadow-2xs pointer-events-auto">
-                          <span className="text-xs font-black text-[#31405F] tracking-tight">
+                          <span className="text-xs font-black text-[#31405F] tracking-tight whitespace-nowrap">
                             {formatEuro(transfer.amount)}
                           </span>
                           <ArrowRight className="h-4 w-4 text-[#094152] shrink-0 stroke-[2.5]" />
@@ -196,8 +200,10 @@ export function DebtsView({
                       </span>
                     </div>
                     <div
-                      className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl text-sm font-black text-white shadow-xs"
-                      style={{ backgroundColor: to.color }}
+                      className={cn(
+                        "flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl text-sm font-black shadow-xs",
+                        to.color || "bg-[#094152] text-white"
+                      )}
                     >
                       {to.name.charAt(0)}
                     </div>
