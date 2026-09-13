@@ -39,7 +39,7 @@ import { ZoneIcon } from "@/features/cleaning/components/ZoneIcon";
 export default function HomePage() {
   const { currentUser, isLoading } = useAuth();
   const [isAdminModalOpen, setIsAdminModalOpen] = useState(false);
-  const { pendingTasks } = useChores();
+  const { pendingTasks, myPendingTasks } = useChores();
   const { userSummary } = useExpenses();
   const { pendingItems } = useShopping();
   const { lastMessage } = useChat();
@@ -149,66 +149,14 @@ export default function HomePage() {
           </Badge>
         </div>
 
-        {/* Puntos de Convivencia de los 3 Compañeros */}
-        <Card className="border-[#BFC6CC]/60 bg-white shadow-xs overflow-hidden">
-          <CardContent className="p-4 space-y-3">
-            <div className="flex items-center justify-between">
-              <span className="text-[#607283] flex items-center gap-1.5 text-xs font-bold tracking-wider uppercase">
-                <Trophy className="h-3.5 w-3.5 text-[#31405F]" />
-                <span>Puntos de Convivencia</span>
-              </span>
-              <span className="text-[11px] font-medium text-[#7A8C9E]">
-                Esta semana
-              </span>
-            </div>
-
-            <div className="grid grid-cols-3 gap-2.5 pt-0.5">
-              {flatmatePoints.map((mate) => (
-                <div
-                  key={mate.id}
-                  className={cn(
-                    "flex flex-col items-center rounded-2xl p-3 border transition-all text-center relative",
-                    mate.isCurrent
-                      ? "border-[#31405F]/30 bg-[#F4F7F8]/80 shadow-2xs ring-1 ring-[#31405F]/15"
-                      : "border-slate-200/60 bg-white"
-                  )}
-                >
-                  {/* Initial Avatar */}
-                  <div
-                    className={cn(
-                      "flex h-9 w-9 items-center justify-center rounded-xl text-white text-xs font-bold shadow-2xs mb-1.5",
-                      mate.styles.bg
-                    )}
-                  >
-                    {mate.initial}
-                  </div>
-
-                  {/* Flatmate Name */}
-                  <span className="text-xs font-bold text-slate-800 tracking-tight">
-                    {mate.name}
-                  </span>
-
-                  {/* Total Points */}
-                  <div className="mt-1 flex items-baseline gap-0.5">
-                    <span className={cn("text-lg font-extrabold tracking-tight", mate.styles.text)}>
-                      {mate.points}
-                    </span>
-                    <span className="text-[10px] font-semibold text-slate-400">pts</span>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-
         {/* Solicitudes de ayuda activas de compañeros (en tiempo real) */}
         <HelpRequestBanner
           helpRequests={activeHelpRequests}
           onAcceptHelp={acceptHelp}
         />
 
-        {/* Tarjeta Principal: ESTA SEMANA TE TOCA */}
-        <Card className="overflow-hidden border border-slate-200/90 bg-gradient-to-b from-white to-[#F6F9FA] text-[#31405F] shadow-xs">
+        {/* Tarjeta Principal: ESTA SEMANA TE TOCA con gradiente suave */}
+        <Card className="overflow-hidden border border-[#C5D5E4]/70 bg-gradient-to-br from-white via-[#F4F7FB] to-[#E6EFF8] text-[#31405F] shadow-xs">
           <CardContent className="space-y-3.5 p-5">
             <div className="flex items-center justify-between text-xs">
               <span className="text-[11px] font-bold tracking-wider uppercase text-[#607283] flex items-center gap-1.5">
@@ -400,10 +348,12 @@ export default function HomePage() {
                     Tareas
                   </h4>
                   <p className="text-[#31405F] mt-0.5 text-sm font-bold">
-                    {pendingTasks.length} pendientes
+                    {myPendingTasks.length} pendientes
                   </p>
                 </div>
-                <p className="text-[#607283] text-[11px]">Rotación semanal</p>
+                <p className="text-[#607283] text-[11px]">
+                  {pendingTasks.length} en total en el piso
+                </p>
               </CardContent>
             </Card>
           </Link>
@@ -484,6 +434,58 @@ export default function HomePage() {
             </CardContent>
           </Card>
         </Link>
+
+        {/* Puntos de Convivencia de los 3 Compañeros (Situado más abajo) */}
+        <Card className="border-[#BFC6CC]/60 bg-white shadow-xs overflow-hidden">
+          <CardContent className="p-4 space-y-3">
+            <div className="flex items-center justify-between">
+              <span className="text-[#607283] flex items-center gap-1.5 text-xs font-bold tracking-wider uppercase">
+                <Trophy className="h-3.5 w-3.5 text-[#31405F]" />
+                <span>Puntos de Convivencia</span>
+              </span>
+              <span className="text-[11px] font-medium text-[#7A8C9E]">
+                Esta semana
+              </span>
+            </div>
+
+            <div className="grid grid-cols-3 gap-2.5 pt-0.5">
+              {flatmatePoints.map((mate) => (
+                <div
+                  key={mate.id}
+                  className={cn(
+                    "flex flex-col items-center rounded-2xl p-3 border transition-all text-center relative",
+                    mate.isCurrent
+                      ? "border-[#31405F]/30 bg-[#F4F7F8]/80 shadow-2xs ring-1 ring-[#31405F]/15"
+                      : "border-slate-200/60 bg-white"
+                  )}
+                >
+                  {/* Initial Avatar */}
+                  <div
+                    className={cn(
+                      "flex h-9 w-9 items-center justify-center rounded-xl text-white text-xs font-bold shadow-2xs mb-1.5",
+                      mate.styles.bg
+                    )}
+                  >
+                    {mate.initial}
+                  </div>
+
+                  {/* Flatmate Name */}
+                  <span className="text-xs font-bold text-slate-800 tracking-tight">
+                    {mate.name}
+                  </span>
+
+                  {/* Total Points */}
+                  <div className="mt-1 flex items-baseline gap-0.5">
+                    <span className={cn("text-lg font-extrabold tracking-tight", mate.styles.text)}>
+                      {mate.points}
+                    </span>
+                    <span className="text-[10px] font-semibold text-slate-400">pts</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
       </main>
 
       <BottomNav />
