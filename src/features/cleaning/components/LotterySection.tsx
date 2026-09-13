@@ -13,7 +13,6 @@ const ZONE_THEMES: Record<
     iconBox: string;
     iconColor: string;
     titleColor: string;
-    pointsBadge: string;
   }
 > = {
   cocina: {
@@ -21,21 +20,18 @@ const ZONE_THEMES: Record<
     iconBox: "bg-white border-[#FDE6D2] shadow-2xs",
     iconColor: "text-amber-600",
     titleColor: "text-amber-950",
-    pointsBadge: "text-amber-700 bg-amber-50/80 border-amber-200/70",
   },
   salon: {
     card: "bg-[#F4F7FB] border-[#D9E3ED] hover:border-[#C5D5E4]",
     iconBox: "bg-white border-[#D9E3ED] shadow-2xs",
     iconColor: "text-[#31405F]",
     titleColor: "text-[#1E293B]",
-    pointsBadge: "text-[#31405F] bg-[#31405F]/10 border-[#31405F]/15",
   },
   bano: {
     card: "bg-[#F0FBF9] border-[#CEEFE8] hover:border-[#B4E5DC]",
     iconBox: "bg-white border-[#CEEFE8] shadow-2xs",
     iconColor: "text-teal-600",
     titleColor: "text-teal-950",
-    pointsBadge: "text-teal-700 bg-teal-50/80 border-teal-200/70",
   },
 };
 
@@ -44,7 +40,6 @@ const defaultZoneTheme = {
   iconBox: "bg-white border-slate-200/60 shadow-2xs",
   iconColor: "text-slate-600",
   titleColor: "text-slate-800",
-  pointsBadge: "text-slate-600 bg-slate-100 border-slate-200",
 };
 
 interface LotterySectionProps {
@@ -139,31 +134,21 @@ export const LotterySection: React.FC<LotterySectionProps> = ({
             <div
               key={z.zone_id}
               className={cn(
-                "rounded-xl border p-3 flex items-center justify-between transition-all shadow-2xs",
+                "rounded-xl border p-3 flex items-center space-x-2.5 transition-all shadow-2xs",
                 theme.card
               )}
             >
-              <div className="flex items-center space-x-2.5">
-                <div
-                  className={cn(
-                    "p-2 rounded-lg border flex items-center justify-center",
-                    theme.iconBox,
-                    theme.iconColor
-                  )}
-                >
-                  <ZoneIcon slug={z.zone_slug} className="w-4 h-4" />
-                </div>
-                <span className={cn("text-xs font-bold tracking-tight", theme.titleColor)}>
-                  {z.zone_name}
-                </span>
-              </div>
-              <span
+              <div
                 className={cn(
-                  "text-[10px] font-bold px-2 py-0.5 rounded-md border",
-                  theme.pointsBadge
+                  "p-2 rounded-lg border flex items-center justify-center",
+                  theme.iconBox,
+                  theme.iconColor
                 )}
               >
-                +{z.zone_default_points} pts
+                <ZoneIcon slug={z.zone_slug} className="w-4 h-4" />
+              </div>
+              <span className={cn("text-xs font-bold tracking-tight", theme.titleColor)}>
+                {z.zone_name}
               </span>
             </div>
           );
