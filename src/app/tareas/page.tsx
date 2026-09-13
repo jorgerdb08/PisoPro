@@ -11,15 +11,13 @@ import { ZoneCard } from "@/features/cleaning/components/ZoneCard";
 import { LotterySection } from "@/features/cleaning/components/LotterySection";
 import { HelpRequestBanner } from "@/features/cleaning/components/HelpRequestBanner";
 import { TrashHistoryView } from "@/features/cleaning/components/TrashHistoryView";
-import { ContributionStatsView } from "@/features/cleaning/components/ContributionStatsView";
 import { AdminCleaningModal } from "@/features/cleaning/components/AdminCleaningModal";
 import {
   Loader2,
   Settings2,
   RotateCw,
-  Sparkles,
+  Broom,
   Trash2,
-  BarChart3,
   Lock,
   X,
   Eye,
@@ -30,7 +28,7 @@ export default function TareasPage() {
   const { currentUser, isLoading: isAuthLoading } = useAuth();
   const [isAdminModalOpen, setIsAdminModalOpen] = useState(false);
   const [isCleaningAdminModalOpen, setIsCleaningAdminModalOpen] = useState(false);
-  const [activeTab, setActiveTab] = useState<"zones" | "trash" | "stats">("zones");
+  const [activeTab, setActiveTab] = useState<"zones" | "trash">("zones");
   const [showAllZones, setShowAllZones] = useState<boolean>(false);
 
   const {
@@ -91,11 +89,11 @@ export default function TareasPage() {
       )}
 
       <main className="flex-1 px-4 py-4 max-w-2xl mx-auto w-full space-y-4">
-        {/* Encabezado y Navegación entre Zonas, Basura y Contribución */}
+        {/* Encabezado y Navegación entre Zonas y Basura */}
         <div className="flex items-center justify-between gap-2">
           <div>
             <h1 className="text-lg font-bold text-slate-900 tracking-tight">
-              Limpieza y Contribución
+              Limpieza y Zonas
             </h1>
             <p className="text-xs text-slate-500">
               Rotación semanal de zonas principales y gestión de basura
@@ -124,7 +122,7 @@ export default function TareasPage() {
         </div>
 
         {/* Pestañas de Vista */}
-        <div className="grid grid-cols-3 gap-1 bg-slate-100 p-1 rounded-xl border border-slate-200/80 text-xs font-medium">
+        <div className="grid grid-cols-2 gap-1 bg-slate-100 p-1 rounded-xl border border-slate-200/80 text-xs font-medium">
           <button
             onClick={() => setActiveTab("zones")}
             className={`py-2 px-2.5 rounded-lg transition-all text-center flex items-center justify-center space-x-1.5 ${
@@ -133,7 +131,7 @@ export default function TareasPage() {
                 : "text-slate-500 hover:text-slate-800"
             }`}
           >
-            <Sparkles className="w-3.5 h-3.5" />
+            <Broom className="w-3.5 h-3.5" />
             <span>Zonas</span>
           </button>
           <button
@@ -146,17 +144,6 @@ export default function TareasPage() {
           >
             <Trash2 className="w-3.5 h-3.5" />
             <span>Basura</span>
-          </button>
-          <button
-            onClick={() => setActiveTab("stats")}
-            className={`py-2 px-2.5 rounded-lg transition-all text-center flex items-center justify-center space-x-1.5 ${
-              activeTab === "stats"
-                ? "bg-white text-slate-900 shadow-2xs font-semibold"
-                : "text-slate-500 hover:text-slate-800"
-            }`}
-          >
-            <BarChart3 className="w-3.5 h-3.5" />
-            <span>Contribución</span>
           </button>
         </div>
 
@@ -282,9 +269,6 @@ export default function TareasPage() {
 
         {/* Tab 2: HISTORIAL DE BASURA */}
         {activeTab === "trash" && <TrashHistoryView />}
-
-        {/* Tab 3: ESTADÍSTICAS DE CONTRIBUCIÓN */}
-        {activeTab === "stats" && <ContributionStatsView />}
       </main>
 
       <BottomNav />
