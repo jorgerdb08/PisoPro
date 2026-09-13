@@ -1,9 +1,9 @@
 "use client";
 
 import React from "react";
-import Image from "next/image";
 import { AlertCircle, AlertTriangle, Home, X } from "lucide-react";
 import { useAuth } from "@/features/auth/AuthContext";
+import { PisoProHouseLogo } from "@/components/common/PisoProHouseLogo";
 import { ProfileCard } from "./ProfileCard";
 
 export function ProfileSelectorModal() {
@@ -29,15 +29,8 @@ export function ProfileSelectorModal() {
       <div className="mx-auto w-full max-w-sm space-y-6">
         {/* App Logo & Header */}
         <div className="space-y-3 pt-4 text-center">
-          <div className="mx-auto flex h-14 w-14 items-center justify-center overflow-hidden rounded-2xl bg-[#31405F] shadow-md shadow-[#31405F]/15">
-            <Image
-              src="/icons/icon-192x192.png"
-              alt="PisoPro"
-              width={56}
-              height={56}
-              className="h-full w-full object-cover"
-              priority
-            />
+          <div className="mx-auto flex h-14 w-14 items-center justify-center">
+            <PisoProHouseLogo className="h-14 w-14 rounded-2xl shadow-md shadow-[#31405F]/15" />
           </div>
           <div className="space-y-1">
             <p className="text-[#607283] text-xs font-semibold uppercase tracking-widest">
