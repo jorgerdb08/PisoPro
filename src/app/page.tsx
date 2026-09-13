@@ -164,8 +164,9 @@ export default function HomePage() {
                 <span>Esta semana te toca</span>
               </span>
               {myAssignedZone && (
-                <span className="rounded-lg bg-slate-100 border border-slate-200/80 px-2.5 py-0.5 text-xs font-semibold text-slate-700">
-                  +{myAssignedZone.zone_default_points} pts
+                <span className="rounded-lg bg-white/80 border border-[#C5D5E4]/80 px-2.5 py-0.5 text-xs font-semibold shadow-2xs">
+                  <span className="font-bold text-amber-600">+{myAssignedZone.zone_default_points}</span>{" "}
+                  <span className="text-slate-500 font-medium">pts</span>
                 </span>
               )}
             </div>
@@ -289,7 +290,14 @@ export default function HomePage() {
                     : "bg-white hover:bg-slate-100 text-slate-800 border border-slate-200"
                 }`}
               >
-                {hasThrownToday ? "Registrada hoy" : "Registrar (+1 pt)"}
+                {hasThrownToday ? (
+                  "Registrada hoy"
+                ) : (
+                  <span>
+                    Registrar (<span className="font-bold text-amber-600">+1</span>{" "}
+                    <span className="text-slate-500 font-normal">pt</span>)
+                  </span>
+                )}
               </button>
             </div>
           </CardContent>
@@ -435,8 +443,8 @@ export default function HomePage() {
           </Card>
         </Link>
 
-        {/* Puntos de Convivencia de los 3 Compañeros (Situado más abajo) */}
-        <Card className="border-[#BFC6CC]/60 bg-white shadow-xs overflow-hidden">
+        {/* Puntos de Convivencia de los 3 Compañeros (Separado del chat y con acento naranja en puntos) */}
+        <Card className="mt-6 border-[#BFC6CC]/60 bg-white shadow-xs overflow-hidden">
           <CardContent className="p-4 space-y-3">
             <div className="flex items-center justify-between">
               <span className="text-[#607283] flex items-center gap-1.5 text-xs font-bold tracking-wider uppercase">
@@ -476,7 +484,7 @@ export default function HomePage() {
 
                   {/* Total Points */}
                   <div className="mt-1 flex items-baseline gap-0.5">
-                    <span className={cn("text-lg font-extrabold tracking-tight", mate.styles.text)}>
+                    <span className="text-lg font-extrabold tracking-tight text-amber-600">
                       {mate.points}
                     </span>
                     <span className="text-[10px] font-semibold text-slate-400">pts</span>
