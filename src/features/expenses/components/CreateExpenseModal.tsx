@@ -19,17 +19,20 @@ interface CreateExpenseModalProps {
     date?: string;
     participantUserIds: string[];
   }) => Promise<unknown>;
+  defaultCategory?: string;
 }
 
 export function CreateExpenseModal({
   isOpen,
   onClose,
   currentUserId,
+  defaultCategory,
   onCreate,
 }: CreateExpenseModalProps) {
   const [description, setDescription] = useState("");
   const [amount, setAmount] = useState("");
-  const [category, setCategory] = useState("compras");
+  const [userCategory, setUserCategory] = useState<string | null>(null);
+  const category = userCategory ?? defaultCategory ?? "compras";
   const [selectedPaidBy, setSelectedPaidBy] = useState<string | null>(null);
   const effectivePaidBy = selectedPaidBy ?? currentUserId ?? FLATMATES[0]!.id;
   const [date, setDate] = useState(() => new Date().toISOString().split("T")[0]!);
@@ -193,7 +196,7 @@ export function CreateExpenseModal({
                 id="expense-category"
                 data-testid="expense-category-select"
                 value={category}
-                onChange={(e) => setCategory(e.target.value)}
+                onChange={(e) => setUserCategory(e.target.value)}
                 className="w-full rounded-xl border border-[#BFC6CC]/80 bg-white px-3 py-2 text-xs text-[#31405F] focus:border-[#194F6B] focus:outline-none"
               >
                 {EXPENSE_CATEGORIES.filter(

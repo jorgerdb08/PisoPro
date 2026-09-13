@@ -219,6 +219,25 @@ export function useExpenses() {
     [selectedMonth, refreshRentStatus]
   );
 
+  // Toggle rent payment (1-click)
+  const toggleRentPaid = useCallback(
+    async (userId: string) => {
+      setIsSubmitting(true);
+      try {
+        const res = await rentService.toggleRentPayment({
+          householdId: DEFAULT_HOUSEHOLD_ID,
+          userId,
+          monthStr: selectedMonth,
+        });
+        refreshRentStatus();
+        return res;
+      } finally {
+        setIsSubmitting(false);
+      }
+    },
+    [selectedMonth, refreshRentStatus]
+  );
+
   // Send rent reminder to pending flatmates
   const sendRentReminder = useCallback(async () => {
     return rentService.sendRentPaymentReminder(DEFAULT_HOUSEHOLD_ID, selectedMonth);
@@ -241,6 +260,7 @@ export function useExpenses() {
     settleTransfer,
     removeExpense,
     markRentPaid,
+    toggleRentPaid,
     sendRentReminder,
     refreshExpenses: fetchExpenses,
   };

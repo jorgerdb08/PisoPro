@@ -130,6 +130,42 @@ export const rentService = {
   },
 
   /**
+   * Alterna el estado de pago de alquiler de un compañero (1 clic: Pagado / Pendiente)
+   */
+  async toggleRentPayment(params: {
+    householdId?: string;
+    userId: string;
+    monthStr: string;
+  }): Promise<{ isPaid: boolean }> {
+    const householdId = params.householdId || DEFAULT_HOUSEHOLD_ID;
+    const current = this.getMonthlyRentStatus(householdId, params.monthStr);
+    const userStat = current.flatmateStatuses.find((s) => s.userId === params.userId);
+
+    if (userStat?.isPaid) {
+      if (typeof window !== "undefined") {
+        try {
+          const storageKey = `pisopro_rent_${householdId}_${params.monthStr}`;
+          const raw = localStorage.getItem(storageKey);
+          const records = raw ? JSON.parse(raw) : {};
+          delete records[params.userId];
+          localStorage.setItem(storageKey, JSON.stringify(records));
+          window.dispatchEvent(new CustomEvent("pisopro-rent-updated"));
+        } catch (err) {
+          console.error("[rentService] Error toggling rent status:", err);
+        }
+      }
+      return { isPaid: false };
+    } else {
+      await this.recordRentPayment({
+        householdId,
+        userId: params.userId,
+        monthStr: params.monthStr,
+      });
+      return { isPaid: true };
+    }
+  },
+
+  /**
    * Registra el pago del alquiler de un compañero y aplica la regla de puntos
    * (+1 si se paga en los días 1-5; -1 si se retrasa después del día 5)
    */
