@@ -1,6 +1,6 @@
 import React from "react";
 import { Shield, Home } from "lucide-react";
-import { NotificationToggle } from "@/features/notifications/components/NotificationToggle";
+import { NotificationBellDropdown } from "@/features/notifications/components/NotificationBellDropdown";
 import { FLAT_INFO } from "@/lib/constants";
 import { cn } from "@/lib/utils";
 
@@ -40,7 +40,7 @@ export function TopHeader({
 
       {userName && (
         <div className="flex items-center gap-2">
-          <NotificationToggle />
+          <NotificationBellDropdown />
 
           <div className="border-[#BFC6CC]/60 bg-white text-[#31405F] flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-medium shadow-2xs">
             <span className="h-1.5 w-1.5 rounded-full bg-[#094152]" />
