@@ -13,10 +13,12 @@ import { useShopping } from "@/features/shopping/useShopping";
 import { useChat } from "@/features/chat/useChat";
 import { useCleaning } from "@/features/cleaning/useCleaning";
 import { useTrash } from "@/features/cleaning/useTrash";
+import { usePoints } from "@/features/cleaning/usePoints";
 import { HelpRequestBanner } from "@/features/cleaning/components/HelpRequestBanner";
 import { FLATMATES } from "@/lib/constants";
 import { ProfileSelectorModal } from "@/features/auth/components/ProfileSelectorModal";
 import { AdminModal } from "@/features/admin/components/AdminModal";
+import { cn } from "@/lib/utils";
 import {
   Wallet,
   CheckSquare,
@@ -29,6 +31,7 @@ import {
   Handshake,
   Dices,
   Trash2,
+  Trophy,
 } from "lucide-react";
 import { ZoneIcon } from "@/features/cleaning/components/ZoneIcon";
 
@@ -52,8 +55,43 @@ export default function HomePage() {
     requestHelp,
   } = useCleaning();
   const { recordTrash, hasThrownToday } = useTrash();
+  const { stats: pointStats } = usePoints();
 
+  // Puntos de cada compañero de piso con su paleta de colores
+  const flatmatePoints = FLATMATES.map((f) => {
+    const userStat = pointStats.find((s) => s.user_id === f.id || s.user_name === f.name);
+    const isCurrent = currentUser?.id === f.id || currentUser?.name === f.name;
 
+    const styles = {
+      Jorge: {
+        bg: "bg-[#31405F]",
+        border: "border-[#31405F]/30",
+        ring: "ring-[#31405F]/15",
+        text: "text-[#31405F]",
+      },
+      Samuel: {
+        bg: "bg-[#094152]",
+        border: "border-[#094152]/30",
+        ring: "ring-[#094152]/15",
+        text: "text-[#094152]",
+      },
+      David: {
+        bg: "bg-[#194F6B]",
+        border: "border-[#194F6B]/30",
+        ring: "ring-[#194F6B]/15",
+        text: "text-[#194F6B]",
+      },
+    }[f.name as "Jorge" | "Samuel" | "David"];
+
+    return {
+      id: f.id,
+      name: f.name,
+      initial: f.name.charAt(0),
+      points: userStat?.total_points ?? 0,
+      styles,
+      isCurrent,
+    };
+  });
 
   // 1. Loading state while checking session and device lease
   if (isLoading) {
@@ -94,7 +132,7 @@ export default function HomePage() {
         <div className="flex items-center justify-between">
           <div>
             <h2 className="text-[#31405F] text-xl font-bold tracking-tight">
-              Hola, {currentUser.name} 👋
+              Hola, {currentUser.name}
             </h2>
             <p className="text-[#607283] text-xs">
               {currentUser.role === "admin"
@@ -110,6 +148,58 @@ export default function HomePage() {
             En línea
           </Badge>
         </div>
+
+        {/* Puntos de Convivencia de los 3 Compañeros */}
+        <Card className="border-[#BFC6CC]/60 bg-white shadow-xs overflow-hidden">
+          <CardContent className="p-4 space-y-3">
+            <div className="flex items-center justify-between">
+              <span className="text-[#607283] flex items-center gap-1.5 text-xs font-bold tracking-wider uppercase">
+                <Trophy className="h-3.5 w-3.5 text-[#31405F]" />
+                <span>Puntos de Convivencia</span>
+              </span>
+              <span className="text-[11px] font-medium text-[#7A8C9E]">
+                Esta semana
+              </span>
+            </div>
+
+            <div className="grid grid-cols-3 gap-2.5 pt-0.5">
+              {flatmatePoints.map((mate) => (
+                <div
+                  key={mate.id}
+                  className={cn(
+                    "flex flex-col items-center rounded-2xl p-3 border transition-all text-center relative",
+                    mate.isCurrent
+                      ? "border-[#31405F]/30 bg-[#F4F7F8]/80 shadow-2xs ring-1 ring-[#31405F]/15"
+                      : "border-slate-200/60 bg-white"
+                  )}
+                >
+                  {/* Initial Avatar */}
+                  <div
+                    className={cn(
+                      "flex h-9 w-9 items-center justify-center rounded-xl text-white text-xs font-bold shadow-2xs mb-1.5",
+                      mate.styles.bg
+                    )}
+                  >
+                    {mate.initial}
+                  </div>
+
+                  {/* Flatmate Name */}
+                  <span className="text-xs font-bold text-slate-800 tracking-tight">
+                    {mate.name}
+                  </span>
+
+                  {/* Total Points */}
+                  <div className="mt-1 flex items-baseline gap-0.5">
+                    <span className={cn("text-lg font-extrabold tracking-tight", mate.styles.text)}>
+                      {mate.points}
+                    </span>
+                    <span className="text-[10px] font-semibold text-slate-400">pts</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
 
         {/* Solicitudes de ayuda activas de compañeros (en tiempo real) */}
         <HelpRequestBanner
