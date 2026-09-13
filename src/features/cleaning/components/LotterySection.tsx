@@ -4,6 +4,48 @@ import React, { useState } from "react";
 import type { CleaningLottery, ZoneAssignment } from "@/types";
 import { Dices, Loader2 } from "lucide-react";
 import { ZoneIcon } from "./ZoneIcon";
+import { cn } from "@/lib/utils";
+
+const ZONE_THEMES: Record<
+  string,
+  {
+    card: string;
+    iconBox: string;
+    iconColor: string;
+    titleColor: string;
+    pointsBadge: string;
+  }
+> = {
+  cocina: {
+    card: "bg-[#FFF9F2] border-[#FDE6D2] hover:border-[#FBD5B5]",
+    iconBox: "bg-white border-[#FDE6D2] shadow-2xs",
+    iconColor: "text-amber-600",
+    titleColor: "text-amber-950",
+    pointsBadge: "text-amber-700 bg-amber-50/80 border-amber-200/70",
+  },
+  salon: {
+    card: "bg-[#F4F7FB] border-[#D9E3ED] hover:border-[#C5D5E4]",
+    iconBox: "bg-white border-[#D9E3ED] shadow-2xs",
+    iconColor: "text-[#31405F]",
+    titleColor: "text-[#1E293B]",
+    pointsBadge: "text-[#31405F] bg-[#31405F]/10 border-[#31405F]/15",
+  },
+  bano: {
+    card: "bg-[#F0FBF9] border-[#CEEFE8] hover:border-[#B4E5DC]",
+    iconBox: "bg-white border-[#CEEFE8] shadow-2xs",
+    iconColor: "text-teal-600",
+    titleColor: "text-teal-950",
+    pointsBadge: "text-teal-700 bg-teal-50/80 border-teal-200/70",
+  },
+};
+
+const defaultZoneTheme = {
+  card: "bg-slate-50 border-slate-200/80",
+  iconBox: "bg-white border-slate-200/60 shadow-2xs",
+  iconColor: "text-slate-600",
+  titleColor: "text-slate-800",
+  pointsBadge: "text-slate-600 bg-slate-100 border-slate-200",
+};
 
 interface LotterySectionProps {
   lottery: CleaningLottery | null;
@@ -61,22 +103,22 @@ export const LotterySection: React.FC<LotterySectionProps> = ({
               }
             }}
             disabled={isRunning}
-            className="w-full sm:w-auto px-4 py-2.5 bg-[#31405F] hover:bg-[#194F6B] text-white font-semibold text-xs rounded-xl shadow-xs transition-colors flex items-center justify-center space-x-2 disabled:opacity-50"
+            className="px-4 py-2.5 bg-[#31405F] hover:bg-[#194F6B] text-white text-xs font-semibold rounded-xl shadow-xs transition-colors flex items-center justify-center space-x-2 disabled:opacity-50 shrink-0"
           >
             {isRunning ? (
               <>
-                <Loader2 className="w-4 h-4 animate-spin" />
-                <span>Sorteando zonas...</span>
+                <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                <span>Sorteando...</span>
               </>
             ) : (
               <>
-                <Dices className="w-4 h-4" />
+                <Dices className="w-3.5 h-3.5" />
                 <span>Realizar sorteo</span>
               </>
             )}
           </button>
         ) : (
-          <div className="px-3.5 py-2 bg-slate-50 text-slate-600 border border-slate-200 rounded-xl text-xs font-medium">
+          <div className="text-xs text-slate-500 bg-slate-50 border border-slate-200 px-3 py-2 rounded-xl">
             Esperando a que Jorge realice el sorteo inicial.
           </div>
         )}
@@ -88,26 +130,44 @@ export const LotterySection: React.FC<LotterySectionProps> = ({
         </div>
       )}
 
-      {/* Vista de las 3 zonas sin asignar antes del sorteo */}
+      {/* Vista de las 3 zonas con fondo suave personalizado */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 mt-4 pt-4 border-t border-slate-100">
-        {assignments.map((z) => (
-          <div
-            key={z.zone_id}
-            className="bg-slate-50 border border-slate-200/80 rounded-xl p-3 flex items-center justify-between"
-          >
-            <div className="flex items-center space-x-2.5">
-              <div className="p-1.5 bg-white text-slate-600 rounded-lg border border-slate-200/60 shadow-2xs">
-                <ZoneIcon slug={z.zone_slug} className="w-4 h-4" />
+        {assignments.map((z) => {
+          const theme = ZONE_THEMES[z.zone_slug.toLowerCase()] || defaultZoneTheme;
+
+          return (
+            <div
+              key={z.zone_id}
+              className={cn(
+                "rounded-xl border p-3 flex items-center justify-between transition-all shadow-2xs",
+                theme.card
+              )}
+            >
+              <div className="flex items-center space-x-2.5">
+                <div
+                  className={cn(
+                    "p-2 rounded-lg border flex items-center justify-center",
+                    theme.iconBox,
+                    theme.iconColor
+                  )}
+                >
+                  <ZoneIcon slug={z.zone_slug} className="w-4 h-4" />
+                </div>
+                <span className={cn("text-xs font-bold tracking-tight", theme.titleColor)}>
+                  {z.zone_name}
+                </span>
               </div>
-              <span className="text-xs font-semibold text-slate-800">
-                {z.zone_name}
+              <span
+                className={cn(
+                  "text-[10px] font-bold px-2 py-0.5 rounded-md border",
+                  theme.pointsBadge
+                )}
+              >
+                +{z.zone_default_points} pts
               </span>
             </div>
-            <span className="text-[11px] font-medium text-slate-400">
-              {z.assigned_user_name || "Sin asignar"}
-            </span>
-          </div>
-        ))}
+          );
+        })}
       </div>
     </div>
   );
