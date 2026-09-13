@@ -143,11 +143,12 @@ export const ZoneCard: React.FC<ZoneCardProps> = ({
       <div className="space-y-1.5 mb-3.5">
         {zone.tasks.map((task) => {
           const isToggling = loadingTaskId === task.id;
+          const isDone = Boolean(task.is_checked);
           return (
             <div
               key={task.id}
               onClick={async () => {
-                if (!canEdit || isToggling) return;
+                if (!canEdit || isDone || isToggling) return;
                 setLoadingTaskId(task.id);
                 try {
                   await onToggleTask(task.id, zone.zone_id);
@@ -158,22 +159,26 @@ export const ZoneCard: React.FC<ZoneCardProps> = ({
               className={`flex items-center justify-between p-2.5 rounded-xl border text-xs transition-all ${
                 !canEdit
                   ? "bg-slate-50/50 border-slate-200/70 text-slate-400 cursor-not-allowed"
-                  : task.is_checked
-                  ? "bg-emerald-50/40 border-emerald-200/80 text-slate-600 line-through cursor-pointer"
+                  : isDone
+                  ? "bg-emerald-50/40 border-emerald-200/80 text-slate-500 line-through cursor-default"
                   : "bg-white border-slate-200 hover:border-slate-300 text-slate-800 cursor-pointer shadow-2xs"
               }`}
             >
               <div className="flex items-center space-x-2.5">
                 <input
                   type="checkbox"
-                  checked={task.is_checked || false}
-                  disabled={!canEdit || isToggling}
+                  checked={isDone}
+                  disabled={!canEdit || isDone || isToggling}
                   readOnly
-                  className={`w-4 h-4 rounded text-[#31405F] focus:ring-[#31405F] ${
-                    !canEdit ? "opacity-40 cursor-not-allowed" : "cursor-pointer"
+                  className={`w-4 h-4 rounded text-emerald-600 focus:ring-emerald-500 ${
+                    !canEdit
+                      ? "opacity-40 cursor-not-allowed"
+                      : isDone
+                      ? "cursor-default text-emerald-600"
+                      : "cursor-pointer"
                   }`}
                 />
-                <span className={task.is_checked ? "text-slate-400" : "font-medium"}>
+                <span className={isDone ? "text-slate-400" : "font-medium"}>
                   {task.title}
                 </span>
               </div>
@@ -181,7 +186,7 @@ export const ZoneCard: React.FC<ZoneCardProps> = ({
                 <Loader2 className="w-3.5 h-3.5 text-slate-400 animate-spin" />
               ) : !canEdit ? (
                 <Lock className="w-3.5 h-3.5 text-slate-400" />
-              ) : task.is_checked ? (
+              ) : isDone ? (
                 <Check className="w-3.5 h-3.5 text-emerald-600" />
               ) : null}
             </div>

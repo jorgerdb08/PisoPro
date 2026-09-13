@@ -91,6 +91,14 @@ export function useTrash() {
     [currentUser, loadData]
   );
 
+  const todayStr = new Date().toISOString().slice(0, 10);
+  const hasThrownToday = Boolean(
+    currentUser &&
+      events.some(
+        (e) => e.user_id === currentUser.id && e.created_at.slice(0, 10) === todayStr
+      )
+  );
+
   return {
     events,
     stats,
@@ -98,6 +106,7 @@ export function useTrash() {
     setFilter,
     isLoading,
     isSubmitting,
+    hasThrownToday,
     recordTrash,
     refresh: loadData,
   };

@@ -13,13 +13,25 @@ import { HelpRequestBanner } from "@/features/cleaning/components/HelpRequestBan
 import { TrashHistoryView } from "@/features/cleaning/components/TrashHistoryView";
 import { ContributionStatsView } from "@/features/cleaning/components/ContributionStatsView";
 import { AdminCleaningModal } from "@/features/cleaning/components/AdminCleaningModal";
-import { Loader2, Settings2, RotateCw, Sparkles, Trash2, BarChart3, Lock, X } from "lucide-react";
+import {
+  Loader2,
+  Settings2,
+  RotateCw,
+  Sparkles,
+  Trash2,
+  BarChart3,
+  Lock,
+  X,
+  Eye,
+  EyeOff,
+} from "lucide-react";
 
 export default function TareasPage() {
   const { currentUser, isLoading: isAuthLoading, logout } = useAuth();
   const [isAdminModalOpen, setIsAdminModalOpen] = useState(false);
   const [isCleaningAdminModalOpen, setIsCleaningAdminModalOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<"zones" | "trash" | "stats">("zones");
+  const [showAllZones, setShowAllZones] = useState<boolean>(false);
 
   const {
     assignments,
@@ -166,37 +178,108 @@ export default function TareasPage() {
         )}
 
         {/* Tab 1: ZONAS DE LIMPIEZA */}
-        {activeTab === "zones" && (
-          <div className="space-y-4">
-            {/* Banner de Sorteo Inicial / Estado */}
-            <LotterySection
-              lottery={lottery}
-              assignments={assignments}
-              isAdmin={isAdmin}
-              onExecuteLottery={executeLottery}
-            />
+        {activeTab === "zones" && (() => {
+          const isLotteryLocked = Boolean(lottery?.is_locked);
+          const myZone = assignments.find((z) => z.assigned_user_id === currentUser.id);
+          const myHelpingZones = assignments.filter(
+            (z) => z.assigned_user_id !== currentUser.id && z.helpers.some((h) => h.helper_id === currentUser.id)
+          );
+          const myActiveZones = [myZone, ...myHelpingZones].filter(Boolean) as typeof assignments;
+          const otherZones = assignments.filter(
+            (z) => z.assigned_user_id !== currentUser.id && !z.helpers.some((h) => h.helper_id === currentUser.id)
+          );
 
-            {/* Solicitudes de ayuda activas */}
-            <HelpRequestBanner
-              helpRequests={activeHelpRequests}
-              onAcceptHelp={acceptHelp}
-            />
-
-            {/* Lista de las 3 zonas principales */}
+          return (
             <div className="space-y-4">
-              {assignments.map((zone) => (
-                <ZoneCard
-                  key={zone.zone_id}
-                  zone={zone}
-                  currentUserId={currentUser.id}
-                  onToggleTask={toggleTask}
-                  onRequestHelp={requestHelp}
-                  onAcceptHelp={acceptHelp}
-                />
-              ))}
+              {/* Banner de Sorteo Inicial / Estado (desaparece al fijarse) */}
+              <LotterySection
+                lottery={lottery}
+                assignments={assignments}
+                isAdmin={isAdmin}
+                onExecuteLottery={executeLottery}
+              />
+
+              {/* Solicitudes de ayuda activas */}
+              <HelpRequestBanner
+                helpRequests={activeHelpRequests}
+                onAcceptHelp={acceptHelp}
+              />
+
+              {/* Si el sorteo está fijado: Solo sale la zona que tiene que hacer el usuario */}
+              {isLotteryLocked ? (
+                <div className="space-y-4">
+                  {myActiveZones.length > 0 ? (
+                    myActiveZones.map((zone) => (
+                      <ZoneCard
+                        key={zone.zone_id}
+                        zone={zone}
+                        currentUserId={currentUser.id}
+                        onToggleTask={toggleTask}
+                        onRequestHelp={requestHelp}
+                        onAcceptHelp={acceptHelp}
+                      />
+                    ))
+                  ) : (
+                    <div className="p-6 bg-white border border-slate-200/90 rounded-2xl text-center text-xs text-slate-500 shadow-xs">
+                      No tienes una zona asignada para esta semana.
+                    </div>
+                  )}
+
+                  {/* Acceso opcional a ver las zonas de los compañeros (colapsado) */}
+                  {otherZones.length > 0 && (
+                    <div className="pt-1">
+                      <button
+                        onClick={() => setShowAllZones(!showAllZones)}
+                        className="w-full py-2 px-3 text-xs font-medium text-slate-500 hover:text-slate-700 bg-slate-50 hover:bg-slate-100 rounded-xl border border-slate-200/70 transition-colors flex items-center justify-center space-x-1.5"
+                      >
+                        {showAllZones ? (
+                          <>
+                            <EyeOff className="w-3.5 h-3.5" />
+                            <span>Ocultar zonas de compañeros</span>
+                          </>
+                        ) : (
+                          <>
+                            <Eye className="w-3.5 h-3.5" />
+                            <span>Ver zonas de compañeros ({otherZones.length})</span>
+                          </>
+                        )}
+                      </button>
+
+                      {showAllZones && (
+                        <div className="space-y-4 mt-3">
+                          {otherZones.map((zone) => (
+                            <ZoneCard
+                              key={zone.zone_id}
+                              zone={zone}
+                              currentUserId={currentUser.id}
+                              onToggleTask={toggleTask}
+                              onRequestHelp={requestHelp}
+                              onAcceptHelp={acceptHelp}
+                            />
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              ) : (
+                /* Antes del sorteo: vista previa */
+                <div className="space-y-4">
+                  {assignments.map((zone) => (
+                    <ZoneCard
+                      key={zone.zone_id}
+                      zone={zone}
+                      currentUserId={currentUser.id}
+                      onToggleTask={toggleTask}
+                      onRequestHelp={requestHelp}
+                      onAcceptHelp={acceptHelp}
+                    />
+                  ))}
+                </div>
+              )}
             </div>
-          </div>
-        )}
+          );
+        })()}
 
         {/* Tab 2: HISTORIAL DE BASURA */}
         {activeTab === "trash" && <TrashHistoryView />}
