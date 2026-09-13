@@ -54,7 +54,9 @@ CREATE TABLE IF NOT EXISTS user_sessions (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
   device_id TEXT NOT NULL,
+  device_name TEXT NOT NULL DEFAULT 'Dispositivo desconocido',
   session_token TEXT NOT NULL UNIQUE,
+  status TEXT NOT NULL DEFAULT 'ACTIVE' CHECK (status IN ('ACTIVE', 'EXPIRED', 'REVOKED')),
   last_seen TIMESTAMPTZ NOT NULL DEFAULT now(),
   expires_at TIMESTAMPTZ NOT NULL,
   is_active BOOLEAN NOT NULL DEFAULT true,
@@ -63,6 +65,11 @@ CREATE TABLE IF NOT EXISTS user_sessions (
 
 CREATE INDEX IF NOT EXISTS idx_user_sessions_lookup ON user_sessions(user_id, is_active, expires_at);
 CREATE INDEX IF NOT EXISTS idx_user_sessions_token ON user_sessions(session_token);
+CREATE INDEX IF NOT EXISTS idx_user_sessions_device_lookup ON user_sessions(device_id, is_active, status);
+DROP INDEX IF EXISTS idx_unique_active_user_session;
+CREATE UNIQUE INDEX idx_unique_active_user_session 
+ON user_sessions(user_id) 
+WHERE (status = 'ACTIVE' AND is_active = true AND expires_at > now());
 
 CREATE TABLE IF NOT EXISTS tasks (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -266,7 +273,8 @@ CREATE POLICY "Messages insert" ON messages FOR INSERT WITH CHECK (true);
 CREATE OR REPLACE FUNCTION claim_profile(
   p_user_id UUID,
   p_device_id TEXT,
-  p_lease_seconds INT DEFAULT 60
+  p_device_name TEXT DEFAULT 'Dispositivo desconocido',
+  p_inactivity_days INT DEFAULT 30
 )
 RETURNS JSONB AS $$
 DECLARE
@@ -274,8 +282,11 @@ DECLARE
   v_new_token TEXT;
   v_expires_at TIMESTAMPTZ;
   v_user_name TEXT;
+  v_role TEXT;
+  v_avatar_url TEXT;
 BEGIN
-  SELECT name INTO v_user_name
+  -- 1. Bloqueo pesimista del perfil para serializar reclamaciones concurrentes
+  SELECT name, role, avatar_url INTO v_user_name, v_role, v_avatar_url
   FROM profiles
   WHERE id = p_user_id
   FOR UPDATE;
@@ -284,20 +295,28 @@ BEGIN
     RETURN jsonb_build_object('success', false, 'error', 'Perfil de usuario no encontrado');
   END IF;
 
-  SELECT id, device_id, session_token, expires_at INTO v_existing_session
+  -- 2. Comprobar si ya existe una sesión activa y vigente para este usuario
+  SELECT id, device_id, device_name, session_token, expires_at, status INTO v_existing_session
   FROM user_sessions
   WHERE user_id = p_user_id
     AND is_active = true
+    AND status = 'ACTIVE'
     AND expires_at > now()
   ORDER BY claimed_at DESC
   LIMIT 1
   FOR UPDATE;
 
   IF FOUND THEN
+    -- Si es el mismo dispositivo, renueva la sesión y devuelve el token existente
     IF v_existing_session.device_id = p_device_id THEN
-      v_expires_at := now() + (p_lease_seconds || ' seconds')::interval;
+      v_expires_at := now() + (p_inactivity_days || ' days')::interval;
       UPDATE user_sessions
-      SET last_seen = now(), expires_at = v_expires_at
+      SET 
+        last_seen = now(), 
+        expires_at = v_expires_at,
+        device_name = COALESCE(NULLIF(p_device_name, ''), v_existing_session.device_name, 'Dispositivo desconocido'),
+        status = 'ACTIVE',
+        is_active = true
       WHERE id = v_existing_session.id;
 
       RETURN jsonb_build_object(
@@ -305,29 +324,36 @@ BEGIN
         'session_token', v_existing_session.session_token,
         'expires_at', v_expires_at,
         'user_id', p_user_id,
+        'user_name', v_user_name,
+        'role', v_role,
+        'avatar_url', v_avatar_url,
         'renewed', true
       );
     ELSE
+      -- Dispositivo distinto: bloquear con mensaje claro
       RETURN jsonb_build_object(
         'success', false,
         'error', v_user_name || ' está en uso en otro dispositivo',
         'is_busy', true,
+        'device_name', v_existing_session.device_name,
         'expires_at', v_existing_session.expires_at
       );
     END IF;
   END IF;
 
+  -- 3. Desactivar sesiones anteriores del usuario o de este dispositivo
   UPDATE user_sessions
-  SET is_active = false
-  WHERE user_id = p_user_id AND is_active = true;
+  SET is_active = false, status = CASE WHEN status = 'ACTIVE' THEN 'EXPIRED' ELSE status END
+  WHERE (user_id = p_user_id OR device_id = p_device_id) AND is_active = true;
 
+  -- 4. Generar nuevo token seguro y registrar sesión activa
   v_new_token := encode(gen_random_bytes(32), 'hex');
-  v_expires_at := now() + (p_lease_seconds || ' seconds')::interval;
+  v_expires_at := now() + (p_inactivity_days || ' days')::interval;
 
   INSERT INTO user_sessions (
-    user_id, device_id, session_token, last_seen, expires_at, is_active, claimed_at
+    user_id, device_id, device_name, session_token, status, last_seen, expires_at, is_active, claimed_at
   ) VALUES (
-    p_user_id, p_device_id, v_new_token, now(), v_expires_at, true, now()
+    p_user_id, p_device_id, COALESCE(NULLIF(p_device_name, ''), 'Dispositivo desconocido'), v_new_token, 'ACTIVE', now(), v_expires_at, true, now()
   );
 
   RETURN jsonb_build_object(
@@ -335,6 +361,9 @@ BEGIN
     'session_token', v_new_token,
     'expires_at', v_expires_at,
     'user_id', p_user_id,
+    'user_name', v_user_name,
+    'role', v_role,
+    'avatar_url', v_avatar_url,
     'renewed', false
   );
 END;
@@ -342,32 +371,106 @@ $$ LANGUAGE plpgsql SECURITY DEFINER;
 
 CREATE OR REPLACE FUNCTION heartbeat_session(
   p_session_token TEXT,
-  p_extend_seconds INT DEFAULT 60
+  p_device_name TEXT DEFAULT NULL,
+  p_extend_days INT DEFAULT 30
 )
 RETURNS JSONB AS $$
 DECLARE
   v_session RECORD;
   v_new_expires_at TIMESTAMPTZ;
 BEGIN
-  SELECT id, user_id, is_active, expires_at INTO v_session
+  SELECT id, user_id, is_active, status, expires_at INTO v_session
   FROM user_sessions
   WHERE session_token = p_session_token
   FOR UPDATE;
 
-  IF NOT FOUND OR v_session.is_active = false THEN
-    RETURN jsonb_build_object('success', false, 'error', 'Sesión no válida o caducada');
+  IF NOT FOUND THEN
+    RETURN jsonb_build_object(
+      'success', false, 
+      'error', 'Sesión no encontrada',
+      'is_revoked', true
+    );
   END IF;
 
-  v_new_expires_at := now() + (p_extend_seconds || ' seconds')::interval;
+  IF v_session.is_active = false OR v_session.status != 'ACTIVE' THEN
+    RETURN jsonb_build_object(
+      'success', false, 
+      'error', 'Sesión desvinculada o inactiva',
+      'is_revoked', (v_session.status = 'REVOKED'),
+      'is_expired', (v_session.status = 'EXPIRED' OR v_session.expires_at <= now())
+    );
+  END IF;
+
+  v_new_expires_at := now() + (p_extend_days || ' days')::interval;
 
   UPDATE user_sessions
-  SET last_seen = now(), expires_at = v_new_expires_at
+  SET 
+    last_seen = now(), 
+    expires_at = v_new_expires_at,
+    device_name = COALESCE(NULLIF(p_device_name, ''), device_name)
   WHERE id = v_session.id;
 
   RETURN jsonb_build_object(
     'success', true,
     'expires_at', v_new_expires_at,
-    'user_id', v_session.user_id
+    'user_id', v_session.user_id,
+    'status', 'ACTIVE'
+  );
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+CREATE OR REPLACE FUNCTION validate_session(
+  p_session_token TEXT,
+  p_device_id TEXT
+)
+RETURNS JSONB AS $$
+DECLARE
+  v_record RECORD;
+BEGIN
+  SELECT 
+    s.id AS session_id,
+    s.user_id,
+    s.device_id,
+    s.status,
+    s.is_active,
+    s.expires_at,
+    s.last_seen,
+    p.name AS user_name,
+    p.role,
+    p.avatar_url
+  INTO v_record
+  FROM user_sessions s
+  JOIN profiles p ON p.id = s.user_id
+  WHERE s.session_token = p_session_token;
+
+  IF NOT FOUND THEN
+    RETURN jsonb_build_object('valid', false, 'reason', 'NOT_FOUND');
+  END IF;
+
+  IF v_record.device_id != p_device_id THEN
+    RETURN jsonb_build_object('valid', false, 'reason', 'DEVICE_MISMATCH');
+  END IF;
+
+  IF v_record.is_active = false OR v_record.status != 'ACTIVE' OR v_record.expires_at <= now() THEN
+    RETURN jsonb_build_object(
+      'valid', false, 
+      'reason', v_record.status,
+      'is_revoked', (v_record.status = 'REVOKED'),
+      'is_expired', (v_record.status = 'EXPIRED' OR v_record.expires_at <= now())
+    );
+  END IF;
+
+  UPDATE user_sessions
+  SET last_seen = now()
+  WHERE id = v_record.session_id;
+
+  RETURN jsonb_build_object(
+    'valid', true,
+    'user_id', v_record.user_id,
+    'name', v_record.user_name,
+    'role', v_record.role,
+    'avatar_url', v_record.avatar_url,
+    'status', 'ACTIVE'
   );
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
@@ -376,7 +479,7 @@ CREATE OR REPLACE FUNCTION release_profile(p_session_token TEXT)
 RETURNS JSONB AS $$
 BEGIN
   UPDATE user_sessions
-  SET is_active = false
+  SET is_active = false, status = 'REVOKED'
   WHERE session_token = p_session_token;
 
   RETURN jsonb_build_object('success', true);
@@ -387,12 +490,14 @@ CREATE OR REPLACE FUNCTION admin_force_release_profile(p_user_id UUID)
 RETURNS JSONB AS $$
 BEGIN
   UPDATE user_sessions
-  SET is_active = false
-  WHERE user_id = p_user_id;
+  SET is_active = false, status = 'REVOKED'
+  WHERE user_id = p_user_id AND is_active = true;
 
   RETURN jsonb_build_object('success', true);
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
+
+DROP FUNCTION IF EXISTS get_profiles_availability(TEXT);
 
 CREATE OR REPLACE FUNCTION get_profiles_availability(p_current_device_id TEXT DEFAULT '')
 RETURNS TABLE (
@@ -403,7 +508,9 @@ RETURNS TABLE (
   is_busy BOOLEAN,
   is_current_device BOOLEAN,
   last_seen TIMESTAMPTZ,
-  expires_at TIMESTAMPTZ
+  expires_at TIMESTAMPTZ,
+  status TEXT,
+  device_name TEXT
 ) AS $$
 BEGIN
   RETURN QUERY
@@ -412,18 +519,25 @@ BEGIN
     p.name,
     p.role,
     p.avatar_url,
-    COALESCE(s.is_active AND s.expires_at > now(), false) AS is_busy,
-    COALESCE(s.is_active AND s.expires_at > now() AND s.device_id = p_current_device_id, false) AS is_current_device,
+    COALESCE(s.is_active AND s.status = 'ACTIVE' AND s.expires_at > now() AND s.device_id != p_current_device_id, false) AS is_busy,
+    COALESCE(s.is_active AND s.status = 'ACTIVE' AND s.expires_at > now() AND s.device_id = p_current_device_id, false) AS is_current_device,
     s.last_seen,
-    s.expires_at
+    s.expires_at,
+    CASE
+      WHEN s.is_active = true AND s.status = 'ACTIVE' AND s.expires_at > now() THEN 'ACTIVE'
+      WHEN s.status = 'REVOKED' THEN 'REVOKED'
+      WHEN s.status = 'EXPIRED' OR (s.expires_at IS NOT NULL AND s.expires_at <= now()) THEN 'EXPIRED'
+      ELSE 'UNCLAIMED'
+    END AS status,
+    COALESCE(s.device_name, 'Sin dispositivo') AS device_name
   FROM profiles p
   LEFT JOIN LATERAL (
-    SELECT us.is_active, us.device_id, us.last_seen, us.expires_at
+    SELECT us.is_active, us.status, us.device_id, us.device_name, us.last_seen, us.expires_at
     FROM user_sessions us
     WHERE us.user_id = p.id
-      AND us.is_active = true
-      AND us.expires_at > now()
-    ORDER BY us.claimed_at DESC
+    ORDER BY 
+      CASE WHEN us.is_active = true AND us.status = 'ACTIVE' AND us.expires_at > now() THEN 0 ELSE 1 END,
+      us.last_seen DESC
     LIMIT 1
   ) s ON true
   ORDER BY

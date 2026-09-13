@@ -1,7 +1,8 @@
 "use client";
 
 import React from "react";
-import { Users, AlertCircle } from "lucide-react";
+import Image from "next/image";
+import { AlertCircle, AlertTriangle } from "lucide-react";
 import { useAuth } from "@/features/auth/AuthContext";
 import { ProfileCard } from "./ProfileCard";
 
@@ -10,9 +11,11 @@ export function ProfileSelectorModal() {
     profiles,
     isClaiming,
     claimError,
+    revokedNotification,
     selectProfile,
     forceReleaseUser,
     currentUser,
+    clearRevokedNotification,
   } = useAuth();
 
   const handleSelect = async (userId: string) => {
@@ -23,42 +26,65 @@ export function ProfileSelectorModal() {
 
   return (
     <div className="flex min-h-screen flex-col justify-between px-4 py-8 sm:py-12 bg-[#FAFBFC]">
-      <div className="space-y-6">
-        {/* Header Branding */}
-        <div className="space-y-2 pt-4 text-center">
-          <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-[#31405F] text-white shadow-xs">
-            <Users className="h-6 w-6 stroke-[1.75]" />
+      <div className="mx-auto w-full max-w-sm space-y-6">
+        {/* App Logo & Header */}
+        <div className="space-y-3 pt-4 text-center">
+          <div className="mx-auto flex h-14 w-14 items-center justify-center overflow-hidden rounded-2xl bg-[#31405F] shadow-md shadow-[#31405F]/15">
+            <Image
+              src="/icons/icon-192x192.png"
+              alt="PisoPro"
+              width={56}
+              height={56}
+              className="h-full w-full object-cover"
+              priority
+            />
           </div>
           <div className="space-y-1">
+            <h2 className="text-[#607283] text-xs font-semibold uppercase tracking-widest">
+              PisoPro
+            </h2>
             <h1 className="text-[#31405F] text-2xl font-bold tracking-tight">
               ¿Quién eres?
             </h1>
-            <p className="text-[#607283] text-xs sm:text-sm">
-              Selecciona tu perfil para asociar este dispositivo al piso
-            </p>
           </div>
         </div>
 
-        {/* Realtime Status Banner */}
-        <div className="text-[#607283] flex items-center justify-center gap-2 text-xs">
-          <span className="relative flex h-2 w-2">
-            <span className="relative inline-flex h-2 w-2 rounded-full bg-[#094152]" />
-          </span>
-          <span className="flex items-center gap-1 font-medium text-[#31405F]">
-            Control de sesiones en tiempo real activo
-          </span>
-        </div>
-
-        {/* Error notification if claim was blocked */}
-        {claimError && (
-          <div className="animate-in fade-in slide-in-from-top-2 flex items-center gap-2.5 rounded-xl border border-[#C995A2]/50 bg-[#C995A2]/10 p-3.5 text-xs text-[#8B4B5B]">
-            <AlertCircle className="h-4 w-4 flex-shrink-0" />
-            <p className="font-medium">{claimError}</p>
+        {/* Revoked Notification Banner */}
+        {revokedNotification && (
+          <div
+            data-testid="revoked-session-banner"
+            className="animate-in fade-in slide-in-from-top-2 flex items-center justify-between gap-2.5 rounded-2xl border border-[#C995A2]/60 bg-[#C995A2]/15 p-3.5 text-xs text-[#8B4B5B] shadow-xs"
+          >
+            <div className="flex items-center gap-2">
+              <AlertTriangle className="h-4 w-4 shrink-0 text-[#8B4B5B]" />
+              <p className="font-semibold">{revokedNotification}</p>
+            </div>
+            <button
+              type="button"
+              onClick={clearRevokedNotification}
+              className="rounded-lg p-1 text-[#8B4B5B] hover:bg-[#C995A2]/20 text-[11px] font-bold"
+            >
+              ✕
+            </button>
           </div>
         )}
 
-        {/* Profile List */}
-        <div className="space-y-3">
+        {/* Claim Error (e.g. User already in use) */}
+        {claimError && (
+          <div
+            data-testid="claim-error-banner"
+            className="animate-in fade-in slide-in-from-top-2 flex items-start gap-2.5 rounded-2xl border border-[#C995A2]/60 bg-[#C995A2]/15 p-3.5 text-xs text-[#8B4B5B] shadow-xs"
+          >
+            <AlertCircle className="h-4 w-4 shrink-0 mt-0.5" />
+            <div>
+              <p className="font-bold">Usuario no disponible</p>
+              <p className="text-[11px] mt-0.5">{claimError}</p>
+            </div>
+          </div>
+        )}
+
+        {/* Flatmate Profiles List */}
+        <div className="space-y-3 pt-1">
           {profiles.length > 0 ? (
             profiles.map((profile) => (
               <ProfileCard
@@ -79,10 +105,10 @@ export function ProfileSelectorModal() {
         </div>
       </div>
 
-      {/* Footer Info */}
+      {/* Footer Branding */}
       <div className="pt-8 text-center">
         <div className="border-[#BFC6CC]/60 bg-white text-[#607283] inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-[11px] shadow-xs">
-          <span>PisoPro · Convivencia compartida</span>
+          <span>PisoPro · Convivencia Organizada</span>
         </div>
       </div>
     </div>

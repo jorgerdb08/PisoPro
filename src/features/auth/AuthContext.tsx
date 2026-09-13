@@ -18,6 +18,7 @@ import {
   getStoredSessionToken,
   storeSessionToken,
   clearStoredSessionToken,
+  getDeviceFriendlyName,
 } from "@/features/auth/device";
 import { useHeartbeat } from "@/features/auth/useHeartbeat";
 import { getSupabaseBrowserClient } from "@/lib/supabase/client";
@@ -33,14 +34,18 @@ interface AuthContextType {
   currentUser: CurrentUser | null;
   sessionToken: string | null;
   deviceId: string;
+  deviceName: string;
   profiles: ProfileAvailability[];
   isLoading: boolean;
   isClaiming: boolean;
   claimError: string | null;
+  revokedNotification: string | null;
   selectProfile: (userId: string) => Promise<ClaimResult>;
-  logout: () => Promise<void>;
+  unlinkDevice: () => Promise<void>;
+  logout: () => Promise<void>; // Alias for unlinkDevice
   forceReleaseUser: (userId: string) => Promise<boolean>;
   refreshProfiles: () => Promise<void>;
+  clearRevokedNotification: () => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -49,56 +54,77 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [deviceId] = useState<string>(() =>
     typeof window !== "undefined" ? getOrCreateDeviceId() : ""
   );
+  const [deviceName] = useState<string>(() =>
+    typeof window !== "undefined" ? getDeviceFriendlyName() : "Dispositivo desconocido"
+  );
   const [currentUser, setCurrentUser] = useState<CurrentUser | null>(null);
   const [sessionToken, setSessionToken] = useState<string | null>(null);
   const [profiles, setProfiles] = useState<ProfileAvailability[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [isClaiming, setIsClaiming] = useState<boolean>(false);
   const [claimError, setClaimError] = useState<string | null>(null);
+  const [revokedNotification, setRevokedNotification] = useState<string | null>(null);
 
   const supabase = getSupabaseBrowserClient();
   const activeSessionRef = useRef<string | null>(null);
+  const currentUserRef = useRef<CurrentUser | null>(null);
 
   useEffect(() => {
     activeSessionRef.current = sessionToken;
   }, [sessionToken]);
+
+  useEffect(() => {
+    currentUserRef.current = currentUser;
+  }, [currentUser]);
+
+  const clearRevokedNotification = useCallback(() => {
+    setRevokedNotification(null);
+  }, []);
 
   const refreshProfiles = useCallback(async () => {
     const devId = deviceId || getOrCreateDeviceId();
     const list = await authService.getProfilesAvailability(devId);
     setProfiles(list);
 
-    // If we have an active session, verify if the current device is still valid
-    if (activeSessionRef.current) {
-      const currentInList = list.find((p) => p.is_current_device);
+    // If we have an active session, verify if our session is still active in the database
+    if (activeSessionRef.current && currentUserRef.current) {
+      const currentInList = list.find((p) => p.id === currentUserRef.current?.id);
       if (currentInList) {
-        setCurrentUser({
-          id: currentInList.id,
-          name: currentInList.name,
-          role: currentInList.role,
-          avatar_url: currentInList.avatar_url,
-        });
+        // If current device was revoked or released in backend, handle disconnect
+        if (currentInList.status === "REVOKED" || !currentInList.is_current_device) {
+          console.warn("[Auth] Current device session has been revoked or transferred");
+          clearStoredSessionToken();
+          setSessionToken(null);
+          setCurrentUser(null);
+          setRevokedNotification("Tu sesión ha sido desvinculada.");
+        }
       }
     }
   }, [deviceId]);
 
-  // Handle session expiration detected by heartbeat or server
-  const handleSessionExpired = useCallback(() => {
-    console.warn("[Auth] Session lease expired or released elsewhere");
-    clearStoredSessionToken();
-    setSessionToken(null);
-    setCurrentUser(null);
-    void refreshProfiles();
-  }, [refreshProfiles]);
+  // Handle session expiration or revocation detected by heartbeat
+  const handleSessionExpired = useCallback(
+    (reason?: string) => {
+      console.warn("[Auth] Session lease expired or revoked:", reason);
+      clearStoredSessionToken();
+      setSessionToken(null);
+      setCurrentUser(null);
+      if (reason === "REVOKED") {
+        setRevokedNotification("Tu sesión ha sido desvinculada.");
+      }
+      void refreshProfiles();
+    },
+    [refreshProfiles]
+  );
 
-  // Heartbeat integration
+  // Heartbeat integration: sends periodic last_seen and checks session validity
   useHeartbeat({
     sessionToken,
     isActive: !!currentUser,
     onSessionExpired: handleSessionExpired,
   });
 
-  // Initial initialization: check stored session, fetch profiles
+  // Initial initialization: authoritatively validate session with Supabase
   useEffect(() => {
     const devId = deviceId || getOrCreateDeviceId();
     const storedToken = getStoredSessionToken();
@@ -106,23 +132,30 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     async function init() {
       setIsLoading(true);
       try {
+        // 1. Fetch real-time profile availability
         const list = await authService.getProfilesAvailability(devId);
         setProfiles(list);
 
+        // 2. If a session token exists locally, validate it against Supabase backend authority
         if (storedToken) {
-          // Check if this device already holds an active valid session in the database
-          const activeDeviceProfile = list.find((p) => p.is_current_device);
-          if (activeDeviceProfile) {
+          const validation = await authService.validateSession(storedToken, devId);
+
+          if (validation.valid && validation.user_id && validation.name && validation.role) {
             setSessionToken(storedToken);
             setCurrentUser({
-              id: activeDeviceProfile.id,
-              name: activeDeviceProfile.name,
-              role: activeDeviceProfile.role,
-              avatar_url: activeDeviceProfile.avatar_url,
+              id: validation.user_id,
+              name: validation.name,
+              role: validation.role,
+              avatar_url: validation.avatar_url ?? null,
             });
           } else {
-            // Expired or released by admin
+            console.warn("[Auth] Stored session invalid or expired:", validation.reason);
+            if (validation.is_revoked || validation.reason === "REVOKED") {
+              setRevokedNotification("Tu sesión ha sido desvinculada.");
+            }
             clearStoredSessionToken();
+            setSessionToken(null);
+            setCurrentUser(null);
           }
         }
       } catch (err) {
@@ -142,16 +175,32 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "user_sessions" },
+        (payload) => {
+          // If the payload corresponds to our active session and was revoked
+          const newRow = payload.new as { session_token?: string; status?: string; is_active?: boolean } | null;
+          if (
+            newRow &&
+            activeSessionRef.current &&
+            newRow.session_token === activeSessionRef.current
+          ) {
+            if (newRow.status === "REVOKED" || newRow.is_active === false) {
+              handleSessionExpired("REVOKED");
+              return;
+            }
+          }
+          void refreshProfiles();
+        }
+      )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "profiles" },
         () => {
           void refreshProfiles();
         }
       )
-      .on("postgres_changes", { event: "*", schema: "public", table: "profiles" }, () => {
-        void refreshProfiles();
-      })
       .subscribe();
 
-    // Fallback passive refresh every 15s to detect leases that expired passively
+    // Fallback passive refresh every 15s
     const timer = setInterval(() => {
       void refreshProfiles();
     }, 15000);
@@ -160,23 +209,25 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       void supabase.removeChannel(channel);
       clearInterval(timer);
     };
-  }, [supabase, refreshProfiles]);
+  }, [supabase, refreshProfiles, handleSessionExpired]);
 
   // Select profile action (Atomic Claim)
   const selectProfile = useCallback(
     async (userId: string): Promise<ClaimResult> => {
       setIsClaiming(true);
       setClaimError(null);
+      setRevokedNotification(null);
 
       try {
         const devId = deviceId || getOrCreateDeviceId();
-        const result = await authService.claimProfile(userId, devId, 60);
+        const devName = getDeviceFriendlyName();
+        const result = await authService.claimProfile(userId, devId, devName, 30);
 
         if (result.success && result.session_token) {
           storeSessionToken(result.session_token);
           setSessionToken(result.session_token);
 
-          // Update current user
+          // Update profiles list
           const updatedList = await authService.getProfilesAvailability(devId);
           setProfiles(updatedList);
           const claimed = updatedList.find((p) => p.id === userId);
@@ -190,7 +241,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             });
           }
         } else {
-          setClaimError(result.error || "No se pudo seleccionar el perfil");
+          setClaimError(result.error || "No se pudo vincular este perfil");
           void refreshProfiles();
         }
 
@@ -206,8 +257,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     [deviceId, refreshProfiles]
   );
 
-  // Logout / Release Profile
-  const logout = useCallback(async () => {
+  // Explicit action: "Desvincular este dispositivo"
+  const unlinkDevice = useCallback(async () => {
     if (sessionToken) {
       await authService.releaseProfile(sessionToken);
     }
@@ -217,7 +268,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     await refreshProfiles();
   }, [sessionToken, refreshProfiles]);
 
-  // Admin Force Release
+  // Admin Force Release / Revoke device
   const forceReleaseUser = useCallback(
     async (userId: string): Promise<boolean> => {
       const success = await authService.adminForceRelease(userId);
@@ -235,14 +286,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         currentUser,
         sessionToken,
         deviceId,
+        deviceName,
         profiles,
         isLoading,
         isClaiming,
         claimError,
+        revokedNotification,
         selectProfile,
-        logout,
+        unlinkDevice,
+        logout: unlinkDevice,
         forceReleaseUser,
         refreshProfiles,
+        clearRevokedNotification,
       }}
     >
       {children}

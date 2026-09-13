@@ -10,7 +10,7 @@ import { ShoppingView } from "@/features/shopping/components/ShoppingView";
 import { Loader2 } from "lucide-react";
 
 export default function CompraPage() {
-  const { currentUser, isLoading, logout } = useAuth();
+  const { currentUser, isLoading } = useAuth();
   const [isAdminModalOpen, setIsAdminModalOpen] = useState(false);
 
   if (isLoading) {
@@ -37,7 +37,6 @@ export default function CompraPage() {
         userName={currentUser.name}
         userRole={currentUser.role}
         onOpenAdmin={() => setIsAdminModalOpen(true)}
-        onLogout={logout}
       />
 
       <AdminModal

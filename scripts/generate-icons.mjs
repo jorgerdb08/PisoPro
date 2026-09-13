@@ -1,147 +1,167 @@
-import fs from "fs";
-import path from "path";
-import zlib from "zlib";
+import sharp from "sharp";
+import fs from "node:fs";
+import path from "node:path";
 
-function crc32(buf) {
-  let crc = 0 ^ -1;
-  for (let i = 0; i < buf.length; i++) {
-    crc = (crc >>> 8) ^ table[(crc ^ buf[i]) & 0xff];
-  }
-  return (crc ^ -1) >>> 0;
+const OUT_DIR = path.resolve("public/icons");
+const PUBLIC_DIR = path.resolve("public");
+const APP_DIR = path.resolve("src/app");
+
+if (!fs.existsSync(OUT_DIR)) {
+  fs.mkdirSync(OUT_DIR, { recursive: true });
 }
 
-const table = new Uint32Array(256);
-for (let i = 0; i < 256; i++) {
-  let c = i;
-  for (let k = 0; k < 8; k++) {
-    c = c & 1 ? 0xedb88320 ^ (c >>> 1) : c >>> 1;
-  }
-  table[i] = c;
+/**
+ * Modern geometric emblem for PisoPro:
+ * - Background: PisoPro Navy (#31405F)
+ * - Motif: Triad of 3 harmonious rounded living units / flatmates (Jorge, Samuel, David)
+ *   interconnected into a unified modern geometric home/community symbol.
+ * - Colors: Navy (#31405F), Ocean (#194F6B), Petrol (#094152), Crisp White (#FFFFFF)
+ */
+function createSvg(isMaskable = false) {
+  // For maskable icon, Android applies a circular or squircle mask that crops outer ~20%.
+  // So the content scale is reduced to 75% to stay safely within the safe zone.
+  const scale = isMaskable ? 0.75 : 0.88;
+  const cx = 256;
+  const cy = 256;
+
+  return `
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#38496D" />
+      <stop offset="50%" stop-color="#31405F" />
+      <stop offset="100%" stop-color="#243048" />
+    </linearGradient>
+    <linearGradient id="accentGrad1" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#FFFFFF" />
+      <stop offset="100%" stop-color="#E2E8F0" />
+    </linearGradient>
+    <linearGradient id="accentGrad2" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#38BDF8" />
+      <stop offset="100%" stop-color="#0284C7" />
+    </linearGradient>
+    <filter id="softGlow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="8" stdDeviation="12" flood-color="#000000" flood-opacity="0.28" />
+    </filter>
+  </defs>
+
+  <!-- Solid Clean Background -->
+  <rect width="512" height="512" rx="${isMaskable ? 0 : 112}" fill="url(#bgGrad)" />
+
+  <!-- Geometric PisoPro Living Triad Emblem -->
+  <g transform="translate(${cx}, ${cy}) scale(${scale}) translate(-${cx}, -${cy})" filter="url(#softGlow)">
+    <!-- Base Outer Interlocking Living Ring -->
+    <path
+      d="M 256,120
+         C 285,120 310,135 328,158
+         C 370,165 402,200 402,244
+         C 402,274 388,301 366,318
+         C 366,356 338,388 300,396
+         C 287,399 272,400 256,400
+         C 240,400 225,399 212,396
+         C 174,388 146,356 146,318
+         C 124,301 110,274 110,244
+         C 110,200 142,165 184,158
+         C 202,135 227,120 256,120 Z"
+      fill="none"
+      stroke="#194F6B"
+      stroke-width="12"
+      opacity="0.35"
+    />
+
+    <!-- Interconnected Flatmates Geometry: 3 harmonious rounded nodes + central shared hearth -->
+    <!-- Top Roommate / Admin Node (Jorge) -->
+    <circle cx="256" cy="180" r="44" fill="url(#accentGrad1)" />
+    
+    <!-- Left Roommate Node (Samuel) -->
+    <circle cx="188" cy="298" r="44" fill="url(#accentGrad1)" />
+    
+    <!-- Right Roommate Node (David) -->
+    <circle cx="324" cy="298" r="44" fill="url(#accentGrad1)" />
+
+    <!-- Connecting Fluid Rounded Living Links -->
+    <path
+      d="M 256,180 L 188,298
+         M 188,298 L 324,298
+         M 324,298 L 256,180"
+      stroke="url(#accentGrad1)"
+      stroke-width="32"
+      stroke-linecap="round"
+      stroke-linejoin="round"
+    />
+
+    <!-- Central Living Space Portal / Shared Core -->
+    <circle cx="256" cy="260" r="28" fill="#31405F" />
+    <circle cx="256" cy="260" r="16" fill="#FFFFFF" />
+
+    <!-- Top Crown Arc / Roofline Harmony Accent -->
+    <path
+      d="M 206,124 C 238,106 274,106 306,124"
+      fill="none"
+      stroke="#FFFFFF"
+      stroke-width="10"
+      stroke-linecap="round"
+      opacity="0.8"
+    />
+  </g>
+</svg>
+  `.trim();
 }
 
-function createPng(width, height, drawFn) {
-  const bytesPerPixel = 4;
-  const scanlineLength = width * bytesPerPixel + 1;
-  const rawData = Buffer.alloc(scanlineLength * height);
+async function main() {
+  console.log("Generating PisoPro modern icon assets...");
 
-  for (let y = 0; y < height; y++) {
-    const rowOffset = y * scanlineLength;
-    rawData[rowOffset] = 0; // Filter type 0 (None)
-    for (let x = 0; x < width; x++) {
-      const pixelOffset = rowOffset + 1 + x * bytesPerPixel;
-      const [r, g, b, a] = drawFn(x, y, width, height);
-      rawData[pixelOffset] = r;
-      rawData[pixelOffset + 1] = g;
-      rawData[pixelOffset + 2] = b;
-      rawData[pixelOffset + 3] = a;
-    }
+  const standardSvg = createSvg(false);
+  const maskableSvg = createSvg(true);
+
+  // Write SVG files for web and direct crisp usage
+  fs.writeFileSync(path.join(PUBLIC_DIR, "favicon.svg"), standardSvg, "utf8");
+  fs.writeFileSync(path.join(OUT_DIR, "icon.svg"), standardSvg, "utf8");
+
+  const sizes = [16, 32, 48, 96, 144, 192, 512];
+
+  for (const size of sizes) {
+    const outPng = path.join(OUT_DIR, `icon-${size}x${size}.png`);
+    await sharp(Buffer.from(standardSvg))
+      .resize(size, size)
+      .png({ quality: 100, compressionLevel: 9 })
+      .toFile(outPng);
+    console.log(`Generated: ${outPng}`);
   }
 
-  const deflated = zlib.deflateSync(rawData);
+  // Maskable 512x512
+  const maskablePng = path.join(OUT_DIR, "icon-maskable-512x512.png");
+  await sharp(Buffer.from(maskableSvg))
+    .resize(512, 512)
+    .png({ quality: 100, compressionLevel: 9 })
+    .toFile(maskablePng);
+  console.log(`Generated: ${maskablePng}`);
 
-  function makeChunk(type, data) {
-    const len = Buffer.alloc(4);
-    len.writeUInt32BE(data.length, 0);
-    const typeAndData = Buffer.concat([Buffer.from(type), data]);
-    const crc = Buffer.alloc(4);
-    crc.writeUInt32BE(crc32(typeAndData), 0);
-    return Buffer.concat([len, typeAndData, crc]);
-  }
+  // Apple Touch Icon (180x180)
+  const appleTouchIcon = path.join(PUBLIC_DIR, "apple-touch-icon.png");
+  await sharp(Buffer.from(standardSvg))
+    .resize(180, 180)
+    .png({ quality: 100 })
+    .toFile(appleTouchIcon);
+  console.log(`Generated: ${appleTouchIcon}`);
 
-  const signature = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
+  // Apple Touch Icon in icons folder too
+  const appleTouchIconInIcons = path.join(OUT_DIR, "apple-touch-icon.png");
+  await sharp(Buffer.from(standardSvg))
+    .resize(180, 180)
+    .png({ quality: 100 })
+    .toFile(appleTouchIconInIcons);
 
-  const ihdrData = Buffer.alloc(13);
-  ihdrData.writeUInt32BE(width, 0);
-  ihdrData.writeUInt32BE(height, 4);
-  ihdrData[8] = 8; // Bit depth
-  ihdrData[9] = 6; // Color type RGBA
-  ihdrData[10] = 0; // Compression
-  ihdrData[11] = 0; // Filter
-  ihdrData[12] = 0; // Interlace
+  // Favicon 32x32 PNG as fallback / favicon.ico
+  const fav32Png = await sharp(Buffer.from(standardSvg)).resize(32, 32).png().toBuffer();
+  fs.writeFileSync(path.join(PUBLIC_DIR, "favicon.ico"), fav32Png);
+  fs.writeFileSync(path.join(APP_DIR, "favicon.ico"), fav32Png);
+  console.log("Updated favicon.ico in /public and /src/app");
 
-  const ihdrChunk = makeChunk("IHDR", ihdrData);
-  const idatChunk = makeChunk("IDAT", deflated);
-  const iendChunk = makeChunk("IEND", Buffer.alloc(0));
-
-  return Buffer.concat([signature, ihdrChunk, idatChunk, iendChunk]);
+  console.log("All PisoPro icon assets generated successfully!");
 }
 
-function drawPisoProIcon(x, y, w, h, isMaskable = false) {
-  // Center coordinates normalized to [-1, 1]
-  const nx = (x / w) * 2 - 1;
-  const ny = (y / h) * 2 - 1;
-  // Background: Rich Emerald Gradient (#059669 to #047857)
-  const bgGrad = Math.max(0, Math.min(1, (ny + 1) / 2));
-  let r = Math.round(5 + bgGrad * (4 - 5));
-  let g = Math.round(150 + bgGrad * (120 - 150));
-  let b = Math.round(105 + bgGrad * (87 - 105));
-  let a = 255;
-
-  if (!isMaskable) {
-    // Rounded squircle mask
-    const cornerD = Math.pow(Math.abs(nx), 4) + Math.pow(Math.abs(ny), 4);
-    if (cornerD > 0.95) {
-      return [0, 0, 0, 0];
-    }
-  }
-
-  // Draw modern house + checkmark motif in center (white)
-  // Scale down for safe area if maskable
-  const scale = isMaskable ? 0.7 : 0.85;
-  const sx = nx / scale;
-  const sy = ny / scale;
-
-  // Roof triangle: sy from -0.55 to -0.1, |sx| <= (sy + 0.55) * 1.5
-  const isRoof = sy >= -0.55 && sy <= -0.1 && Math.abs(sx) <= (sy + 0.55) * 1.4;
-  // House body: sx in [-0.45, 0.45], sy in [-0.1, 0.5]
-  const isBody = sy >= -0.1 && sy <= 0.48 && Math.abs(sx) <= 0.44;
-
-  if (isRoof || isBody) {
-    // White house base
-    r = 255;
-    g = 255;
-    b = 255;
-
-    // Cutout door: sx in [-0.14, 0.14], sy in [0.15, 0.48]
-    if (Math.abs(sx) <= 0.14 && sy >= 0.15 && sy <= 0.48) {
-      r = 5;
-      g = 150;
-      b = 105;
-    }
-    // Cutout left window: sx in [-0.35, -0.2], sy in [0.05, 0.22]
-    if (sx >= -0.36 && sx <= -0.2 && sy >= 0.05 && sy <= 0.22) {
-      r = 5;
-      g = 150;
-      b = 105;
-    }
-    // Cutout right window: sx in [0.2, 0.35], sy in [0.05, 0.22]
-    if (sx >= 0.2 && sx <= 0.36 && sy >= 0.05 && sy <= 0.22) {
-      r = 5;
-      g = 150;
-      b = 105;
-    }
-  }
-
-  return [r, g, b, a];
-}
-
-const iconsDir = path.resolve("public/icons");
-if (!fs.existsSync(iconsDir)) {
-  fs.mkdirSync(iconsDir, { recursive: true });
-}
-
-console.log("Generating 192x192 icon...");
-const icon192 = createPng(192, 192, (x, y, w, h) => drawPisoProIcon(x, y, w, h, false));
-fs.writeFileSync(path.join(iconsDir, "icon-192x192.png"), icon192);
-
-console.log("Generating 512x512 icon...");
-const icon512 = createPng(512, 512, (x, y, w, h) => drawPisoProIcon(x, y, w, h, false));
-fs.writeFileSync(path.join(iconsDir, "icon-512x512.png"), icon512);
-
-console.log("Generating maskable 512x512 icon...");
-const iconMaskable = createPng(512, 512, (x, y, w, h) =>
-  drawPisoProIcon(x, y, w, h, true)
-);
-fs.writeFileSync(path.join(iconsDir, "icon-maskable-512x512.png"), iconMaskable);
-
-console.log("All icons generated successfully!");
+main().catch((err) => {
+  console.error("Error generating icons:", err);
+  process.exit(1);
+});

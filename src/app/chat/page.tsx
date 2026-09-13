@@ -10,7 +10,7 @@ import { ChatView } from "@/features/chat/components/ChatView";
 import { Loader2 } from "lucide-react";
 
 export default function ChatPage() {
-  const { currentUser, isLoading, logout } = useAuth();
+  const { currentUser, isLoading } = useAuth();
   const [isAdminModalOpen, setIsAdminModalOpen] = useState(false);
 
   if (isLoading) {
@@ -37,7 +37,6 @@ export default function ChatPage() {
         userName={currentUser.name}
         userRole={currentUser.role}
         onOpenAdmin={() => setIsAdminModalOpen(true)}
-        onLogout={logout}
       />
 
       <AdminModal

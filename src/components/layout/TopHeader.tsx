@@ -1,5 +1,5 @@
 import React from "react";
-import { Shield, Home, LogOut } from "lucide-react";
+import { Shield, Home } from "lucide-react";
 import { NotificationToggle } from "@/features/notifications/components/NotificationToggle";
 import { FLAT_INFO } from "@/lib/constants";
 import { cn } from "@/lib/utils";
@@ -9,7 +9,6 @@ interface TopHeaderProps {
   subtitle?: string;
   userName?: string;
   userRole?: "admin" | "member";
-  onLogout?: () => void;
   onOpenAdmin?: () => void;
   className?: string;
 }
@@ -19,7 +18,6 @@ export function TopHeader({
   subtitle = FLAT_INFO.address,
   userName,
   userRole,
-  onLogout,
   onOpenAdmin,
   className,
 }: TopHeaderProps) {
@@ -59,18 +57,6 @@ export function TopHeader({
               className="border-[#BFC6CC]/60 text-[#31405F] bg-white hover:bg-[#F4F7F8] flex h-8 w-8 items-center justify-center rounded-lg border transition-colors active:scale-95 shadow-2xs"
             >
               <Shield className="h-4 w-4" />
-            </button>
-          )}
-
-          {onLogout && (
-            <button
-              type="button"
-              data-testid="logout-trigger"
-              onClick={onLogout}
-              title="Cerrar sesión y liberar perfil"
-              className="border-[#BFC6CC]/60 text-[#607283] bg-white hover:bg-[#F4F7F8] hover:text-[#31405F] flex h-8 w-8 items-center justify-center rounded-lg border transition-colors active:scale-95 shadow-2xs"
-            >
-              <LogOut className="h-4 w-4" />
             </button>
           )}
         </div>

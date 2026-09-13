@@ -49,3 +49,15 @@ export function clearStoredSessionToken(): void {
     // Ignore error
   }
 }
+
+export function getDeviceFriendlyName(): string {
+  if (typeof window === "undefined") return "Dispositivo web";
+  const ua = navigator.userAgent;
+  if (/iPad/i.test(ua)) return "iPad";
+  if (/iPhone/i.test(ua)) return "iPhone";
+  if (/Android/i.test(ua)) return "Android";
+  if (/Macintosh|Mac OS X/i.test(ua)) return "Mac";
+  if (/Windows/i.test(ua)) return "Windows";
+  if (/Linux/i.test(ua)) return "Linux";
+  return "Móvil / Web";
+}

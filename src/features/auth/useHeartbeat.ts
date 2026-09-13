@@ -2,12 +2,14 @@
 
 import { useEffect, useRef, useCallback } from "react";
 import { authService } from "@/services/authService";
-import { HEARTBEAT_INTERVAL_MS, DEFAULT_LEASE_DURATION_SECONDS } from "@/database";
+import { getDeviceFriendlyName } from "@/features/auth/device";
+
+const HEARTBEAT_INTERVAL_MS = 25000; // 25s
 
 interface UseHeartbeatProps {
   sessionToken: string | null;
   isActive: boolean;
-  onSessionExpired: () => void;
+  onSessionExpired: (reason?: string) => void;
 }
 
 export function useHeartbeat({
@@ -25,14 +27,17 @@ export function useHeartbeat({
     if (!sessionToken || !isActive) return;
 
     try {
-      const result = await authService.sendHeartbeat(
-        sessionToken,
-        DEFAULT_LEASE_DURATION_SECONDS
-      );
+      const deviceName = getDeviceFriendlyName();
+      const result = await authService.sendHeartbeat(sessionToken, deviceName);
 
       if (!result.success) {
         console.warn("[useHeartbeat] Heartbeat rejected by database:", result.error);
-        expiredCallbackRef.current();
+        const reason = result.is_revoked
+          ? "REVOKED"
+          : result.is_expired
+          ? "EXPIRED"
+          : result.error || "REJECTED";
+        expiredCallbackRef.current(reason);
       }
     } catch (err) {
       console.error("[useHeartbeat] Network error during heartbeat:", err);

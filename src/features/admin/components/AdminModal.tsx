@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { X, Shield, Users, Home, Key, Check, Info } from "lucide-react";
+import { X, Shield, Users, Home, Check, Info } from "lucide-react";
 import { AdminSessionManager } from "./AdminSessionManager";
 import { cn } from "@/lib/utils";
 
@@ -75,8 +75,7 @@ export function AdminModal({ isOpen, onClose }: AdminModalProps) {
                 : "text-[#607283] hover:text-[#31405F]"
             )}
           >
-            <Key className="h-3.5 w-3.5" />
-            <span>Sesiones</span>
+            <span>📱 Dispositivos</span>
           </button>
           <button
             type="button"

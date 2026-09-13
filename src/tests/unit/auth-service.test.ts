@@ -43,6 +43,8 @@ describe("Auth & Device Session Management", () => {
       is_current_device: false,
       last_seen: new Date().toISOString(),
       expires_at: new Date(Date.now() + 60000).toISOString(),
+      status: "ACTIVE",
+      device_name: "iPhone",
     };
 
     expect(mockProfile.role).toBe("admin");

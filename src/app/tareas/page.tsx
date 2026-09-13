@@ -27,7 +27,7 @@ import {
 } from "lucide-react";
 
 export default function TareasPage() {
-  const { currentUser, isLoading: isAuthLoading, logout } = useAuth();
+  const { currentUser, isLoading: isAuthLoading } = useAuth();
   const [isAdminModalOpen, setIsAdminModalOpen] = useState(false);
   const [isCleaningAdminModalOpen, setIsCleaningAdminModalOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<"zones" | "trash" | "stats">("zones");
@@ -73,7 +73,6 @@ export default function TareasPage() {
         userName={currentUser.name}
         userRole={currentUser.role}
         onOpenAdmin={() => setIsAdminModalOpen(true)}
-        onLogout={logout}
       />
 
       <AdminModal
