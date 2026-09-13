@@ -1,0 +1,80 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#38496D" />
+      <stop offset="50%" stop-color="#31405F" />
+      <stop offset="100%" stop-color="#243048" />
+    </linearGradient>
+    <linearGradient id="accentGrad1" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#FFFFFF" />
+      <stop offset="100%" stop-color="#E2E8F0" />
+    </linearGradient>
+    <linearGradient id="accentGrad2" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#38BDF8" />
+      <stop offset="100%" stop-color="#0284C7" />
+    </linearGradient>
+    <filter id="softGlow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="8" stdDeviation="12" flood-color="#000000" flood-opacity="0.28" />
+    </filter>
+  </defs>
+
+  <!-- Solid Clean Background -->
+  <rect width="512" height="512" rx="112" fill="url(#bgGrad)" />
+
+  <!-- Geometric PisoPro Living Triad Emblem -->
+  <g transform="translate(256, 256) scale(0.88) translate(-256, -256)" filter="url(#softGlow)">
+    <!-- Base Outer Interlocking Living Ring -->
+    <path
+      d="M 256,120
+         C 285,120 310,135 328,158
+         C 370,165 402,200 402,244
+         C 402,274 388,301 366,318
+         C 366,356 338,388 300,396
+         C 287,399 272,400 256,400
+         C 240,400 225,399 212,396
+         C 174,388 146,356 146,318
+         C 124,301 110,274 110,244
+         C 110,200 142,165 184,158
+         C 202,135 227,120 256,120 Z"
+      fill="none"
+      stroke="#194F6B"
+      stroke-width="12"
+      opacity="0.35"
+    />
+
+    <!-- Interconnected Flatmates Geometry: 3 harmonious rounded nodes + central shared hearth -->
+    <!-- Top Roommate / Admin Node (Jorge) -->
+    <circle cx="256" cy="180" r="44" fill="url(#accentGrad1)" />
+    
+    <!-- Left Roommate Node (Samuel) -->
+    <circle cx="188" cy="298" r="44" fill="url(#accentGrad1)" />
+    
+    <!-- Right Roommate Node (David) -->
+    <circle cx="324" cy="298" r="44" fill="url(#accentGrad1)" />
+
+    <!-- Connecting Fluid Rounded Living Links -->
+    <path
+      d="M 256,180 L 188,298
+         M 188,298 L 324,298
+         M 324,298 L 256,180"
+      stroke="url(#accentGrad1)"
+      stroke-width="32"
+      stroke-linecap="round"
+      stroke-linejoin="round"
+    />
+
+    <!-- Central Living Space Portal / Shared Core -->
+    <circle cx="256" cy="260" r="28" fill="#31405F" />
+    <circle cx="256" cy="260" r="16" fill="#FFFFFF" />
+
+    <!-- Top Crown Arc / Roofline Harmony Accent -->
+    <path
+      d="M 206,124 C 238,106 274,106 306,124"
+      fill="none"
+      stroke="#FFFFFF"
+      stroke-width="10"
+      stroke-linecap="round"
+      opacity="0.8"
+    />
+  </g>
+</svg>

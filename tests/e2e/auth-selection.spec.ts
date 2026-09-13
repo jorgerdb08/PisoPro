@@ -47,13 +47,18 @@ test.describe("Profile Selection & Concurrency Flow", () => {
     ).toBeVisible({ timeout: 15000 });
     await expect(page.getByText("En línea")).toBeVisible();
 
-    // Click Logout button in header to release session
-    const logoutBtn = page.getByTitle("Cerrar sesión y liberar perfil");
-    await expect(logoutBtn).toBeVisible();
-    await logoutBtn.click();
+    // Unlink device explicitly from /piso
+    await page.goto("/piso");
+    const unlinkTrigger = page.getByTestId("unlink-device-trigger");
+    await expect(unlinkTrigger).toBeVisible({ timeout: 10000 });
+    await unlinkTrigger.click();
+
+    const confirmBtn = page.getByTestId("confirm-unlink-device-btn");
+    await expect(confirmBtn).toBeVisible();
+    await confirmBtn.click();
 
     // Verify returning back to "¿Quién eres?" screen
-    await expect(page.getByText("Cargando PisoPro...")).not.toBeVisible({ timeout: 15000 });
+    await expect(page.getByText("Cargando datos del piso...")).not.toBeVisible({ timeout: 15000 });
     await expect(page.locator("h1")).toContainText(/¿Quién eres\?/i, { timeout: 15000 });
   });
 });

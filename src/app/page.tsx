@@ -34,7 +34,7 @@ import { ZoneIcon } from "@/features/cleaning/components/ZoneIcon";
 
 
 export default function HomePage() {
-  const { currentUser, isLoading, logout } = useAuth();
+  const { currentUser, isLoading } = useAuth();
   const [isAdminModalOpen, setIsAdminModalOpen] = useState(false);
   const { pendingTasks } = useChores();
   const { userSummary } = useExpenses();
@@ -82,7 +82,6 @@ export default function HomePage() {
         userName={currentUser.name}
         userRole={currentUser.role}
         onOpenAdmin={() => setIsAdminModalOpen(true)}
-        onLogout={logout}
       />
 
       <AdminModal

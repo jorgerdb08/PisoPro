@@ -49,13 +49,13 @@ test.describe("Admin Permissions & RBAC Flow", () => {
     await page.getByTestId("admin-tab-roles").click();
     await expect(page.getByText("Matriz de Permisos del Piso")).toBeVisible();
 
-    // Close Modal
-    await page.getByTestId("admin-modal-close").click();
-    await expect(adminModal).not.toBeVisible();
+    // Re-select Sessions tab to unlink device
+    await page.getByTestId("admin-tab-sessions").click();
+    const unlinkJorgeBtn = page.getByTestId("force-release-btn-jorge");
+    await expect(unlinkJorgeBtn).toBeVisible();
+    await unlinkJorgeBtn.click();
 
-    // Logout to release profile lease cleanly
-    await page.getByTestId("logout-trigger").click();
-    await expect(page.getByText("Cargando PisoPro...")).not.toBeVisible({ timeout: 15000 });
+    // Verify returning back to "¿Quién eres?" screen
     await expect(page.locator("h1")).toContainText(/¿Quién eres\?/i, { timeout: 15000 });
   });
 
@@ -73,9 +73,17 @@ test.describe("Admin Permissions & RBAC Flow", () => {
     const adminTrigger = page.getByTestId("admin-panel-trigger");
     await expect(adminTrigger).not.toBeVisible();
 
-    // Logout to release profile lease cleanly
-    await page.getByTestId("logout-trigger").click();
-    await expect(page.getByText("Cargando PisoPro...")).not.toBeVisible({ timeout: 15000 });
+    // Samuel unlinks device from /piso explicitly
+    await page.goto("/piso");
+    const unlinkTrigger = page.getByTestId("unlink-device-trigger");
+    await expect(unlinkTrigger).toBeVisible({ timeout: 10000 });
+    await unlinkTrigger.click();
+
+    const confirmBtn = page.getByTestId("confirm-unlink-device-btn");
+    await expect(confirmBtn).toBeVisible();
+    await confirmBtn.click();
+
+    await expect(page.getByText("Cargando datos del piso...")).not.toBeVisible({ timeout: 15000 });
     await expect(page.locator("h1")).toContainText(/¿Quién eres\?/i, { timeout: 15000 });
   });
 });

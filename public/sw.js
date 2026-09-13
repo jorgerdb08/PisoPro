@@ -1,7 +1,15 @@
-const CACHE_NAME = "pisopro-v1";
+const CACHE_NAME = "pisopro-v2";
 const STATIC_ASSETS = [
   "/",
   "/manifest.webmanifest",
+  "/favicon.ico",
+  "/favicon.svg",
+  "/apple-touch-icon.png",
+  "/icons/icon-16x16.png",
+  "/icons/icon-32x32.png",
+  "/icons/icon-48x48.png",
+  "/icons/icon-96x96.png",
+  "/icons/icon-144x144.png",
   "/icons/icon-192x192.png",
   "/icons/icon-512x512.png",
   "/icons/icon-maskable-512x512.png",
