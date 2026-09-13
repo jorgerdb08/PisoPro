@@ -2,6 +2,8 @@
 
 import React, { useState } from "react";
 import type { CleaningLottery, ZoneAssignment } from "@/types";
+import { Dices, Loader2 } from "lucide-react";
+import { ZoneIcon } from "./ZoneIcon";
 
 interface LotterySectionProps {
   lottery: CleaningLottery | null;
@@ -21,39 +23,26 @@ export const LotterySection: React.FC<LotterySectionProps> = ({
 
   const isLocked = Boolean(lottery?.is_locked);
 
+  // REGLA DE NEGOCIO: Una vez realizado y fijado el sorteo inicial,
+  // desaparece por completo de la pantalla para no ocupar espacio.
   if (isLocked) {
-    return (
-      <div className="bg-slate-50 border border-slate-200/80 rounded-2xl p-4 mb-5 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-slate-600">
-        <div className="flex items-center space-x-2">
-          <span className="text-xl">🎲</span>
-          <div>
-            <p className="font-bold text-slate-800">
-              Sorteo inicial completado y fijado
-            </p>
-            <p className="text-slate-500 text-[11px]">
-              La rotación semanal cambia automáticamente cada lunes a las 00:00 (Cocina → Salón → Baño).
-            </p>
-          </div>
-        </div>
-        <span className="px-3 py-1 bg-emerald-100 text-emerald-800 font-bold rounded-full border border-emerald-300 text-[11px]">
-          🔒 Sorteo Bloqueado (1 única vez)
-        </span>
-      </div>
-    );
+    return null;
   }
 
   return (
-    <div className="bg-gradient-to-br from-indigo-50/70 via-white to-amber-50/50 border-2 border-indigo-200/80 rounded-2xl p-5 mb-6 shadow-sm">
+    <div className="bg-white border border-slate-200/90 rounded-2xl p-5 mb-5 shadow-xs">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <div className="flex items-center space-x-2">
-            <span className="text-2xl">🎲</span>
-            <h2 className="text-base font-bold text-slate-900">
+          <div className="flex items-center space-x-2.5">
+            <div className="w-8 h-8 rounded-xl bg-[#31405F]/10 text-[#31405F] flex items-center justify-center">
+              <Dices className="w-4 h-4" />
+            </div>
+            <h2 className="text-sm font-bold text-slate-900">
               Asignación Inicial de Zonas
             </h2>
           </div>
-          <p className="text-xs text-slate-600 mt-1 max-w-md">
-            Las 3 zonas principales comienzan sin asignar. El administrador debe realizar el sorteo una única vez para iniciar la rotación semanal automática.
+          <p className="text-xs text-slate-500 mt-1 max-w-md">
+            Las 3 zonas principales comienzan sin asignar. El administrador debe realizar el sorteo una única vez para activar la rotación semanal automática de los lunes.
           </p>
         </div>
 
@@ -72,23 +61,23 @@ export const LotterySection: React.FC<LotterySectionProps> = ({
               }
             }}
             disabled={isRunning}
-            className="w-full sm:w-auto px-5 py-3 bg-[#31405F] hover:bg-[#194F6B] text-white font-bold text-sm rounded-xl shadow transition-all flex items-center justify-center space-x-2 disabled:opacity-50"
+            className="w-full sm:w-auto px-4 py-2.5 bg-[#31405F] hover:bg-[#194F6B] text-white font-semibold text-xs rounded-xl shadow-xs transition-colors flex items-center justify-center space-x-2 disabled:opacity-50"
           >
             {isRunning ? (
               <>
-                <span className="animate-spin">🎲</span>
+                <Loader2 className="w-4 h-4 animate-spin" />
                 <span>Sorteando zonas...</span>
               </>
             ) : (
               <>
-                <span>🎲</span>
-                <span>REALIZAR SORTEO</span>
+                <Dices className="w-4 h-4" />
+                <span>Realizar sorteo</span>
               </>
             )}
           </button>
         ) : (
-          <div className="px-4 py-2 bg-amber-100/70 text-amber-900 border border-amber-200 rounded-xl text-xs font-semibold">
-            Esperando a que Jorge (admin) realice el sorteo inicial.
+          <div className="px-3.5 py-2 bg-slate-50 text-slate-600 border border-slate-200 rounded-xl text-xs font-medium">
+            Esperando a que Jorge realice el sorteo inicial.
           </div>
         )}
       </div>
@@ -100,19 +89,21 @@ export const LotterySection: React.FC<LotterySectionProps> = ({
       )}
 
       {/* Vista de las 3 zonas sin asignar antes del sorteo */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mt-4 pt-4 border-t border-slate-200/60">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 mt-4 pt-4 border-t border-slate-100">
         {assignments.map((z) => (
           <div
             key={z.zone_id}
-            className="bg-white/80 border border-dashed border-slate-300 rounded-xl p-3 flex items-center justify-between"
+            className="bg-slate-50 border border-slate-200/80 rounded-xl p-3 flex items-center justify-between"
           >
             <div className="flex items-center space-x-2.5">
-              <span className="text-2xl">{z.zone_icon}</span>
-              <span className="text-sm font-semibold text-slate-800">
+              <div className="p-1.5 bg-white text-slate-600 rounded-lg border border-slate-200/60 shadow-2xs">
+                <ZoneIcon slug={z.zone_slug} className="w-4 h-4" />
+              </div>
+              <span className="text-xs font-semibold text-slate-800">
                 {z.zone_name}
               </span>
             </div>
-            <span className="text-xs font-medium text-slate-400 italic">
+            <span className="text-[11px] font-medium text-slate-400">
               {z.assigned_user_name || "Sin asignar"}
             </span>
           </div>

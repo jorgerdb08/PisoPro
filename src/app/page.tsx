@@ -24,7 +24,13 @@ import {
   MessageSquare,
   Loader2,
   ArrowRight,
+  Calendar,
+  AlertCircle,
+  Handshake,
+  Dices,
+  Trash2,
 } from "lucide-react";
+import { ZoneIcon } from "@/features/cleaning/components/ZoneIcon";
 
 
 export default function HomePage() {
@@ -113,14 +119,15 @@ export default function HomePage() {
         />
 
         {/* Tarjeta Principal: ESTA SEMANA TE TOCA */}
-        <Card className="overflow-hidden border-[#BFC6CC]/70 bg-gradient-to-br from-white via-[#F4F8FA] to-[#E6F0F4] text-[#31405F] shadow-sm">
+        <Card className="overflow-hidden border border-slate-200/90 bg-gradient-to-b from-white to-[#F6F9FA] text-[#31405F] shadow-xs">
           <CardContent className="space-y-3.5 p-5">
             <div className="flex items-center justify-between text-xs">
-              <span className="text-[11px] font-extrabold tracking-wider uppercase text-[#607283] flex items-center gap-1.5">
-                <span>📅</span> ESTA SEMANA TE TOCA
+              <span className="text-[11px] font-bold tracking-wider uppercase text-[#607283] flex items-center gap-1.5">
+                <Calendar className="w-3.5 h-3.5" />
+                <span>Esta semana te toca</span>
               </span>
               {myAssignedZone && (
-                <span className="rounded-full bg-[#31405F]/10 border border-[#31405F]/20 px-2.5 py-0.5 text-[11px] font-bold text-[#31405F]">
+                <span className="rounded-lg bg-slate-100 border border-slate-200/80 px-2.5 py-0.5 text-xs font-semibold text-slate-700">
                   +{myAssignedZone.zone_default_points} pts
                 </span>
               )}
@@ -129,38 +136,38 @@ export default function HomePage() {
             {myAssignedZone ? (
               <div className="space-y-3">
                 <div className="flex items-center space-x-3">
-                  <span className="text-4xl p-2 bg-white rounded-2xl shadow-2xs">
-                    {myAssignedZone.zone_icon}
-                  </span>
+                  <div className="p-3 bg-white text-slate-700 rounded-xl border border-slate-200/60 shadow-2xs">
+                    <ZoneIcon slug={myAssignedZone.zone_slug} className="w-6 h-6" />
+                  </div>
                   <div>
-                    <h3 className="text-xl font-black text-[#31405F] tracking-tight">
-                      {myAssignedZone.zone_name.toUpperCase()}
+                    <h3 className="text-base font-bold text-slate-900 tracking-tight uppercase">
+                      {myAssignedZone.zone_name}
                     </h3>
-                    <p className="text-xs text-[#607283]">
+                    <p className="text-xs text-slate-500">
                       {myAssignedZone.is_completed
-                        ? "✓ ¡Zona completada esta semana!"
-                        : "Tu zona de responsabilidad exclusiva esta semana"}
+                        ? "Zona completada esta semana"
+                        : "Tu zona de responsabilidad esta semana"}
                     </p>
                   </div>
                 </div>
 
                 {/* Barra de progreso */}
                 <div>
-                  <div className="flex justify-between text-xs font-semibold text-[#607283] mb-1">
+                  <div className="flex justify-between text-xs text-slate-500 mb-1 font-medium">
                     <span>
-                      {myAssignedZone.checked_count} / {myAssignedZone.total_count} tareas
+                      {myAssignedZone.checked_count} de {myAssignedZone.total_count} tareas
                     </span>
-                    <span className={myAssignedZone.is_completed ? "text-emerald-600 font-bold" : ""}>
+                    <span className={myAssignedZone.is_completed ? "text-emerald-700 font-bold" : "text-slate-700"}>
                       {myAssignedZone.total_count > 0
                         ? Math.round((myAssignedZone.checked_count / myAssignedZone.total_count) * 100)
                         : 0}
                       %
                     </span>
                   </div>
-                  <div className="w-full h-2.5 bg-slate-200/80 rounded-full overflow-hidden">
+                  <div className="w-full h-2 bg-slate-100 rounded-full overflow-hidden border border-slate-200/60">
                     <div
-                      className={`h-full transition-all duration-500 rounded-full ${
-                        myAssignedZone.is_completed ? "bg-emerald-500" : "bg-[#194F6B]"
+                      className={`h-full transition-all duration-300 rounded-full ${
+                        myAssignedZone.is_completed ? "bg-emerald-600" : "bg-[#31405F]"
                       }`}
                       style={{
                         width: `${
@@ -174,53 +181,57 @@ export default function HomePage() {
                 </div>
 
                 {/* Acciones de Tareas y Ayuda */}
-                <div className="pt-2 border-t border-[#BFC6CC]/40 flex flex-wrap items-center justify-between gap-2">
+                <div className="pt-2 border-t border-slate-100 flex flex-wrap items-center justify-between gap-2">
                   <Link
                     href="/tareas"
-                    className="inline-flex items-center justify-center px-4 py-2 rounded-xl bg-gradient-to-r from-[#31405F] to-[#194F6B] text-white text-xs font-bold shadow-xs hover:opacity-95 transition"
+                    className="inline-flex items-center justify-center px-3.5 py-1.5 rounded-xl bg-[#31405F] hover:bg-[#194F6B] text-white text-xs font-semibold shadow-xs transition"
                   >
-                    [ VER TAREAS ]
+                    Ver tareas
                   </Link>
 
                   {myAssignedZone.help_request?.status === "open" ? (
-                    <span className="text-xs font-bold text-amber-800 bg-amber-100/80 px-2.5 py-1 rounded-lg">
-                      🚨 Ayuda pedida ({myAssignedZone.helpers.length} ayudando)
+                    <span className="text-xs font-medium text-amber-800 bg-amber-50 border border-amber-200 px-2.5 py-1 rounded-lg flex items-center gap-1.5">
+                      <AlertCircle className="w-3.5 h-3.5 text-amber-600" />
+                      <span>Ayuda activa ({myAssignedZone.helpers.length} voluntario/s)</span>
                     </span>
                   ) : !myAssignedZone.is_completed ? (
                     <button
                       onClick={() => requestHelp(myAssignedZone.zone_id)}
-                      className="text-xs font-semibold text-amber-800 bg-amber-50 hover:bg-amber-100 border border-amber-200 px-3 py-1.5 rounded-xl transition-colors"
+                      className="text-xs font-medium text-slate-700 bg-slate-100 hover:bg-slate-200 border border-slate-200 px-3 py-1.5 rounded-xl transition-colors flex items-center space-x-1.5"
                     >
-                      🤝 ¿Necesitas ayuda? [ PEDIR AYUDA ]
+                      <Handshake className="w-3.5 h-3.5 text-slate-600" />
+                      <span>Pedir ayuda</span>
                     </button>
                   ) : null}
                 </div>
               </div>
             ) : (
-              <div className="py-2 space-y-2">
-                <div className="flex items-center space-x-2 text-amber-800">
-                  <span className="text-2xl">🎲</span>
+              <div className="py-2 space-y-2.5">
+                <div className="flex items-center space-x-2.5 text-slate-700">
+                  <div className="p-2 bg-white rounded-lg border border-slate-200 shadow-2xs">
+                    <Dices className="w-4 h-4 text-[#31405F]" />
+                  </div>
                   <div>
-                    <h4 className="text-sm font-bold">Zonas pendientes de sorteo</h4>
-                    <p className="text-xs text-[#607283]">
+                    <h4 className="text-xs font-semibold text-slate-900">Zonas pendientes de sorteo</h4>
+                    <p className="text-[11px] text-slate-500">
                       Las 3 zonas principales están sin asignar.
                     </p>
                   </div>
                 </div>
                 <Link
                   href="/tareas"
-                  className="inline-block px-4 py-2 bg-[#31405F] text-white text-xs font-bold rounded-xl"
+                  className="inline-block px-3.5 py-1.5 bg-[#31405F] hover:bg-[#194F6B] text-white text-xs font-semibold rounded-xl transition"
                 >
-                  Ir al Sorteo Inicial
+                  Ir al sorteo inicial
                 </Link>
               </div>
             )}
 
             {/* Quick Action: Tirar la Basura */}
-            <div className="pt-3 border-t border-[#BFC6CC]/50 flex items-center justify-between bg-white/70 -mx-5 -mb-5 p-3.5 rounded-b-2xl">
+            <div className="pt-3 border-t border-slate-100 flex items-center justify-between bg-slate-50/60 -mx-5 -mb-5 p-3.5 rounded-b-2xl">
               <div className="flex items-center space-x-2">
-                <span className="text-xl">🗑️</span>
-                <span className="text-xs font-bold text-[#31405F]">
+                <Trash2 className="w-4 h-4 text-slate-500" />
+                <span className="text-xs font-medium text-slate-700">
                   ¿Has tirado la basura?
                 </span>
               </div>
@@ -228,12 +239,12 @@ export default function HomePage() {
                 onClick={async () => {
                   const res = await recordTrash("general");
                   if (res.success) {
-                    alert("✓ Basura registrada: +1 punto añadido a tu contribución.");
+                    alert("Basura registrada: +1 punto añadido a tu contribución.");
                   }
                 }}
-                className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl shadow-xs transition"
+                className="px-3 py-1.5 bg-white hover:bg-slate-100 text-slate-800 border border-slate-200 text-xs font-semibold rounded-xl shadow-2xs transition"
               >
-                [ + REGISTRAR (+1 pt) ]
+                Registrar (+1 pt)
               </button>
             </div>
           </CardContent>

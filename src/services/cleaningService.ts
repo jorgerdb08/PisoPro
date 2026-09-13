@@ -736,4 +736,43 @@ export const cleaningService = {
 
     return { success: true };
   },
+
+  /**
+   * Restablece todos los datos de limpieza, sorteo y transacciones a cero (solo Admin)
+   */
+  async adminResetAllCleaningData(
+    householdId: string
+  ): Promise<{ success: boolean; error?: string }> {
+    const supabase = getClient();
+    try {
+      await supabase.from("point_transactions").delete().eq("household_id", householdId);
+      await supabase.from("trash_events").delete().eq("household_id", householdId);
+      await supabase.from("cleaning_helpers").delete().neq("id", "00000000-0000-0000-0000-000000000000");
+      await supabase.from("cleaning_help_requests").delete().eq("household_id", householdId);
+      await supabase.from("cleaning_completions").delete().eq("household_id", householdId);
+      await supabase.from("cleaning_weekly_task_checks").delete().neq("id", "00000000-0000-0000-0000-000000000000");
+      await supabase.from("cleaning_assignment_overrides").delete().eq("household_id", householdId);
+      await supabase.from("initial_zone_assignments").delete().neq("id", "00000000-0000-0000-0000-000000000000");
+      await supabase.from("cleaning_lottery").delete().eq("household_id", householdId);
+    } catch {
+      // ignore
+    }
+
+    if (typeof window !== "undefined") {
+      try {
+        localStorage.removeItem("pisopro_lottery");
+        localStorage.removeItem("pisopro_initial_assignments");
+        localStorage.removeItem("pisopro_overrides");
+        localStorage.removeItem("pisopro_weekly_checks");
+        localStorage.removeItem("pisopro_completions");
+        localStorage.removeItem("pisopro_help_requests");
+        localStorage.removeItem("pisopro_trash_events");
+        localStorage.removeItem("pisopro_point_transactions");
+      } catch {
+        // ignore
+      }
+    }
+
+    return { success: true };
+  },
 };
