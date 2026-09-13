@@ -1,15 +1,16 @@
-"use client";
-
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { expensesService } from "@/services/expensesService";
 import {
   calculateNetBalances,
   minimizeDebts,
   getUserBalanceSummary,
+  calculateMonthlyUserShares,
+  getMonthlyHistoricalBreakdown,
   type ExpenseItem,
   type DebtTransfer,
   type UserBalanceSummary,
 } from "@/features/expenses/calculations";
+import { rentService, getCurrentMonthStr, type MonthlyRentSummary } from "@/services/rentService";
 import { getSupabaseBrowserClient } from "@/lib/supabase/client";
 import { useAuth } from "@/features/auth/AuthContext";
 import { DEFAULT_HOUSEHOLD_ID, FLATMATES } from "@/lib/constants";
@@ -17,22 +18,35 @@ import { DEFAULT_HOUSEHOLD_ID, FLATMATES } from "@/lib/constants";
 export function useExpenses() {
   const { currentUser } = useAuth();
   const [expenses, setExpenses] = useState<ExpenseItem[]>([]);
+  const [selectedMonth, setSelectedMonth] = useState<string>(() => getCurrentMonthStr());
+  const [rentVersion, setRentVersion] = useState<number>(0);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
 
   const supabase = getSupabaseBrowserClient();
   const flatmateIds = useMemo(() => FLATMATES.map((f) => f.id), []);
 
+  const rentSummary: MonthlyRentSummary = useMemo(() => {
+    // Recompute when selectedMonth or rentVersion changes
+    void rentVersion;
+    return rentService.getMonthlyRentStatus(DEFAULT_HOUSEHOLD_ID, selectedMonth);
+  }, [selectedMonth, rentVersion]);
+
+  const refreshRentStatus = useCallback(() => {
+    setRentVersion((v) => v + 1);
+  }, []);
+
   const fetchExpenses = useCallback(async () => {
     try {
       const data = await expensesService.getExpenses(DEFAULT_HOUSEHOLD_ID);
       setExpenses(data);
+      refreshRentStatus();
     } catch (err) {
       console.error("[useExpenses] Error fetching expenses:", err);
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [refreshRentStatus]);
 
   // Realtime subscription on expenses and participants
   useEffect(() => {
@@ -71,11 +85,17 @@ export function useExpenses() {
       )
       .subscribe();
 
+    const handleRentUpdate = () => {
+      refreshRentStatus();
+    };
+    window.addEventListener("pisopro-rent-updated", handleRentUpdate);
+
     return () => {
       isMounted = false;
       void supabase.removeChannel(channel);
+      window.removeEventListener("pisopro-rent-updated", handleRentUpdate);
     };
-  }, [supabase]);
+  }, [supabase, refreshRentStatus]);
 
   // Derived financial balances
   const netBalances = useMemo(() => {
@@ -98,7 +118,17 @@ export function useExpenses() {
     return getUserBalanceSummary(currentUser.id, netBalances, pendingTransfers);
   }, [currentUser, netBalances, pendingTransfers]);
 
-  // Total household spend
+  // Monthly individual shares and breakdown
+  const monthlyData = useMemo(() => {
+    return calculateMonthlyUserShares(expenses, selectedMonth);
+  }, [expenses, selectedMonth]);
+
+  // Historical 6-month breakdown
+  const historyItems = useMemo(() => {
+    return getMonthlyHistoricalBreakdown(expenses, 6);
+  }, [expenses]);
+
+  // Total household spend across all expenses
   const totalHouseholdSpend = useMemo(() => {
     return expenses
       .filter((e) => e.category !== "settlement")
@@ -113,6 +143,7 @@ export function useExpenses() {
       paid_by: string;
       category?: string;
       notes?: string;
+      date?: string;
       participantUserIds: string[];
     }) => {
       setIsSubmitting(true);
@@ -168,8 +199,38 @@ export function useExpenses() {
     []
   );
 
+  // Record rent payment for a flatmate
+  const markRentPaid = useCallback(
+    async (userId: string, paidDate?: string) => {
+      setIsSubmitting(true);
+      try {
+        const res = await rentService.recordRentPayment({
+          householdId: DEFAULT_HOUSEHOLD_ID,
+          userId,
+          monthStr: selectedMonth,
+          paidDate,
+        });
+        refreshRentStatus();
+        return res;
+      } finally {
+        setIsSubmitting(false);
+      }
+    },
+    [selectedMonth, refreshRentStatus]
+  );
+
+  // Send rent reminder to pending flatmates
+  const sendRentReminder = useCallback(async () => {
+    return rentService.sendRentPaymentReminder(DEFAULT_HOUSEHOLD_ID, selectedMonth);
+  }, [selectedMonth]);
+
   return {
     expenses,
+    selectedMonth,
+    setSelectedMonth,
+    rentSummary,
+    monthlyData,
+    historyItems,
     isLoading,
     isSubmitting,
     netBalances,
@@ -179,6 +240,9 @@ export function useExpenses() {
     addExpense,
     settleTransfer,
     removeExpense,
+    markRentPaid,
+    sendRentReminder,
     refreshExpenses: fetchExpenses,
   };
 }
+

@@ -29,7 +29,7 @@ export function CreateExpenseModal({
 }: CreateExpenseModalProps) {
   const [description, setDescription] = useState("");
   const [amount, setAmount] = useState("");
-  const [category, setCategory] = useState("groceries");
+  const [category, setCategory] = useState("compras");
   const [selectedPaidBy, setSelectedPaidBy] = useState<string | null>(null);
   const effectivePaidBy = selectedPaidBy ?? currentUserId ?? FLATMATES[0]!.id;
   const [date, setDate] = useState(() => new Date().toISOString().split("T")[0]!);
@@ -196,9 +196,17 @@ export function CreateExpenseModal({
                 onChange={(e) => setCategory(e.target.value)}
                 className="w-full rounded-xl border border-[#BFC6CC]/80 bg-white px-3 py-2 text-xs text-[#31405F] focus:border-[#194F6B] focus:outline-none"
               >
-                {EXPENSE_CATEGORIES.filter((c) => c.value !== "settlement").map((c) => (
+                {EXPENSE_CATEGORIES.filter(
+                  (c) =>
+                    c.value !== "settlement" &&
+                    // Evitar duplicados en el selector de los alias antiguos
+                    c.value !== "groceries" &&
+                    c.value !== "utilities" &&
+                    c.value !== "dining" &&
+                    c.value !== "other"
+                ).map((c) => (
                   <option key={c.value} value={c.value}>
-                    {c.icon} {c.label}
+                    {c.label}
                   </option>
                 ))}
               </select>

@@ -1,3 +1,5 @@
+import { FLATMATES } from "@/lib/constants";
+
 export interface ExpenseParticipantItem {
   user_id: string;
   share_amount: number;
@@ -158,3 +160,207 @@ export function getUserBalanceSummary(
     totalOwedToMe: Math.round((totalOwedToMe + Number.EPSILON) * 100) / 100,
   };
 }
+
+// ==============================================================================
+// CÁLCULOS MENSUALES, DESGLOSE INDIVIDUAL (600€ ALQUILER + VARIABLES) E HISTÓRICO
+// ==============================================================================
+
+export interface FlatmateMonthlyShare {
+  userId: string;
+  userName: "Jorge" | "Samuel" | "David";
+  rentAmount: number; // 200 € fijo
+  suppliesShare: number; // Luz + Agua + Gas + Internet
+  variableShare: number; // Compras + Cenas + Otros
+  totalToPay: number; // rentAmount + suppliesShare + variableShare
+  totalAdvanced: number; // Lo que ha pagado de facturas/gastos en el mes
+  netMonthBalance: number; // totalAdvanced - totalToPay (positivo = a favor, negativo = debe)
+}
+
+export interface MonthHistoryItem {
+  monthStr: string; // "2026-09"
+  displayName: string; // "Septiembre 2026"
+  rentTotal: number; // 600 €
+  suppliesTotal: number; // Luz, Agua, Gas, Internet
+  variableTotal: number; // Compras, Cenas, etc.
+  grandTotal: number; // rentTotal + suppliesTotal + variableTotal
+  categoryBreakdown: Record<string, number>;
+  expensesCount: number;
+}
+
+export function getExpenseMonth(dateStr: string): string {
+  try {
+    return dateStr.substring(0, 7); // YYYY-MM
+  } catch {
+    return new Date().toISOString().substring(0, 7);
+  }
+}
+
+/**
+ * Calcula las cuotas individuales de cada compañero para un mes específico:
+ * - Alquiler fijo: 200 € cada uno (Total piso: 600 €)
+ * - Suministros (Luz, Agua, Gas, Internet): Repartidos equitativamente
+ * - Compras y Cenas: Según participación
+ */
+export function calculateMonthlyUserShares(
+  expenses: ExpenseItem[],
+  monthStr: string
+): {
+  shares: FlatmateMonthlyShare[];
+  monthTotalSpend: number;
+  monthSuppliesTotal: number;
+  monthVariableTotal: number;
+} {
+  const monthExpenses = expenses.filter((e) => getExpenseMonth(e.date) === monthStr);
+
+  const suppliesCategories = new Set([
+    "luz",
+    "utilities",
+    "agua",
+    "water",
+    "gas",
+    "internet",
+    "wifi",
+  ]);
+
+  let monthSuppliesTotal = 0;
+  let monthVariableTotal = 0;
+
+  const suppliesPerUser: Record<string, number> = {
+    [FLATMATES[0]!.id]: 0,
+    [FLATMATES[1]!.id]: 0,
+    [FLATMATES[2]!.id]: 0,
+  };
+
+  const variablePerUser: Record<string, number> = {
+    [FLATMATES[0]!.id]: 0,
+    [FLATMATES[1]!.id]: 0,
+    [FLATMATES[2]!.id]: 0,
+  };
+
+  const advancedPerUser: Record<string, number> = {
+    [FLATMATES[0]!.id]: 0,
+    [FLATMATES[1]!.id]: 0,
+    [FLATMATES[2]!.id]: 0,
+  };
+
+  monthExpenses.forEach((exp) => {
+    const cat = (exp.category || "other").toLowerCase();
+    const isSupplies = suppliesCategories.has(cat);
+    const amount = Number(exp.amount) || 0;
+
+    if (isSupplies) {
+      monthSuppliesTotal += amount;
+    } else if (cat !== "settlement" && cat !== "alquiler") {
+      monthVariableTotal += amount;
+    }
+
+    // Quien adelantó el dinero
+    if (advancedPerUser[exp.paid_by] !== undefined) {
+      advancedPerUser[exp.paid_by] = (advancedPerUser[exp.paid_by] || 0) + amount;
+    }
+
+    // Desglose de cuotas por participante
+    exp.participants.forEach((p) => {
+      const share = Number(p.share_amount) || 0;
+      if (isSupplies) {
+        suppliesPerUser[p.user_id] = (suppliesPerUser[p.user_id] || 0) + share;
+      } else if (cat !== "settlement" && cat !== "alquiler") {
+        variablePerUser[p.user_id] = (variablePerUser[p.user_id] || 0) + share;
+      }
+    });
+  });
+
+  const shares: FlatmateMonthlyShare[] = FLATMATES.map((f) => {
+    const sup = Math.round(((suppliesPerUser[f.id] || 0) + Number.EPSILON) * 100) / 100;
+    const varShare = Math.round(((variablePerUser[f.id] || 0) + Number.EPSILON) * 100) / 100;
+    const totalToPay = Math.round((200 + sup + varShare + Number.EPSILON) * 100) / 100;
+    const advanced = Math.round(((advancedPerUser[f.id] || 0) + Number.EPSILON) * 100) / 100;
+    const net = Math.round((advanced - totalToPay + Number.EPSILON) * 100) / 100;
+
+    return {
+      userId: f.id,
+      userName: f.name,
+      rentAmount: 200,
+      suppliesShare: sup,
+      variableShare: varShare,
+      totalToPay,
+      totalAdvanced: advanced,
+      netMonthBalance: net,
+    };
+  });
+
+  const monthTotalSpend = Math.round((600 + monthSuppliesTotal + monthVariableTotal + Number.EPSILON) * 100) / 100;
+
+  return {
+    shares,
+    monthTotalSpend,
+    monthSuppliesTotal: Math.round((monthSuppliesTotal + Number.EPSILON) * 100) / 100,
+    monthVariableTotal: Math.round((monthVariableTotal + Number.EPSILON) * 100) / 100,
+  };
+}
+
+/**
+ * Genera el histórico mensual comparativo (últimos N meses)
+ */
+export function getMonthlyHistoricalBreakdown(
+  expenses: ExpenseItem[],
+  monthsCount: number = 6
+): MonthHistoryItem[] {
+  const monthNames = [
+    "Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio",
+    "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"
+  ];
+
+  // Identificar los últimos N meses a partir del mes actual
+  const now = new Date();
+  const months: string[] = [];
+
+  for (let i = 0; i < monthsCount; i++) {
+    const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, "0");
+    months.push(`${y}-${m}`);
+  }
+
+  // Agrupar gastos por mes
+  return months.map((monthStr) => {
+    const [year, month] = monthStr.split("-").map(Number);
+    const displayName = `${monthNames[(month || 1) - 1]!} ${year}`;
+
+    const monthExpenses = expenses.filter((e) => getExpenseMonth(e.date) === monthStr);
+    const categoryBreakdown: Record<string, number> = {
+      alquiler: 600,
+    };
+
+    let suppliesTotal = 0;
+    let variableTotal = 0;
+
+    const suppliesCats = new Set(["luz", "utilities", "agua", "water", "gas", "internet", "wifi"]);
+
+    monthExpenses.forEach((e) => {
+      const cat = (e.category || "otros").toLowerCase();
+      const amount = Number(e.amount) || 0;
+      categoryBreakdown[cat] = (categoryBreakdown[cat] || 0) + amount;
+
+      if (suppliesCats.has(cat)) {
+        suppliesTotal += amount;
+      } else if (cat !== "settlement" && cat !== "alquiler") {
+        variableTotal += amount;
+      }
+    });
+
+    const grandTotal = Math.round((600 + suppliesTotal + variableTotal + Number.EPSILON) * 100) / 100;
+
+    return {
+      monthStr,
+      displayName,
+      rentTotal: 600,
+      suppliesTotal: Math.round((suppliesTotal + Number.EPSILON) * 100) / 100,
+      variableTotal: Math.round((variableTotal + Number.EPSILON) * 100) / 100,
+      grandTotal,
+      categoryBreakdown,
+      expensesCount: monthExpenses.length,
+    };
+  });
+}
+
