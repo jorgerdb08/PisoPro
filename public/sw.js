@@ -1,4 +1,4 @@
-const CACHE_NAME = "pisopro-v2";
+const CACHE_NAME = "pisopro-v3";
 const STATIC_ASSETS = [
   "/",
   "/manifest.webmanifest",
