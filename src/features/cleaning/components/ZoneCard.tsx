@@ -84,10 +84,11 @@ export const ZoneCard: React.FC<ZoneCardProps> = ({
           </div>
         </div>
 
-        {/* Puntos de recompensa */}
+        {/* Puntos de recompensa en lila */}
         <div className="text-right flex-shrink-0">
-          <span className="inline-flex items-center px-2 py-1 rounded-lg text-xs font-semibold bg-slate-100 text-slate-700 border border-slate-200/60">
-            +{zone.zone_default_points} pts
+          <span className="inline-flex items-center px-2 py-0.5 rounded-lg text-xs font-semibold bg-[#F5F0FA] border border-[#DDD6FE]/80 shadow-2xs">
+            <span className="font-bold text-[#7C3AED]">+{zone.zone_default_points}</span>
+            <span className="text-[#8B5CF6] font-medium ml-1 text-[11px]">pts</span>
           </span>
           <p className="text-[10px] text-slate-400 mt-0.5">al completar</p>
         </div>
