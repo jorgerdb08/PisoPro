@@ -2,7 +2,7 @@
 
 import React from "react";
 import Image from "next/image";
-import { AlertCircle, AlertTriangle } from "lucide-react";
+import { AlertCircle, AlertTriangle, Home, X } from "lucide-react";
 import { useAuth } from "@/features/auth/AuthContext";
 import { ProfileCard } from "./ProfileCard";
 
@@ -40,12 +40,15 @@ export function ProfileSelectorModal() {
             />
           </div>
           <div className="space-y-1">
-            <h2 className="text-[#607283] text-xs font-semibold uppercase tracking-widest">
+            <p className="text-[#607283] text-xs font-semibold uppercase tracking-widest">
               PisoPro
-            </h2>
+            </p>
             <h1 className="text-[#31405F] text-2xl font-bold tracking-tight">
               ¿Quién eres?
             </h1>
+            <p className="text-[#7A8C9E] text-xs">
+              Selecciona tu perfil en este dispositivo
+            </p>
           </div>
         </div>
 
@@ -62,9 +65,10 @@ export function ProfileSelectorModal() {
             <button
               type="button"
               onClick={clearRevokedNotification}
-              className="rounded-lg p-1 text-[#8B4B5B] hover:bg-[#C995A2]/20 text-[11px] font-bold"
+              className="rounded-lg p-1 text-[#8B4B5B] hover:bg-[#C995A2]/20 transition"
+              aria-label="Cerrar aviso"
             >
-              ✕
+              <X className="h-3.5 w-3.5" />
             </button>
           </div>
         )}
@@ -108,6 +112,7 @@ export function ProfileSelectorModal() {
       {/* Footer Branding */}
       <div className="pt-8 text-center">
         <div className="border-[#BFC6CC]/60 bg-white text-[#607283] inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-[11px] shadow-xs">
+          <Home className="h-3 w-3 text-[#607283]" />
           <span>PisoPro · Convivencia Organizada</span>
         </div>
       </div>
