@@ -27,8 +27,21 @@ export function MonthlyHistoryView({
   const formatEuro = (val: number) =>
     (val || 0).toFixed(2).replace(".", ",") + " €";
 
+  const fallbackItem: MonthHistoryItem = {
+    monthStr: selectedMonth || "2026-09",
+    displayName: "Septiembre 2026",
+    rentTotal: 600,
+    suppliesTotal: 0,
+    variableTotal: 0,
+    grandTotal: 600,
+    categoryBreakdown: { alquiler: 600 },
+    expensesCount: 0,
+  };
+
   const selectedItem =
-    historyItems.find((h) => h.monthStr === selectedMonth) || historyItems[0];
+    historyItems.find((h) => h.monthStr === selectedMonth) ||
+    historyItems[0] ||
+    fallbackItem;
 
   const maxMonthSpend = Math.max(
     ...historyItems.map((h) => h.grandTotal),

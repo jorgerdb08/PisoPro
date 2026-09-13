@@ -17,14 +17,18 @@ import {
   Flame,
   Wifi,
   ShoppingCart,
-  History,
   Scale,
   Loader2,
   Trash2,
   Calendar,
+  BarChart3,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { FLATMATES } from "@/lib/constants";
+import { MonthlyHistoryView } from "./MonthlyHistoryView";
+import { DebtsView } from "./DebtsView";
+
+type ExpensesTab = "gastos" | "deudas" | "historico";
 
 export function ExpensesView() {
   const { currentUser } = useAuth();
@@ -38,6 +42,7 @@ export function ExpensesView() {
     monthlyData,
     historyItems,
     isLoading,
+    netBalances,
     pendingTransfers,
     addExpense,
     settleTransfer,
@@ -47,6 +52,7 @@ export function ExpensesView() {
     refreshExpenses,
   } = useExpenses();
 
+  const [activeTab, setActiveTab] = useState<ExpensesTab>("gastos");
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [modalCategory, setModalCategory] = useState<string>("compras");
   const [isSendingReminder, setIsSendingReminder] = useState(false);
@@ -157,9 +163,64 @@ export function ExpensesView() {
         </div>
       )}
 
-      {/* Header Principal con Selector de Mes y Acciones */}
-      <div className="rounded-3xl border border-[#BFC6CC]/60 bg-white p-4 sm:p-5 shadow-xs space-y-4">
-        <div className="flex items-center justify-between gap-2 flex-wrap">
+      {/* Selector de Pestañas: Gastos / Deudas / Histórico */}
+      <div className="flex rounded-2xl bg-[#F4F7F8] p-1 border border-[#BFC6CC]/60 max-w-md mx-auto w-full">
+        <button
+          type="button"
+          onClick={() => setActiveTab("gastos")}
+          className={cn(
+            "flex-1 flex items-center justify-center gap-1.5 py-2 px-3 rounded-xl text-xs font-bold transition-all",
+            activeTab === "gastos"
+              ? "bg-white text-[#31405F] shadow-xs"
+              : "text-[#607283] hover:text-[#31405F]"
+          )}
+        >
+          <Wallet className="h-4 w-4" />
+          <span>Gastos</span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setActiveTab("deudas")}
+          className={cn(
+            "flex-1 flex items-center justify-center gap-1.5 py-2 px-3 rounded-xl text-xs font-bold transition-all relative",
+            activeTab === "deudas"
+              ? "bg-white text-[#31405F] shadow-xs"
+              : "text-[#607283] hover:text-[#31405F]"
+          )}
+        >
+          <Scale className="h-4 w-4" />
+          <span>Deudas</span>
+          {pendingTransfers.length > 0 && (
+            <span className="ml-1 px-1.5 py-0.5 rounded-full bg-amber-500 text-white text-[10px] font-extrabold leading-none">
+              {pendingTransfers.length}
+            </span>
+          )}
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setActiveTab("historico")}
+          className={cn(
+            "flex-1 flex items-center justify-center gap-1.5 py-2 px-3 rounded-xl text-xs font-bold transition-all",
+            activeTab === "historico"
+              ? "bg-white text-[#31405F] shadow-xs"
+              : "text-[#607283] hover:text-[#31405F]"
+          )}
+        >
+          <BarChart3 className="h-4 w-4" />
+          <span>Histórico</span>
+        </button>
+      </div>
+
+      {/* ========================================================================= */}
+      {/* PESTAÑA 1: GASTOS DEL MES (POR APARTADOS) */}
+      {/* ========================================================================= */}
+      {activeTab === "gastos" && (
+        <div className="space-y-4 animate-in fade-in-50 duration-150">
+          {/* Header Principal con Selector de Mes y Acciones */}
+          <div className="rounded-3xl border border-[#BFC6CC]/60 bg-white p-4 sm:p-5 shadow-xs space-y-4">
+            <div className="flex items-center justify-between gap-2 flex-wrap">
           <div className="flex items-center gap-2.5">
             <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-[#31405F] text-white shadow-xs">
               <Wallet className="h-5 w-5 stroke-[2]" />
@@ -686,109 +747,39 @@ export function ExpensesView() {
           )}
         </div>
 
-        {/* 7. BALANCES & DEUDAS PENDIENTES ENTRE COMPAÑEROS */}
-        {pendingTransfers.length > 0 && (
-          <div className="rounded-3xl border border-[#BFC6CC]/60 bg-white p-4 sm:p-5 shadow-xs space-y-3">
-            <div className="flex items-center gap-2.5">
-              <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-[#094152]/10 text-[#094152]">
-                <Scale className="h-4 w-4" />
-              </div>
-              <h3 className="text-xs font-bold uppercase tracking-wider text-[#31405F]">
-                Ajustes de cuentas pendientes entre compañeros
-              </h3>
-            </div>
-
-            <div className="space-y-2">
-              {pendingTransfers.map((t, idx) => (
-                <div
-                  key={idx}
-                  className="flex items-center justify-between rounded-xl border border-[#BFC6CC]/40 bg-[#F4F7F8]/40 p-3 text-xs"
-                >
-                  <div className="space-y-0.5">
-                    <div className="font-bold text-[#31405F]">
-                      {getFlatmateName(t.fromUserId)} debe a {getFlatmateName(t.toUserId)}
-                    </div>
-                    <div className="text-[11px] text-[#607283]">
-                      Para equilibrar facturas o compras compartidas
-                    </div>
-                  </div>
-
-                  <div className="flex items-center gap-2">
-                    <span className="text-sm font-extrabold text-[#31405F]">
-                      {formatEuro(t.amount)}
-                    </span>
-                    <button
-                      type="button"
-                      onClick={() => void settleTransfer(t)}
-                      className="rounded-lg bg-[#31405F] text-white px-2.5 py-1 text-xs font-bold hover:bg-[#194F6B] active:scale-95 transition-all"
-                    >
-                      Saldar
-                    </button>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* 8. HISTÓRICO MENSUAL DE GASTOS */}
-        <div className="rounded-3xl border border-[#BFC6CC]/60 bg-white p-4 sm:p-5 shadow-xs space-y-3">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2.5">
-              <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-[#31405F]/10 text-[#31405F]">
-                <History className="h-4 w-4" />
-              </div>
-              <div>
-                <h3 className="text-xs font-bold uppercase tracking-wider text-[#31405F]">
-                  Histórico de Meses
-                </h3>
-                <p className="text-[11px] text-[#607283]">
-                  Cuánto pagamos cada mes (Alquiler 600€ + suministros)
-                </p>
-              </div>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-2 sm:grid-cols-6 gap-2 pt-2 border-t border-[#BFC6CC]/30">
-            {historyItems.map((h) => {
-              const isSelected = h.monthStr === selectedMonth;
-              return (
-                <button
-                  key={h.monthStr}
-                  type="button"
-                  onClick={() => setSelectedMonth(h.monthStr)}
-                  className={cn(
-                    "flex flex-col items-center justify-center rounded-xl p-2.5 border transition-all text-center",
-                    isSelected
-                      ? "bg-[#31405F] text-white border-[#31405F] shadow-xs"
-                      : "bg-[#F4F7F8] text-[#31405F] border-[#BFC6CC]/50 hover:bg-white"
-                  )}
-                >
-                  <span
-                    className={cn(
-                      "text-[10px] uppercase font-bold",
-                      isSelected ? "text-white/80" : "text-[#607283]"
-                    )}
-                  >
-                    {h.displayName.split(" ")[0]}
-                  </span>
-                  <span className="text-xs font-black tracking-tight mt-0.5">
-                    {formatEuro(h.grandTotal)}
-                  </span>
-                  <span
-                    className={cn(
-                      "text-[9px] mt-0.5",
-                      isSelected ? "text-white/70" : "text-[#607283]"
-                    )}
-                  >
-                    {formatEuro(h.grandTotal / 3)} / p
-                  </span>
-                </button>
-              );
-            })}
           </div>
         </div>
-      </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* PESTAÑA 2: DEUDAS Y AJUSTES CON FLECHA */}
+      {/* ========================================================================= */}
+      {activeTab === "deudas" && (
+        <div className="animate-in fade-in-50 duration-150">
+          <DebtsView
+            pendingTransfers={pendingTransfers}
+            netBalances={netBalances}
+            onSettleTransfer={settleTransfer}
+          />
+        </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* PESTAÑA 3: HISTÓRICO CON GRÁFICA */}
+      {/* ========================================================================= */}
+      {activeTab === "historico" && (
+        <div className="animate-in fade-in-50 duration-150">
+          <MonthlyHistoryView
+            historyItems={historyItems}
+            selectedMonth={selectedMonth}
+            onSelectMonth={setSelectedMonth}
+            expenses={expenses}
+            currentUserId={currentUser?.id}
+            isAdmin={isAdmin}
+            onDeleteExpense={removeExpense}
+          />
+        </div>
+      )}
 
       {/* Modal para Crear / Añadir Gasto o Factura */}
       <CreateExpenseModal
