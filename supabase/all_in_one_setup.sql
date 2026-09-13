@@ -943,8 +943,7 @@ BEGIN
   WHERE task_id = p_task_id AND week_start = p_week_start;
 
   IF v_existing_check IS NOT NULL THEN
-    DELETE FROM cleaning_weekly_task_checks WHERE id = v_existing_check;
-    RETURN jsonb_build_object('success', true, 'action', 'unckecked', 'task_id', p_task_id);
+    RETURN jsonb_build_object('success', false, 'error', 'La tarea ya está completada y no se puede desmarcar.');
   ELSE
     INSERT INTO cleaning_weekly_task_checks (task_id, week_start, completed_by)
     VALUES (p_task_id, p_week_start, p_user_id);
@@ -1093,6 +1092,18 @@ DECLARE
   v_event_id UUID;
   v_points INT := 1;
 BEGIN
+  -- Regla de negocio: máximo 1 vez al día por persona
+  IF EXISTS (
+    SELECT 1 FROM trash_events
+    WHERE user_id = p_user_id
+      AND created_at >= date_trunc('day', now())
+  ) THEN
+    RETURN jsonb_build_object(
+      'success', false,
+      'error', 'Ya has registrado la basura hoy. Solo se permite una vez al día por persona.'
+    );
+  END IF;
+
   INSERT INTO trash_events (household_id, user_id, trash_type)
   VALUES (p_household_id, p_user_id, p_trash_type)
   RETURNING id INTO v_event_id;

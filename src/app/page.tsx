@@ -51,7 +51,7 @@ export default function HomePage() {
     acceptHelp,
     requestHelp,
   } = useCleaning();
-  const { recordTrash } = useTrash();
+  const { recordTrash, hasThrownToday } = useTrash();
 
 
 
@@ -237,14 +237,22 @@ export default function HomePage() {
               </div>
               <button
                 onClick={async () => {
+                  if (hasThrownToday) return;
                   const res = await recordTrash("general");
                   if (res.success) {
                     alert("Basura registrada: +1 punto añadido a tu contribución.");
+                  } else {
+                    alert(res.error || "No se pudo registrar la basura.");
                   }
                 }}
-                className="px-3 py-1.5 bg-white hover:bg-slate-100 text-slate-800 border border-slate-200 text-xs font-semibold rounded-xl shadow-2xs transition"
+                disabled={hasThrownToday}
+                className={`px-3 py-1.5 text-xs font-semibold rounded-xl shadow-2xs transition ${
+                  hasThrownToday
+                    ? "bg-slate-100 text-slate-400 border border-slate-200 cursor-not-allowed"
+                    : "bg-white hover:bg-slate-100 text-slate-800 border border-slate-200"
+                }`}
               >
-                Registrar (+1 pt)
+                {hasThrownToday ? "Registrada hoy" : "Registrar (+1 pt)"}
               </button>
             </div>
           </CardContent>

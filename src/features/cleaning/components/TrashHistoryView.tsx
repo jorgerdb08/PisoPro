@@ -6,14 +6,17 @@ import type { DateRangeFilter } from "@/services/trashService";
 import { Trash2, Check, Loader2 } from "lucide-react";
 
 export const TrashHistoryView: React.FC = () => {
-  const { events, stats, filter, setFilter, isLoading, isSubmitting, recordTrash } = useTrash();
-  const [successToast, setSuccessToast] = useState<boolean>(false);
+  const { events, stats, filter, setFilter, isLoading, isSubmitting, hasThrownToday, recordTrash } = useTrash();
+  const [feedback, setFeedback] = useState<{ type: "success" | "error"; text: string } | null>(null);
 
   const handleRecordTrash = async () => {
     const res = await recordTrash("general");
     if (res.success) {
-      setSuccessToast(true);
-      setTimeout(() => setSuccessToast(false), 3000);
+      setFeedback({ type: "success", text: "¡Basura registrada! Se ha sumado +1 punto a tu cuenta." });
+      setTimeout(() => setFeedback(null), 3500);
+    } else {
+      setFeedback({ type: "error", text: res.error || "No se pudo registrar la basura." });
+      setTimeout(() => setFeedback(null), 4000);
     }
   };
 
@@ -37,7 +40,7 @@ export const TrashHistoryView: React.FC = () => {
               Gestión de Basura
             </h3>
             <p className="text-xs text-slate-500 mt-0.5">
-              Acción voluntaria abierta a todos. Cada vez que bajas la basura sumas{" "}
+              Acción voluntaria (máx. 1 vez al día por persona). Sumas{" "}
               <strong className="text-emerald-700 font-semibold">+1 punto</strong> directo.
             </p>
           </div>
@@ -45,13 +48,22 @@ export const TrashHistoryView: React.FC = () => {
 
         <button
           onClick={handleRecordTrash}
-          disabled={isSubmitting}
-          className="w-full sm:w-auto px-4 py-2.5 bg-[#31405F] hover:bg-[#194F6B] text-white font-semibold text-xs rounded-xl shadow-xs transition-colors flex items-center justify-center space-x-2 disabled:opacity-50"
+          disabled={isSubmitting || hasThrownToday}
+          className={`w-full sm:w-auto px-4 py-2.5 text-xs font-semibold rounded-xl shadow-xs transition-colors flex items-center justify-center space-x-2 ${
+            hasThrownToday
+              ? "bg-slate-100 text-slate-400 border border-slate-200 cursor-not-allowed"
+              : "bg-[#31405F] hover:bg-[#194F6B] text-white disabled:opacity-50"
+          }`}
         >
           {isSubmitting ? (
             <>
               <Loader2 className="w-4 h-4 animate-spin" />
               <span>Registrando...</span>
+            </>
+          ) : hasThrownToday ? (
+            <>
+              <Check className="w-4 h-4 text-emerald-600" />
+              <span>Ya registrada hoy</span>
             </>
           ) : (
             <>
@@ -62,10 +74,16 @@ export const TrashHistoryView: React.FC = () => {
         </button>
       </div>
 
-      {successToast && (
-        <div className="p-3 bg-emerald-50 border border-emerald-200 text-emerald-800 rounded-xl text-xs font-medium flex items-center space-x-2 animate-fade-in">
-          <Check className="w-4 h-4 text-emerald-600 flex-shrink-0" />
-          <span>¡Basura registrada! Se ha sumado +1 punto a tu cuenta.</span>
+      {feedback && (
+        <div
+          className={`p-3 rounded-xl text-xs font-medium flex items-center space-x-2 animate-fade-in ${
+            feedback.type === "success"
+              ? "bg-emerald-50 border border-emerald-200 text-emerald-800"
+              : "bg-amber-50 border border-amber-200 text-amber-900"
+          }`}
+        >
+          <Check className="w-4 h-4 flex-shrink-0" />
+          <span>{feedback.text}</span>
         </div>
       )}
 

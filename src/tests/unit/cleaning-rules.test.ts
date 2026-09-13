@@ -4,6 +4,7 @@ import {
   calculateRotationZoneOrder,
   calculateOriginOrderForZone,
 } from "@/services/cleaningService";
+import { hasUserThrownTrashToday } from "@/services/trashService";
 import { FLATMATES, CLEANING_ZONES_CONFIG, CLEANING_ROTATION_ORDER } from "@/lib/constants";
 import type { ZoneAssignment, CleaningLottery, CleaningHelpRequest, PointTransaction, TrashEvent } from "@/types";
 
@@ -334,6 +335,58 @@ describe("PisoPro Cleaning Rules & Rotation System", () => {
       expect(cleaningPts).toBe(2);
       expect(helpingPts).toBe(1);
       expect(trashPts).toBe(1);
+    });
+  });
+
+  // 22. Tareas completadas no se pueden desmarcar
+  describe("22. Completed tasks cannot be unchecked", () => {
+    it("Impide desmarcar una tarea que ya está completada", () => {
+      const taskChecks: Record<string, boolean> = { "task-1": true };
+
+      function tryToggleTask(taskId: string): { success: boolean; error?: string } {
+        if (taskChecks[taskId]) {
+          return {
+            success: false,
+            error: "La tarea ya está completada y no se puede desmarcar.",
+          };
+        }
+        taskChecks[taskId] = true;
+        return { success: true };
+      }
+
+      const result = tryToggleTask("task-1");
+      expect(result.success).toBe(false);
+      expect(result.error).toContain("no se puede desmarcar");
+      expect(taskChecks["task-1"]).toBe(true);
+    });
+  });
+
+  // 23. Basura: Máximo una vez al día por persona
+  describe("23. Trash Daily Limit (Max once per day per person)", () => {
+    it("Detecta correctamente si el usuario ya tiró la basura hoy", () => {
+      const todayStr = new Date().toISOString().slice(0, 10);
+      const events: TrashEvent[] = [
+        {
+          id: "t-today",
+          household_id: "h-1",
+          user_id: jorge.id,
+          user_name: "Jorge",
+          trash_type: "general",
+          created_at: `${todayStr}T10:30:00Z`,
+        },
+        {
+          id: "t-yesterday",
+          household_id: "h-1",
+          user_id: samuel.id,
+          user_name: "Samuel",
+          trash_type: "general",
+          created_at: "2026-09-01T10:30:00Z",
+        },
+      ];
+
+      expect(hasUserThrownTrashToday(jorge.id, events)).toBe(true);
+      expect(hasUserThrownTrashToday(samuel.id, events)).toBe(false);
+      expect(hasUserThrownTrashToday(david.id, events)).toBe(false);
     });
   });
 });

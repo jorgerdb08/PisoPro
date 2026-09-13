@@ -500,15 +500,16 @@ export const cleaningService = {
       // fallback
     }
 
-    // Toggle local
+    // Toggle local: si ya está completada, no se puede desmarcar
     const key = `pisopro_checks_${weekStart}`;
     const localChecks = getLocalItem<Record<string, { completed_by: string; completed_at: string }>>(key, {});
     const isAlready = Boolean(localChecks[taskId]);
 
     if (isAlready) {
-      delete localChecks[taskId];
-      setLocalItem(key, localChecks);
-      return { success: true, action: "unckecked", task_id: taskId };
+      return {
+        success: false,
+        error: "La tarea ya está completada y no se puede desmarcar.",
+      };
     } else {
       localChecks[taskId] = { completed_by: userId, completed_at: new Date().toISOString() };
       setLocalItem(key, localChecks);

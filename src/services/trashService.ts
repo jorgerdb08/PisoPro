@@ -62,7 +62,19 @@ export const trashService = {
       // fallback
     }
 
-    // Fallback local
+    // Fallback local con regla de negocio: máximo 1 vez al día por persona
+    const existingEvents = getLocalItem<TrashEvent[]>("pisopro_trash_events", []);
+    const todayStr = new Date().toISOString().slice(0, 10);
+    const alreadyRecordedToday = existingEvents.some(
+      (e) => e.user_id === userId && e.created_at.slice(0, 10) === todayStr
+    );
+    if (alreadyRecordedToday) {
+      return {
+        success: false,
+        error: "Ya has registrado la basura hoy. Solo se permite 1 vez al día por persona.",
+      };
+    }
+
     const user = FLATMATES.find((f) => f.id === userId);
     const newEvent: TrashEvent = {
       id: `trash-${Date.now()}`,
@@ -73,7 +85,6 @@ export const trashService = {
       created_at: new Date().toISOString(),
     };
 
-    const existingEvents = getLocalItem<TrashEvent[]>("pisopro_trash_events", []);
     existingEvents.unshift(newEvent);
     setLocalItem("pisopro_trash_events", existingEvents);
 
@@ -187,3 +198,11 @@ export const trashService = {
     return Array.from(statsMap.values());
   },
 };
+
+/**
+ * Comprueba si un usuario ya ha tirado la basura en el día de hoy
+ */
+export function hasUserThrownTrashToday(userId: string, events: TrashEvent[]): boolean {
+  const todayStr = new Date().toISOString().slice(0, 10);
+  return events.some((e) => e.user_id === userId && e.created_at.slice(0, 10) === todayStr);
+}
