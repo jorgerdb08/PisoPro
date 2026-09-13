@@ -164,9 +164,11 @@ export default function HomePage() {
                 <span>Esta semana te toca</span>
               </span>
               {myAssignedZone && (
-                <span className="rounded-lg bg-white/80 border border-[#C5D5E4]/80 px-2.5 py-0.5 text-xs font-semibold shadow-2xs">
-                  <span className="font-bold text-amber-600">+{myAssignedZone.zone_default_points}</span>{" "}
-                  <span className="text-slate-500 font-medium">pts</span>
+                <span className="rounded-lg bg-amber-500/10 border border-amber-500/20 px-2.5 py-0.5 text-xs font-semibold shadow-2xs flex items-center gap-1">
+                  <span className="inline-block font-extrabold bg-gradient-to-t from-[#FF5722] via-[#F59E0B] to-[#FACC15] bg-clip-text text-transparent">
+                    +{myAssignedZone.zone_default_points}
+                  </span>
+                  <span className="font-bold text-amber-700 text-[11px]">pts</span>
                 </span>
               )}
             </div>
@@ -293,9 +295,14 @@ export default function HomePage() {
                 {hasThrownToday ? (
                   "Registrada hoy"
                 ) : (
-                  <span>
-                    Registrar (<span className="font-bold text-amber-600">+1</span>{" "}
-                    <span className="text-slate-500 font-normal">pt</span>)
+                  <span className="inline-flex items-center gap-1">
+                    <span>Registrar</span>
+                    <span className="rounded-md bg-amber-500/10 px-1.5 py-0.5 text-[11px] font-semibold border border-amber-500/20">
+                      <span className="inline-block font-extrabold bg-gradient-to-t from-[#FF5722] via-[#F59E0B] to-[#FACC15] bg-clip-text text-transparent">
+                        +1
+                      </span>{" "}
+                      <span className="font-bold text-amber-700">pt</span>
+                    </span>
                   </span>
                 )}
               </button>
@@ -484,10 +491,10 @@ export default function HomePage() {
 
                   {/* Total Points */}
                   <div className="mt-1 flex items-baseline gap-0.5">
-                    <span className="text-lg font-extrabold tracking-tight text-amber-600">
+                    <span className="inline-block text-xl font-black tracking-tight bg-gradient-to-t from-[#FF5722] via-[#F59E0B] to-[#FACC15] bg-clip-text text-transparent">
                       {mate.points}
                     </span>
-                    <span className="text-[10px] font-semibold text-slate-400">pts</span>
+                    <span className="text-[10px] font-bold text-amber-700">pts</span>
                   </div>
                 </div>
               ))}
