@@ -14,6 +14,7 @@ import { useChat } from "@/features/chat/useChat";
 import { useCleaning } from "@/features/cleaning/useCleaning";
 import { useTrash } from "@/features/cleaning/useTrash";
 import { usePoints } from "@/features/cleaning/usePoints";
+import { useNotificationTriggers } from "@/features/notifications/useNotificationTriggers";
 import { HelpRequestBanner } from "@/features/cleaning/components/HelpRequestBanner";
 import { FLATMATES } from "@/lib/constants";
 import { ProfileSelectorModal } from "@/features/auth/components/ProfileSelectorModal";
@@ -51,6 +52,7 @@ export default function HomePage() {
   // Sistema de limpieza por zonas, ayuda y basura
   const {
     myAssignedZone,
+    lottery,
     activeHelpRequests,
     acceptHelp,
     requestHelp,
@@ -92,6 +94,18 @@ export default function HomePage() {
       styles,
       isCurrent,
     };
+  });
+
+  // Disparadores automáticos de notificaciones (aviso de nueva semana y adelantamiento en ranking)
+  useNotificationTriggers({
+    currentUser,
+    myAssignedZone,
+    lottery,
+    flatmatePoints: flatmatePoints.map((f) => ({
+      id: f.id,
+      name: f.name,
+      points: f.points,
+    })),
   });
 
   // Ranking ordenado por puntuación semanal (de mayor a menor)

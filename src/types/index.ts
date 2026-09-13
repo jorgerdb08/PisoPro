@@ -239,3 +239,39 @@ export interface TrashUserStats {
   count: number;
 }
 
+// ==============================================================================
+// SISTEMA DE NOTIFICACIONES (AVISOS DE COMPRA, RANKING, SEMANA, CHAT, GASTOS)
+// ==============================================================================
+
+export type NotificationType =
+  | "shopping_alert"
+  | "leaderboard_overtake"
+  | "weekly_zone"
+  | "chore_reminder"
+  | "expense_notice"
+  | "chat_mention";
+
+export interface PisoProNotification {
+  id: string;
+  household_id: string;
+  type: NotificationType;
+  title: string;
+  body: string;
+  created_at: string;
+  read: boolean;
+  target_user_id?: string | null; // null = para todo el piso
+  actor_user_id?: string | null;
+  actor_name?: string | null;
+  data?: {
+    url?: string;
+    itemName?: string;
+    overtakerName?: string;
+    overtakenName?: string;
+    points?: number;
+    zoneName?: string;
+    weekStart?: string;
+    [key: string]: unknown;
+  };
+}
+
+

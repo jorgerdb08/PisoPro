@@ -1,3 +1,7 @@
+import { getSupabaseBrowserClient } from "@/lib/supabase/client";
+import { DEFAULT_HOUSEHOLD_ID } from "@/lib/constants";
+import type { PisoProNotification, NotificationType } from "@/types";
+
 const PREF_KEY = "pisopro_notifications_enabled";
 
 export const notificationService = {
@@ -140,4 +144,203 @@ export const notificationService = {
       data: { url: "/chat" },
     });
   },
+
+  /**
+   * Aviso urgente de compra al piso (ej. no queda papel higiénico)
+   */
+  async sendShoppingAlertNotice(
+    senderName: string,
+    itemName: string
+  ): Promise<boolean> {
+    return this.sendNotification(`🛒 Falta en el piso: ${itemName}`, {
+      body: `${senderName} avisa que se ha terminado "${itemName}". ¡Añadido a la lista!`,
+      tag: `shopping-alert-${itemName.toLowerCase().replace(/\s+/g, "-")}`,
+      data: { url: "/compra" },
+    });
+  },
+
+  /**
+   * Aviso de superación en el ranking de puntos de convivencia
+   */
+  async sendOvertakeNotice(
+    overtakerName: string,
+    overtakenName: string,
+    points: number,
+    isCurrentTarget: boolean = false
+  ): Promise<boolean> {
+    const title = isCurrentTarget
+      ? `⚡ ¡${overtakerName} te ha superado!`
+      : `🏆 Cambio en el ranking del piso`;
+    const body = isCurrentTarget
+      ? `${overtakerName} te ha adelantado en el ranking con ${points} pts de convivencia.`
+      : `${overtakerName} ha superado a ${overtakenName} con ${points} pts de convivencia.`;
+
+    return this.sendNotification(title, {
+      body,
+      tag: `overtake-${overtakerName.toLowerCase()}-${Date.now()}`,
+      data: { url: "/" },
+    });
+  },
+
+  /**
+   * Aviso de nueva semana y asignación de zona de limpieza
+   */
+  async sendWeeklyZoneNotice(
+    userName: string,
+    zoneName: string
+  ): Promise<boolean> {
+    return this.sendNotification("🧹 Nueva semana de limpieza", {
+      body: `${userName}, esta semana te toca limpiar: ${zoneName}. ¡A por ella!`,
+      tag: `weekly-zone-${zoneName.toLowerCase()}`,
+      data: { url: "/tareas" },
+    });
+  },
+
+  /**
+   * Obtiene la lista de notificaciones in-app almacenadas
+   */
+  getInAppNotifications(
+    householdId: string = DEFAULT_HOUSEHOLD_ID,
+    userId?: string
+  ): PisoProNotification[] {
+    if (typeof window === "undefined") return [];
+    try {
+      const key = `pisopro_notifications_${householdId}`;
+      const raw = localStorage.getItem(key);
+      if (!raw) return [];
+      const list = JSON.parse(raw) as PisoProNotification[];
+      // Filtrar notificaciones dirigidas al usuario o globales al piso
+      if (!userId) return list;
+      return list.filter(
+        (n) => !n.target_user_id || n.target_user_id === userId
+      );
+    } catch {
+      return [];
+    }
+  },
+
+  /**
+   * Guarda o actualiza la lista de notificaciones in-app
+   */
+  saveInAppNotifications(
+    notifications: PisoProNotification[],
+    householdId: string = DEFAULT_HOUSEHOLD_ID
+  ): void {
+    if (typeof window === "undefined") return;
+    try {
+      const key = `pisopro_notifications_${householdId}`;
+      // Limitar a las 50 más recientes para mantener el almacenamiento ligero
+      const trimmed = notifications.slice(0, 50);
+      localStorage.setItem(key, JSON.stringify(trimmed));
+      window.dispatchEvent(new CustomEvent("pisopro-notification-updated"));
+    } catch {
+      // ignore
+    }
+  },
+
+  /**
+   * Marca una notificación como leída
+   */
+  markAsRead(
+    notificationId: string,
+    householdId: string = DEFAULT_HOUSEHOLD_ID
+  ): void {
+    const list = this.getInAppNotifications(householdId);
+    const updated = list.map((n) =>
+      n.id === notificationId ? { ...n, read: true } : n
+    );
+    this.saveInAppNotifications(updated, householdId);
+  },
+
+  /**
+   * Marca todas las notificaciones como leídas
+   */
+  markAllAsRead(householdId: string = DEFAULT_HOUSEHOLD_ID): void {
+    const list = this.getInAppNotifications(householdId);
+    const updated = list.map((n) => ({ ...n, read: true }));
+    this.saveInAppNotifications(updated, householdId);
+  },
+
+  /**
+   * Elimina una notificación por su ID
+   */
+  deleteNotification(
+    notificationId: string,
+    householdId: string = DEFAULT_HOUSEHOLD_ID
+  ): void {
+    const list = this.getInAppNotifications(householdId);
+    const updated = list.filter((n) => n.id !== notificationId);
+    this.saveInAppNotifications(updated, householdId);
+  },
+
+  /**
+   * Borra todas las notificaciones
+   */
+  clearAllNotifications(householdId: string = DEFAULT_HOUSEHOLD_ID): void {
+    this.saveInAppNotifications([], householdId);
+  },
+
+  /**
+   * Despacha una notificación completa:
+   * 1. Almacena en lista in-app
+   * 2. Envía notificación nativa al navegador/PWA
+   * 3. Transmite en tiempo real vía Supabase Realtime a otros dispositivos
+   */
+  async dispatchNotification(
+    params: {
+      type: NotificationType;
+      title: string;
+      body: string;
+      householdId?: string;
+      targetUserId?: string | null;
+      actorUserId?: string | null;
+      actorName?: string | null;
+      data?: Record<string, unknown>;
+    }
+  ): Promise<PisoProNotification> {
+    const householdId = params.householdId || DEFAULT_HOUSEHOLD_ID;
+    const notification: PisoProNotification = {
+      id: `notif-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
+      household_id: householdId,
+      type: params.type,
+      title: params.title,
+      body: params.body,
+      created_at: new Date().toISOString(),
+      read: false,
+      target_user_id: params.targetUserId ?? null,
+      actor_user_id: params.actorUserId ?? null,
+      actor_name: params.actorName ?? null,
+      data: params.data,
+    };
+
+    // 1. Guardar localmente
+    const currentList = this.getInAppNotifications(householdId);
+    this.saveInAppNotifications([notification, ...currentList], householdId);
+
+    // 2. Notificación nativa si procede
+    void this.sendNotification(params.title, {
+      body: params.body,
+      data: params.data,
+    });
+
+    // 3. Transmitir por canal de Realtime Supabase si está disponible
+    try {
+      const supabase = getSupabaseBrowserClient();
+      const channel = supabase.channel(`pisopro-broadcast-${householdId}`);
+      await channel.subscribe(async (status) => {
+        if (status === "SUBSCRIBED") {
+          await channel.send({
+            type: "broadcast",
+            event: "new-notification",
+            payload: notification,
+          });
+        }
+      });
+    } catch (err) {
+      console.warn("[notificationService] Realtime broadcast error:", err);
+    }
+
+    return notification;
+  },
 };
+

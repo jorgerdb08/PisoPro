@@ -15,6 +15,7 @@ import { Button } from "@/components/ui/button";
 import { useShopping } from "../useShopping";
 import { useAuth } from "@/features/auth/AuthContext";
 import { chatService } from "@/services/chatService";
+import { notificationService } from "@/features/notifications/notificationService";
 import { DEFAULT_HOUSEHOLD_ID } from "@/lib/constants";
 import { ShoppingItemRow } from "./ShoppingItemRow";
 import { CreateItemModal } from "./CreateItemModal";
@@ -96,10 +97,21 @@ export function ShoppingView() {
         content: messageContent,
       });
 
-      // 3. Feedback en pantalla
+      // 3. Emitir notificación in-app y nativa a todos los compañeros del piso
+      await notificationService.dispatchNotification({
+        type: "shopping_alert",
+        title: `Falta ${itemName} en el piso`,
+        body: `${currentUser.name} ha avisado de que se ha terminado "${itemName}". ¡Apunta para comprarlo!`,
+        householdId: DEFAULT_HOUSEHOLD_ID,
+        actorUserId: currentUser.id,
+        actorName: currentUser.name,
+        data: { url: "/compra", itemName },
+      });
+
+      // 4. Feedback en pantalla
       setFeedbackMsg({
         type: "success",
-        text: `Aviso enviado al chat del piso: "¡No queda ${itemName}!"`,
+        text: `Aviso enviado al chat y notificaciones: "¡No queda ${itemName}!"`,
       });
       setTimeout(() => setFeedbackMsg(null), 4500);
 
