@@ -162,19 +162,27 @@ export function useExpenses() {
 
   // Settle debt transfer
   const settleTransfer = useCallback(
-    async (transfer: DebtTransfer) => {
+    async (transfer: {
+      fromUserId: string;
+      toUserId: string;
+      amount: number;
+      debtKey?: string;
+      concept?: string;
+    }) => {
       setIsSubmitting(true);
       try {
-        const ok = await expensesService.settleDebt(
+        const created = await expensesService.settleDebt(
           transfer.fromUserId,
           transfer.toUserId,
           transfer.amount,
-          DEFAULT_HOUSEHOLD_ID
+          DEFAULT_HOUSEHOLD_ID,
+          transfer.debtKey,
+          transfer.concept
         );
-        if (ok) {
+        if (created) {
           await fetchExpenses();
         }
-        return ok;
+        return created !== null;
       } finally {
         setIsSubmitting(false);
       }

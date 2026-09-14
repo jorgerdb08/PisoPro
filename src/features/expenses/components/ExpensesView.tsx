@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
 import { useExpenses } from "@/features/expenses/useExpenses";
 import { useAuth } from "@/features/auth/AuthContext";
 import { CreateExpenseModal } from "./CreateExpenseModal";
@@ -142,7 +142,131 @@ export function ExpensesView() {
   const suppliesTotal = luzTotal + aguaTotal + gasTotal + internetTotal;
   const grandTotal = 600 + suppliesTotal + otherTotal;
 
-  // Cuota personal del usuario logueado
+  // 1. Detectar liquidaciones en tiempo real desde Supabase (y respaldo local)
+  const settledDebtKeys = useMemo(() => {
+    const keys = new Set<string>();
+    expenses.forEach((e) => {
+      if (e.category === "settlement" && e.notes?.startsWith("settled_debt:")) {
+        const k = e.notes.replace("settled_debt:", "").trim();
+        if (k) keys.add(k);
+      }
+    });
+
+    if (typeof window !== "undefined") {
+      try {
+        const raw = localStorage.getItem("pisopro_settled_itemized_debts_v1");
+        if (raw) {
+          const map = JSON.parse(raw);
+          Object.keys(map).forEach((k) => keys.add(k));
+        }
+      } catch {
+        // ignore
+      }
+    }
+    return keys;
+  }, [expenses]);
+
+  const isJorge =
+    currentUser?.name === "Jorge" ||
+    currentUser?.id === "22222222-2222-4222-8222-222222222222";
+
+  const samuelId = FLATMATES.find((f) => f.name === "Samuel")?.id || "33333333-3333-4333-8333-333333333333";
+  const davidId = FLATMATES.find((f) => f.name === "David")?.id || "44444444-4444-4444-8444-444444444444";
+
+  // Estado del alquiler de este mes en tiempo real
+  const isSamuelRentSettled = settledDebtKeys.has(`rent_${selectedMonth}_${samuelId}`);
+  const isDavidRentSettled = settledDebtKeys.has(`rent_${selectedMonth}_${davidId}`);
+  const isMyRentSettled = currentUser
+    ? settledDebtKeys.has(`rent_${selectedMonth}_${currentUser.id}`)
+    : false;
+
+  // Para Jorge: cuánto ha cobrado de los 400 € de Samuel y David
+  const jorgeRentCollected =
+    (isSamuelRentSettled ? 200 : 0) + (isDavidRentSettled ? 200 : 0);
+  const jorgeRentPendingToCollect = 400 - jorgeRentCollected;
+
+  // Cuotas de alquiler para el usuario actual
+  const myRentPending = isJorge ? 0 : isMyRentSettled ? 0 : 200;
+  const myRentSettled = isJorge ? 0 : isMyRentSettled ? 200 : 0;
+
+  // Cuotas de suministros y otros gastos para el usuario actual (descontando cada pago hecho)
+  const { initialSuppliesShare, settledSuppliesShare, pendingSuppliesShare } = useMemo(() => {
+    if (!currentUser) {
+      return { initialSuppliesShare: 0, settledSuppliesShare: 0, pendingSuppliesShare: 0 };
+    }
+
+    let initial = 0;
+    let settled = 0;
+
+    monthExpenses.forEach((e) => {
+      const cat = (e.category || "").toLowerCase();
+      if (cat === "alquiler" || cat === "rent" || cat === "settlement") return;
+
+      const payerId = e.paid_by;
+      const totalAmount = Number(e.amount) || 0;
+      if (totalAmount <= 0) return;
+
+      if (payerId !== currentUser.id) {
+        let myShareAmount = 0;
+        if (e.participants && e.participants.length > 0) {
+          const p = e.participants.find((part) => part.user_id === currentUser.id);
+          if (p) myShareAmount = Number(p.share_amount) || 0;
+        } else {
+          myShareAmount = Math.round((totalAmount / FLATMATES.length) * 100) / 100;
+        }
+
+        if (myShareAmount > 0) {
+          initial += myShareAmount;
+          const debtKey = `${e.id}_${currentUser.id}`;
+          if (settledDebtKeys.has(debtKey)) {
+            settled += myShareAmount;
+          }
+        }
+      }
+    });
+
+    initial = Math.round(initial * 100) / 100;
+    settled = Math.round(settled * 100) / 100;
+    const pending = Math.max(0, Math.round((initial - settled) * 100) / 100);
+
+    return {
+      initialSuppliesShare: initial,
+      settledSuppliesShare: settled,
+      pendingSuppliesShare: pending,
+    };
+  }, [monthExpenses, currentUser, settledDebtKeys]);
+
+  // Total pendiente a pagar por ti (descontando todo lo ya pagado paso a paso)
+  const myTotalPendingToPay = Math.round((myRentPending + pendingSuppliesShare) * 100) / 100;
+  const myTotalDiscounted = Math.round((myRentSettled + settledSuppliesShare) * 100) / 100;
+
+  // Conteo de transferencias pendientes para la insignia de la pestaña
+  const totalPendingDebtsCount = useMemo(() => {
+    let count = 0;
+    if (!isSamuelRentSettled) count++;
+    if (!isDavidRentSettled) count++;
+
+    monthExpenses.forEach((e) => {
+      const cat = (e.category || "").toLowerCase();
+      if (cat === "alquiler" || cat === "rent" || cat === "settlement") return;
+      if (e.participants && e.participants.length > 0) {
+        e.participants.forEach((p) => {
+          if (p.user_id !== e.paid_by && !settledDebtKeys.has(`${e.id}_${p.user_id}`)) {
+            count++;
+          }
+        });
+      } else {
+        FLATMATES.forEach((f) => {
+          if (f.id !== e.paid_by && !settledDebtKeys.has(`${e.id}_${f.id}`)) {
+            count++;
+          }
+        });
+      }
+    });
+    return count;
+  }, [isSamuelRentSettled, isDavidRentSettled, monthExpenses, settledDebtKeys]);
+
+  // Cuota personal base del usuario logueado
   const myShare = safeMonthlyData.shares.find((s) => s.userId === currentUser?.id) || {
     userId: currentUser?.id || "",
     userName: currentUser?.name || "Tú",
@@ -335,9 +459,9 @@ export function ExpensesView() {
         >
           <Scale className="h-4 w-4" />
           <span>Deudas</span>
-          {pendingTransfers.length > 0 && (
+          {totalPendingDebtsCount > 0 && (
             <span className="ml-1 px-1.5 py-0.5 rounded-full bg-amber-500 text-white text-[10px] font-extrabold leading-none">
-              {pendingTransfers.length}
+              {totalPendingDebtsCount}
             </span>
           )}
         </button>
@@ -370,19 +494,30 @@ export function ExpensesView() {
             <div className="flex items-start justify-between gap-3">
               <div>
                 <span className="text-[11px] font-bold uppercase tracking-wider text-[#607283]">
-                  {currentUser ? `Tu cuota · ${currentUser.name}` : "Tu resumen"}
+                  {currentUser ? `Tu cuota pendiente · ${currentUser.name}` : "Tu resumen"}
                 </span>
                 <div className="mt-0.5">
                   <div className="text-3xl sm:text-4xl font-black tracking-tight text-[#31405F] whitespace-nowrap">
-                    {formatEuro(myShare.totalToPay)}
+                    {formatEuro(myTotalPendingToPay)}
                   </div>
                   <p className="text-xs font-medium text-[#607283] mt-0.5">
-                    Total a pagar por ti en {safeRentSummary.monthName}
+                    {myTotalPendingToPay === 0 ? (
+                      <span className="text-emerald-700 font-bold">
+                        ¡Todo al día! No tienes pagos pendientes en {safeRentSummary.monthName} 🎉
+                      </span>
+                    ) : (
+                      `Total pendiente a pagar por ti en ${safeRentSummary.monthName}`
+                    )}
                   </p>
                 </div>
+                {myTotalDiscounted > 0 && (
+                  <p className="text-[11px] font-semibold text-emerald-700 mt-1 flex items-center gap-1">
+                    <span>✓</span> Descontados {formatEuro(myTotalDiscounted)} ya pagados por ti por partes este mes
+                  </p>
+                )}
                 {myShare.totalAdvanced > 0 && (
-                  <p className="text-[11px] font-semibold text-emerald-700 mt-1">
-                    ✓ Has adelantado {formatEuro(myShare.totalAdvanced)} (ya descontado de tu cuota)
+                  <p className="text-[11px] font-semibold text-[#194F6B] mt-0.5">
+                    ✓ Has adelantado {formatEuro(myShare.totalAdvanced)} en facturas pagadas por ti
                   </p>
                 )}
               </div>
@@ -416,34 +551,90 @@ export function ExpensesView() {
               {/* Bloque 1: Tu Alquiler */}
               <div className="rounded-2xl border border-[#BFC6CC]/60 bg-white p-3.5 flex items-center justify-between gap-3 shadow-2xs">
                 <div>
-                  <span className="text-xs font-semibold text-[#607283] block">
+                  <span className="text-xs font-semibold text-[#607283] flex items-center gap-1.5">
                     Alquiler
+                    {isJorge ? (
+                      <span className="text-[10px] font-bold px-1.5 py-0.2 rounded-md bg-blue-50 text-blue-700">
+                        Gestionas tú
+                      </span>
+                    ) : isMyRentSettled ? (
+                      <span className="text-[10px] font-bold px-1.5 py-0.2 rounded-md bg-emerald-50 text-emerald-700">
+                        ✓ Pagado
+                      </span>
+                    ) : (
+                      <span className="text-[10px] font-bold px-1.5 py-0.2 rounded-md bg-amber-50 text-amber-700">
+                        Pendiente
+                      </span>
+                    )}
                   </span>
                   <div className="text-xl font-black text-[#31405F] whitespace-nowrap mt-0.5">
-                    200,00 €
+                    {isJorge
+                      ? `${formatEuro(jorgeRentPendingToCollect)} pend.`
+                      : isMyRentSettled
+                      ? "0,00 €"
+                      : "200,00 €"}
                   </div>
                 </div>
                 <div className="text-right text-[11px] text-[#607283]">
-                  <span>Total piso: 600,00 €</span>
-                  <br />
-                  <span>3 compañeros</span>
+                  {isJorge ? (
+                    <>
+                      <span className="font-semibold text-emerald-700">
+                        {formatEuro(jorgeRentCollected)} cobrados
+                      </span>
+                      <br />
+                      <span>de 400 € (Samuel/David)</span>
+                    </>
+                  ) : isMyRentSettled ? (
+                    <>
+                      <span className="text-emerald-700 font-semibold">200 € transferidos</span>
+                      <br />
+                      <span>a Jorge</span>
+                    </>
+                  ) : (
+                    <>
+                      <span>Total piso: 600,00 €</span>
+                      <br />
+                      <span>Tu parte: 200,00 €</span>
+                    </>
+                  )}
                 </div>
               </div>
 
               {/* Bloque 2: Suministros y variables */}
               <div className="rounded-2xl border border-[#BFC6CC]/60 bg-white p-3.5 flex items-center justify-between gap-3 shadow-2xs">
                 <div>
-                  <span className="text-xs font-semibold text-[#607283] block">
+                  <span className="text-xs font-semibold text-[#607283] flex items-center gap-1.5">
                     Suministros y otros
+                    {initialSuppliesShare > 0 && pendingSuppliesShare === 0 ? (
+                      <span className="text-[10px] font-bold px-1.5 py-0.2 rounded-md bg-emerald-50 text-emerald-700">
+                        ✓ Al día
+                      </span>
+                    ) : settledSuppliesShare > 0 ? (
+                      <span className="text-[10px] font-bold px-1.5 py-0.2 rounded-md bg-blue-50 text-blue-700">
+                        En curso
+                      </span>
+                    ) : null}
                   </span>
                   <div className="text-xl font-black text-[#31405F] whitespace-nowrap mt-0.5">
-                    {formatEuro(myShare.suppliesShare + myShare.variableShare)}
+                    {formatEuro(pendingSuppliesShare)}
                   </div>
                 </div>
                 <div className="text-right text-[11px] text-[#607283]">
-                  <span>Luz: {formatEuro(luzTotal / 3)}</span>
-                  <br />
-                  <span>Otros: {formatEuro((suppliesTotal - luzTotal + otherTotal) / 3)}</span>
+                  {settledSuppliesShare > 0 ? (
+                    <>
+                      <span className="text-emerald-700 font-semibold">
+                        -{formatEuro(settledSuppliesShare)} pagado
+                      </span>
+                      <br />
+                      <span>inicial: {formatEuro(initialSuppliesShare)}</span>
+                    </>
+                  ) : (
+                    <>
+                      <span>Luz: {formatEuro(luzTotal / 3)}</span>
+                      <br />
+                      <span>Otros: {formatEuro((suppliesTotal - luzTotal + otherTotal) / 3)}</span>
+                    </>
+                  )}
                 </div>
               </div>
             </div>
@@ -521,7 +712,14 @@ export function ExpensesView() {
 
               <div className="mt-2 pt-2 border-t border-[#BFC6CC]/30 flex items-center justify-between text-[10px] flex-wrap gap-1">
                 <span className="font-semibold text-[#607283]">
-                  Tu parte: <strong className="text-[#31405F]">200,00 €</strong>
+                  Tu parte:{" "}
+                  <strong className="text-[#31405F]">
+                    {isJorge
+                      ? "Gestionas tú (cobras 400 €)"
+                      : isMyRentSettled
+                      ? "0,00 € (✓ Pagado)"
+                      : "200,00 €"}
+                  </strong>
                 </span>
                 <button
                   type="button"
@@ -935,9 +1133,11 @@ export function ExpensesView() {
         <div className="animate-in fade-in-50 duration-150">
           <DebtsView
             expenses={expenses}
+            selectedMonth={selectedMonth}
             pendingTransfers={pendingTransfers}
             netBalances={netBalances}
             onSettleTransfer={settleTransfer}
+            onDeleteSettlement={removeExpense}
           />
         </div>
       )}

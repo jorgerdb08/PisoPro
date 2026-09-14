@@ -1,12 +1,12 @@
 "use client";
 
 import React, { useState, useEffect, useMemo } from "react";
-import type { DebtTransfer, ExpenseItem } from "../calculations";
+import type { ExpenseItem } from "../calculations";
 import { FLATMATES } from "@/lib/constants";
+import { rentService } from "@/services/rentService";
 import {
   ArrowRight,
   CheckCircle2,
-  Scale,
   Check,
   RotateCcw,
   Home,
@@ -18,11 +18,12 @@ import {
   Receipt,
   History,
   Clock,
+  Users,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export interface ItemizedTransfer {
-  id: string;
+  id: string; // debtKey único
   expenseId: string;
   concept: string;
   category: string;
@@ -34,46 +35,52 @@ export interface ItemizedTransfer {
 
 export interface SettledTransferRecord extends ItemizedTransfer {
   settledAt: string;
+  settlementId?: string; // ID en la tabla expenses de Supabase
 }
 
 const STORAGE_KEY = "pisopro_settled_itemized_debts_v1";
 
 interface DebtsViewProps {
   expenses?: ExpenseItem[];
-  pendingTransfers?: DebtTransfer[];
+  selectedMonth?: string;
+  pendingTransfers?: unknown[];
   netBalances?: Record<string, number>;
-  onSettleTransfer?: (transfer: DebtTransfer) => Promise<unknown>;
+  onSettleTransfer?: (transfer: {
+    fromUserId: string;
+    toUserId: string;
+    amount: number;
+    debtKey?: string;
+    concept?: string;
+  }) => Promise<unknown>;
+  onDeleteSettlement?: (settlementExpenseId: string) => Promise<unknown>;
 }
 
 export function DebtsView({
   expenses = [],
+  selectedMonth = "2026-09",
   onSettleTransfer,
+  onDeleteSettlement,
 }: DebtsViewProps) {
   const [activeSubTab, setActiveSubTab] = useState<"pendientes" | "historial">("pendientes");
-  const [settledMap, setSettledMap] = useState<Record<string, SettledTransferRecord>>({});
-  const [isLoaded, setIsLoaded] = useState(false);
+  const [localSettledMap, setLocalSettledMap] = useState<Record<string, SettledTransferRecord>>({});
   const [justSettledId, setJustSettledId] = useState<string | null>(null);
 
-  // Cargar estado de transferencias saldadas de localStorage de forma segura
+  // 1. Cargar almacenamiento local para redundancia inmediata y offline
   useEffect(() => {
     try {
       const raw = localStorage.getItem(STORAGE_KEY);
-      if (raw) {
-        setSettledMap(JSON.parse(raw));
-      }
-    } catch (e) {
-      console.error("Error cargando historial de transferencias:", e);
-    } finally {
-      setIsLoaded(true);
+      if (raw) setLocalSettledMap(JSON.parse(raw));
+    } catch {
+      // ignore
     }
   }, []);
 
-  const saveSettledMap = (updated: Record<string, SettledTransferRecord>) => {
-    setSettledMap(updated);
+  const saveLocalSettledMap = (updated: Record<string, SettledTransferRecord>) => {
+    setLocalSettledMap(updated);
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
-    } catch (e) {
-      console.error("Error guardando historial de transferencias:", e);
+    } catch {
+      // ignore
     }
   };
 
@@ -111,13 +118,59 @@ export function DebtsView({
     return { icon: Receipt, label: "Gasto", colorClass: "bg-slate-500/10 text-slate-700 border-slate-500/20" };
   };
 
-  // Generar lista de transferencias separadas por cada gasto individual
+  // 2. Liquidaciones reales sincronizadas en Supabase
+  const supabaseSettledMap = useMemo(() => {
+    const map: Record<string, { settlementId: string; settledAt: string }> = {};
+    expenses.forEach((e) => {
+      if (e.category === "settlement" && e.notes?.startsWith("settled_debt:")) {
+        const debtKey = e.notes.replace("settled_debt:", "").trim();
+        if (debtKey) {
+          map[debtKey] = {
+            settlementId: e.id,
+            settledAt: e.date || (e.created_at ? e.created_at.split("T")[0]! : ""),
+          };
+        }
+      }
+    });
+    return map;
+  }, [expenses]);
+
+  // 3. Generar la lista completa de transferencias individuales
   const allItemizedTransfers = useMemo<ItemizedTransfer[]>(() => {
     const list: ItemizedTransfer[] = [];
 
-    (expenses || []).forEach((expense) => {
-      // Omitir liquidaciones pasadas en la lista de deudas generadas
+    const jorge = FLATMATES.find((f) => f.name === "Jorge") || FLATMATES[0]!;
+    const samuel = FLATMATES.find((f) => f.name === "Samuel") || FLATMATES[1]!;
+    const david = FLATMATES.find((f) => f.name === "David") || FLATMATES[2]!;
+
+    // A) Cuotas de Alquiler del mes (Jorge paga 600 € al casero; Samuel y David le transfieren 200 € c/u)
+    list.push({
+      id: `rent_${selectedMonth}_${samuel.id}`,
+      expenseId: `rent_${selectedMonth}`,
+      concept: `Alquiler ${selectedMonth}`,
+      category: "alquiler",
+      fromUserId: samuel.id,
+      toUserId: jorge.id,
+      amount: 200,
+      date: `${selectedMonth}-01`,
+    });
+
+    list.push({
+      id: `rent_${selectedMonth}_${david.id}`,
+      expenseId: `rent_${selectedMonth}`,
+      concept: `Alquiler ${selectedMonth}`,
+      category: "alquiler",
+      fromUserId: david.id,
+      toUserId: jorge.id,
+      amount: 200,
+      date: `${selectedMonth}-01`,
+    });
+
+    // B) Gastos y facturas de la tabla expenses (filtrados del mes o generales, excluyendo liquidaciones)
+    expenses.forEach((expense) => {
       if (expense.category === "settlement") return;
+      const cat = (expense.category || "").toLowerCase();
+      if (cat === "alquiler" || cat === "rent") return; // Ya cubierto arriba
 
       const payerId = expense.paid_by;
       const totalAmount = Number(expense.amount) || 0;
@@ -142,7 +195,6 @@ export function DebtsView({
           }
         });
       } else {
-        // Reparto equitativo entre todos los compañeros del piso
         const share = Math.round((totalAmount / FLATMATES.length) * 100) / 100;
         FLATMATES.forEach((f) => {
           if (f.id !== payerId) {
@@ -161,52 +213,102 @@ export function DebtsView({
       }
     });
 
-    // Ordenar por fecha descendente
     return list.sort((a, b) => b.date.localeCompare(a.date));
-  }, [expenses]);
+  }, [expenses, selectedMonth]);
 
-  // Filtrar pendientes y saldadas
-  const pendingTransfers = useMemo(() => {
-    if (!isLoaded) return allItemizedTransfers;
-    return allItemizedTransfers.filter((t) => !settledMap[t.id]);
-  }, [allItemizedTransfers, settledMap, isLoaded]);
+  // Función para comprobar si una deuda está saldada (en Supabase o localmente)
+  const isDebtSettled = (item: ItemizedTransfer) => {
+    return !!supabaseSettledMap[item.id] || !!localSettledMap[item.id];
+  };
 
-  const settledTransfers = useMemo(() => {
-    return Object.values(settledMap).sort((a, b) => (b.settledAt || "").localeCompare(a.settledAt || ""));
-  }, [settledMap]);
+  // 4. Lista de pendientes (se elimina al saldarse)
+  const pendingList = useMemo(() => {
+    return allItemizedTransfers.filter((item) => !isDebtSettled(item));
+  }, [allItemizedTransfers, supabaseSettledMap, localSettledMap]);
 
-  // Marcar como pagado
+  // 5. Historial de saldadas (queda registrado aquí)
+  const settledList = useMemo<SettledTransferRecord[]>(() => {
+    return allItemizedTransfers
+      .filter((item) => isDebtSettled(item))
+      .map((item) => {
+        const sb = supabaseSettledMap[item.id];
+        const loc = localSettledMap[item.id];
+        return {
+          ...item,
+          settledAt: sb?.settledAt || loc?.settledAt || "Reciente",
+          settlementId: sb?.settlementId || loc?.settlementId,
+        };
+      });
+  }, [allItemizedTransfers, supabaseSettledMap, localSettledMap]);
+
+  // Marcar como pagado (común para todos en tiempo real)
   const handleMarkAsPaid = async (item: ItemizedTransfer) => {
     const now = new Date();
     const formattedDate = `${now.toLocaleDateString("es-ES", { day: "2-digit", month: "2-digit" })} ${now.toLocaleTimeString("es-ES", { hour: "2-digit", minute: "2-digit" })}`;
 
     setJustSettledId(item.id);
-    setTimeout(() => {
-      const updated = {
-        ...settledMap,
-        [item.id]: {
-          ...item,
-          settledAt: formattedDate,
-        },
-      };
-      saveSettledMap(updated);
-      setJustSettledId(null);
-    }, 400);
 
-    if (onSettleTransfer) {
-      void onSettleTransfer({
-        fromUserId: item.fromUserId,
-        toUserId: item.toUserId,
-        amount: item.amount,
+    // Guardar estado local optimista para feedback inmediato
+    const updatedLocal = {
+      ...localSettledMap,
+      [item.id]: {
+        ...item,
+        settledAt: formattedDate,
+      },
+    };
+    saveLocalSettledMap(updatedLocal);
+
+    // Si es una cuota de alquiler, sincronizar también con rentService
+    if (item.id.startsWith("rent_")) {
+      void rentService.recordRentPayment({
+        userId: item.fromUserId,
+        monthStr: selectedMonth,
       });
     }
+
+    // Persistir en Supabase en tiempo real
+    if (onSettleTransfer) {
+      try {
+        await onSettleTransfer({
+          fromUserId: item.fromUserId,
+          toUserId: item.toUserId,
+          amount: item.amount,
+          debtKey: item.id,
+          concept: item.concept,
+        });
+      } catch (err) {
+        console.error("Error sincronizando liquidación en Supabase:", err);
+      }
+    }
+
+    setTimeout(() => {
+      setJustSettledId(null);
+    }, 300);
   };
 
-  // Deshacer y devolver a pendientes
-  const handleUndo = (id: string) => {
-    const updated = { ...settledMap };
-    delete updated[id];
-    saveSettledMap(updated);
+  // Deshacer liquidación
+  const handleUndo = async (item: SettledTransferRecord) => {
+    // Eliminar del almacenamiento local
+    const updatedLocal = { ...localSettledMap };
+    delete updatedLocal[item.id];
+    saveLocalSettledMap(updatedLocal);
+
+    // Si es cuota de alquiler, revertir en rentService
+    if (item.id.startsWith("rent_")) {
+      void rentService.toggleRentPayment({
+        userId: item.fromUserId,
+        monthStr: selectedMonth,
+      });
+    }
+
+    // Si existe fila en Supabase, borrarla en tiempo real
+    if (item.settlementId && onDeleteSettlement) {
+      try {
+        await onDeleteSettlement(item.settlementId);
+      } catch (err) {
+        console.error("Error revirtiendo liquidación en Supabase:", err);
+      }
+    }
   };
 
   return (
@@ -225,9 +327,9 @@ export function DebtsView({
         >
           <Clock className="h-3.5 w-3.5" />
           <span>Pendientes</span>
-          {pendingTransfers.length > 0 && (
+          {pendingList.length > 0 && (
             <span className="ml-1 px-1.5 py-0.2 rounded-full bg-amber-500 text-white text-[10px] font-extrabold leading-none">
-              {pendingTransfers.length}
+              {pendingList.length}
             </span>
           )}
         </button>
@@ -236,7 +338,7 @@ export function DebtsView({
           type="button"
           onClick={() => setActiveSubTab("historial")}
           className={cn(
-            "flex-1 flex items-center justify-center gap-1.5 py-1.5 px-3 rounded-xl text-xs font-bold transition-all",
+            "flex-1 flex items-center justify-center gap-1.5 py-1.5 px-3 rounded-xl text-xs font-bold transition-all relative",
             activeSubTab === "historial"
               ? "bg-white text-[#31405F] shadow-2xs"
               : "text-[#607283] hover:text-[#31405F]"
@@ -244,21 +346,21 @@ export function DebtsView({
         >
           <History className="h-3.5 w-3.5" />
           <span>Historial</span>
-          {settledTransfers.length > 0 && (
+          {settledList.length > 0 && (
             <span className="ml-1 px-1.5 py-0.2 rounded-full bg-emerald-600 text-white text-[10px] font-extrabold leading-none">
-              {settledTransfers.length}
+              {settledList.length}
             </span>
           )}
         </button>
       </div>
 
       {/* ========================================================================= */}
-      {/* SUB-PESTAÑA 1: TRANSFERENCIAS PENDIENTES (DESGLOSADAS POR CONCEPTO) */}
+      {/* SUB-PESTAÑA 1: TRANSFERENCIAS PENDIENTES (DESGLOSADAS POR GASTO) */}
       {/* ========================================================================= */}
       {activeSubTab === "pendientes" && (
         <div className="space-y-3 animate-in fade-in-50 duration-150">
-          {pendingTransfers.length > 0 ? (
-            pendingTransfers.map((item) => {
+          {pendingList.length > 0 ? (
+            pendingList.map((item) => {
               const from = getFlatmate(item.fromUserId);
               const to = getFlatmate(item.toUserId);
               const visual = getCategoryVisual(item.category);
@@ -270,7 +372,7 @@ export function DebtsView({
                   key={item.id}
                   className={cn(
                     "rounded-3xl border border-[#BFC6CC]/70 bg-white p-4 sm:p-5 shadow-xs transition-all space-y-3 hover:border-[#194F6B]/40",
-                    isSettling && "opacity-40 scale-98 transition-all duration-300"
+                    isSettling && "opacity-30 scale-98 transition-all duration-300"
                   )}
                 >
                   {/* Cabecera del gasto individual */}
@@ -324,7 +426,7 @@ export function DebtsView({
                       </div>
                     </div>
 
-                    {/* Flecha conectora central */}
+                    {/* Flecha conectora central con importe */}
                     <div className="flex-1 flex items-center justify-center min-w-[140px] px-2">
                       <div className="relative flex items-center w-full max-w-[200px]">
                         <div className="w-full h-0.5 bg-[#BFC6CC]" />
@@ -363,7 +465,7 @@ export function DebtsView({
                   {/* Pie de acción: Marcar como pagado */}
                   <div className="flex items-center justify-between pt-2 border-t border-[#BFC6CC]/30">
                     <span className="text-[11px] text-[#607283]">
-                      {from.name} le paga a {to.name}
+                      {from.name} le transfiere a {to.name}
                     </span>
 
                     <button
@@ -388,7 +490,7 @@ export function DebtsView({
                 ¡No hay transferencias pendientes!
               </h4>
               <p className="text-xs text-[#607283] max-w-sm mx-auto">
-                Todas las cuentas y gastos individuales están saldados al día.
+                Todos los gastos individuales y facturas están al día.
               </p>
             </div>
           )}
@@ -400,8 +502,8 @@ export function DebtsView({
       {/* ========================================================================= */}
       {activeSubTab === "historial" && (
         <div className="space-y-3 animate-in fade-in-50 duration-150">
-          {settledTransfers.length > 0 ? (
-            settledTransfers.map((item) => {
+          {settledList.length > 0 ? (
+            settledList.map((item) => {
               const from = getFlatmate(item.fromUserId);
               const to = getFlatmate(item.toUserId);
               const visual = getCategoryVisual(item.category);
@@ -439,7 +541,7 @@ export function DebtsView({
                       </span>
                       <button
                         type="button"
-                        onClick={() => handleUndo(item.id)}
+                        onClick={() => void handleUndo(item)}
                         className="flex items-center gap-1 text-[10px] font-semibold text-[#607283] hover:text-[#31405F] hover:bg-[#F4F7F8] p-1.5 rounded-lg transition-colors border border-[#BFC6CC]/60"
                         title="Deshacer y volver a marcar como pendiente"
                       >
@@ -470,7 +572,7 @@ export function DebtsView({
                 Historial vacío
               </h4>
               <p className="text-xs text-[#607283] max-w-sm mx-auto">
-                A medida que marques las transferencias individuales como pagadas, quedarán guardadas aquí como historial.
+                Las transferencias marcadas como pagadas quedarán registradas aquí para todos los compañeros.
               </p>
             </div>
           )}
