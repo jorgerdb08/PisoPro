@@ -185,18 +185,37 @@ export function ExpensesView() {
     (isSamuelRentSettled ? 200 : 0) + (isDavidRentSettled ? 200 : 0);
   const jorgeRentPendingToCollect = 400 - jorgeRentCollected;
 
-  // Cuotas de alquiler para el usuario actual
-  const myRentPending = isJorge ? 0 : isMyRentSettled ? 0 : 200;
-  const myRentSettled = isJorge ? 0 : isMyRentSettled ? 200 : 0;
+  // Cuotas de alquiler para el usuario actual:
+  // Todos los compañeros (incluido Jorge) tienen su cuota personal de 200,00 €
+  const myRentPending = isMyRentSettled ? 0 : 200;
+  const myRentSettled = isMyRentSettled ? 200 : 0;
 
-  // Cuotas de suministros y otros gastos para el usuario actual (descontando cada pago hecho)
-  const { initialSuppliesShare, settledSuppliesShare, pendingSuppliesShare } = useMemo(() => {
+  // Cuotas de suministros y otros gastos para el usuario actual (separados y descontando cada pago hecho)
+  const {
+    initialSuppliesShare,
+    settledSuppliesShare,
+    pendingSuppliesShare,
+    initialOtherShare,
+    settledOtherShare,
+    pendingOtherShare,
+  } = useMemo(() => {
     if (!currentUser) {
-      return { initialSuppliesShare: 0, settledSuppliesShare: 0, pendingSuppliesShare: 0 };
+      return {
+        initialSuppliesShare: 0,
+        settledSuppliesShare: 0,
+        pendingSuppliesShare: 0,
+        initialOtherShare: 0,
+        settledOtherShare: 0,
+        pendingOtherShare: 0,
+      };
     }
 
-    let initial = 0;
-    let settled = 0;
+    let suppliesInit = 0;
+    let suppliesSettled = 0;
+    let otherInit = 0;
+    let otherSettled = 0;
+
+    const SUPPLY_CATS = new Set(["luz", "agua", "gas", "internet", "wifi", "utilidades", "utilities"]);
 
     monthExpenses.forEach((e) => {
       const cat = (e.category || "").toLowerCase();
@@ -205,6 +224,8 @@ export function ExpensesView() {
       const payerId = e.paid_by;
       const totalAmount = Number(e.amount) || 0;
       if (totalAmount <= 0) return;
+
+      const isSupply = SUPPLY_CATS.has(cat);
 
       if (payerId !== currentUser.id) {
         let myShareAmount = 0;
@@ -216,29 +237,41 @@ export function ExpensesView() {
         }
 
         if (myShareAmount > 0) {
-          initial += myShareAmount;
           const debtKey = `${e.id}_${currentUser.id}`;
-          if (settledDebtKeys.has(debtKey)) {
-            settled += myShareAmount;
+          const isSettled = settledDebtKeys.has(debtKey);
+
+          if (isSupply) {
+            suppliesInit += myShareAmount;
+            if (isSettled) suppliesSettled += myShareAmount;
+          } else {
+            otherInit += myShareAmount;
+            if (isSettled) otherSettled += myShareAmount;
           }
         }
       }
     });
 
-    initial = Math.round(initial * 100) / 100;
-    settled = Math.round(settled * 100) / 100;
-    const pending = Math.max(0, Math.round((initial - settled) * 100) / 100);
+    suppliesInit = Math.round(suppliesInit * 100) / 100;
+    suppliesSettled = Math.round(suppliesSettled * 100) / 100;
+    const pendingSupplies = Math.max(0, Math.round((suppliesInit - suppliesSettled) * 100) / 100);
+
+    otherInit = Math.round(otherInit * 100) / 100;
+    otherSettled = Math.round(otherSettled * 100) / 100;
+    const pendingOther = Math.max(0, Math.round((otherInit - otherSettled) * 100) / 100);
 
     return {
-      initialSuppliesShare: initial,
-      settledSuppliesShare: settled,
-      pendingSuppliesShare: pending,
+      initialSuppliesShare: suppliesInit,
+      settledSuppliesShare: suppliesSettled,
+      pendingSuppliesShare: pendingSupplies,
+      initialOtherShare: otherInit,
+      settledOtherShare: otherSettled,
+      pendingOtherShare: pendingOther,
     };
   }, [monthExpenses, currentUser, settledDebtKeys]);
 
-  // Total pendiente a pagar por ti (descontando todo lo ya pagado paso a paso)
-  const myTotalPendingToPay = Math.round((myRentPending + pendingSuppliesShare) * 100) / 100;
-  const myTotalDiscounted = Math.round((myRentSettled + settledSuppliesShare) * 100) / 100;
+  // Total pendiente a pagar por ti (Alquiler + Suministros + Otros)
+  const myTotalPendingToPay = Math.round((myRentPending + pendingSuppliesShare + pendingOtherShare) * 100) / 100;
+  const myTotalDiscounted = Math.round((myRentSettled + settledSuppliesShare + settledOtherShare) * 100) / 100;
 
   // Conteo de transferencias pendientes para la insignia de la pestaña (solo en las que estás involucrado)
   const totalPendingDebtsCount = useMemo(() => {
@@ -519,7 +552,7 @@ export function ExpensesView() {
             <div className="flex items-start justify-between gap-3">
               <div>
                 <span className="text-[11px] font-bold uppercase tracking-wider text-[#607283]">
-                  {currentUser ? `Tu cuota pendiente · ${currentUser.name}` : "Tu resumen"}
+                  {currentUser ? `Tu cuota · ${currentUser.name}` : "Tu cuota"}
                 </span>
                 <div className="mt-0.5">
                   <div className="text-3xl sm:text-4xl font-black tracking-tight text-[#31405F] whitespace-nowrap">
@@ -531,18 +564,13 @@ export function ExpensesView() {
                         ¡Todo al día! No tienes pagos pendientes en {safeRentSummary.monthName} 🎉
                       </span>
                     ) : (
-                      `Total pendiente a pagar por ti en ${safeRentSummary.monthName}`
+                      `Total a pagar por ti en ${safeRentSummary.monthName}`
                     )}
                   </p>
                 </div>
                 {myTotalDiscounted > 0 && (
                   <p className="text-[11px] font-semibold text-emerald-700 mt-1 flex items-center gap-1">
                     <span>✓</span> Descontados {formatEuro(myTotalDiscounted)} ya pagados por ti por partes este mes
-                  </p>
-                )}
-                {myShare.totalAdvanced > 0 && (
-                  <p className="text-[11px] font-semibold text-[#194F6B] mt-0.5">
-                    ✓ Has adelantado {formatEuro(myShare.totalAdvanced)} en facturas pagadas por ti
                   </p>
                 )}
               </div>
@@ -571,108 +599,109 @@ export function ExpensesView() {
               </div>
             </div>
 
-            {/* Desglose rápido de tu cuota */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-3 border-t border-[#BFC6CC]/40">
-              {/* Bloque 1: Tu Alquiler */}
-              <div className="rounded-2xl border border-[#BFC6CC]/60 bg-white p-3.5 flex items-center justify-between gap-3 shadow-2xs">
-                <div>
-                  <span className="text-xs font-semibold text-[#607283] flex items-center gap-1.5">
+            {/* Desglose de tu cuota: 3 tarjetas separadas (Alquiler, Suministros, Otros) */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 pt-3 border-t border-[#BFC6CC]/40">
+              {/* Bloque 1: Alquiler */}
+              <div className="rounded-2xl border border-[#BFC6CC]/60 bg-white p-3.5 flex flex-col justify-between gap-2 shadow-2xs">
+                <div className="flex items-center justify-between gap-1.5">
+                  <span className="text-xs font-semibold text-[#607283]">
                     Alquiler
-                    {isJorge ? (
-                      <span className="text-[10px] font-bold px-1.5 py-0.2 rounded-md bg-blue-50 text-blue-700">
-                        Gestionas tú
-                      </span>
-                    ) : isMyRentSettled ? (
-                      <span className="text-[10px] font-bold px-1.5 py-0.2 rounded-md bg-emerald-50 text-emerald-700">
-                        ✓ Pagado
-                      </span>
-                    ) : (
-                      <span className="text-[10px] font-bold px-1.5 py-0.2 rounded-md bg-amber-50 text-amber-700">
-                        Pendiente
-                      </span>
-                    )}
                   </span>
-                  <div className="text-xl font-black text-[#31405F] whitespace-nowrap mt-0.5">
-                    {isJorge
-                      ? `${formatEuro(jorgeRentPendingToCollect)} pend.`
-                      : isMyRentSettled
-                      ? "0,00 €"
-                      : "200,00 €"}
-                  </div>
-                </div>
-                <div className="text-right text-[11px] text-[#607283]">
-                  {isJorge ? (
-                    <>
-                      <span className="font-semibold text-emerald-700">
-                        {formatEuro(jorgeRentCollected)} cobrados
-                      </span>
-                      <br />
-                      <span>de 400 € (Samuel/David)</span>
-                    </>
-                  ) : isMyRentSettled ? (
-                    <>
-                      <span className="text-emerald-700 font-semibold">200 € transferidos</span>
-                      <br />
-                      <span>a Jorge</span>
-                    </>
+                  {isMyRentSettled ? (
+                    <span className="text-[10px] font-bold px-1.5 py-0.2 rounded-md bg-emerald-50 text-emerald-700">
+                      ✓ Pagado
+                    </span>
                   ) : (
-                    <>
-                      <span>Total piso: 600,00 €</span>
-                      <br />
-                      <span>Tu parte: 200,00 €</span>
-                    </>
+                    <span className="text-[10px] font-bold px-1.5 py-0.2 rounded-md bg-amber-50 text-amber-700">
+                      Pendiente
+                    </span>
                   )}
+                </div>
+                <div>
+                  <div className="text-xl font-black text-[#31405F] whitespace-nowrap">
+                    {formatEuro(myRentPending)}
+                  </div>
+                  <div className="text-[11px] text-[#607283] mt-0.5">
+                    <span>Tu parte: 200,00 €</span>
+                    <br />
+                    <span>Total piso: 600,00 €</span>
+                  </div>
                 </div>
               </div>
 
-              {/* Bloque 2: Suministros y variables */}
-              <div className="rounded-2xl border border-[#BFC6CC]/60 bg-white p-3.5 flex items-center justify-between gap-3 shadow-2xs">
-                <div>
-                  <span className="text-xs font-semibold text-[#607283] flex items-center gap-1.5">
-                    Suministros y otros
-                    {initialSuppliesShare > 0 && pendingSuppliesShare === 0 ? (
-                      <span className="text-[10px] font-bold px-1.5 py-0.2 rounded-md bg-emerald-50 text-emerald-700">
-                        ✓ Al día
-                      </span>
-                    ) : settledSuppliesShare > 0 ? (
-                      <span className="text-[10px] font-bold px-1.5 py-0.2 rounded-md bg-blue-50 text-blue-700">
-                        En curso
-                      </span>
-                    ) : null}
+              {/* Bloque 2: Suministros */}
+              <div className="rounded-2xl border border-[#BFC6CC]/60 bg-white p-3.5 flex flex-col justify-between gap-2 shadow-2xs">
+                <div className="flex items-center justify-between gap-1.5">
+                  <span className="text-xs font-semibold text-[#607283]">
+                    Suministros
                   </span>
-                  <div className="text-xl font-black text-[#31405F] whitespace-nowrap mt-0.5">
+                  {pendingSuppliesShare === 0 ? (
+                    <span className="text-[10px] font-bold px-1.5 py-0.2 rounded-md bg-emerald-50 text-emerald-700">
+                      ✓ Al día
+                    </span>
+                  ) : (
+                    <span className="text-[10px] font-bold px-1.5 py-0.2 rounded-md bg-blue-50 text-blue-700">
+                      En curso
+                    </span>
+                  )}
+                </div>
+                <div>
+                  <div className="text-xl font-black text-[#31405F] whitespace-nowrap">
                     {formatEuro(pendingSuppliesShare)}
                   </div>
+                  <div className="text-[11px] text-[#607283] mt-0.5">
+                    <span>Luz, agua, gas e internet</span>
+                    <br />
+                    <span>Total piso: {formatEuro(suppliesTotal)}</span>
+                  </div>
                 </div>
-                <div className="text-right text-[11px] text-[#607283]">
-                  {settledSuppliesShare > 0 ? (
-                    <>
-                      <span className="text-emerald-700 font-semibold">
-                        -{formatEuro(settledSuppliesShare)} pagado
-                      </span>
-                      <br />
-                      <span>inicial: {formatEuro(initialSuppliesShare)}</span>
-                    </>
+              </div>
+
+              {/* Bloque 3: Otros gastos */}
+              <div className="rounded-2xl border border-[#BFC6CC]/60 bg-white p-3.5 flex flex-col justify-between gap-2 shadow-2xs">
+                <div className="flex items-center justify-between gap-1.5">
+                  <span className="text-xs font-semibold text-[#607283]">
+                    Otros gastos
+                  </span>
+                  {pendingOtherShare === 0 ? (
+                    <span className="text-[10px] font-bold px-1.5 py-0.2 rounded-md bg-emerald-50 text-emerald-700">
+                      ✓ Al día
+                    </span>
                   ) : (
-                    <>
-                      <span>Luz: {formatEuro(luzTotal / 3)}</span>
-                      <br />
-                      <span>Otros: {formatEuro((suppliesTotal - luzTotal + otherTotal) / 3)}</span>
-                    </>
+                    <span className="text-[10px] font-bold px-1.5 py-0.2 rounded-md bg-blue-50 text-blue-700">
+                      En curso
+                    </span>
                   )}
+                </div>
+                <div>
+                  <div className="text-xl font-black text-[#31405F] whitespace-nowrap">
+                    {formatEuro(pendingOtherShare)}
+                  </div>
+                  <div className="text-[11px] text-[#607283] mt-0.5">
+                    <span>Compras comunes y varios</span>
+                    <br />
+                    <span>Total piso: {formatEuro(otherTotal)}</span>
+                  </div>
                 </div>
               </div>
             </div>
 
             {/* Barra inferior: Total del piso */}
-            <div className="pt-3 border-t border-[#BFC6CC]/40 text-xs text-[#607283]">
-              <span className="font-semibold text-[#31405F]">Total piso:</span>{" "}
-              <span className="font-extrabold text-[#31405F] whitespace-nowrap">
-                {formatEuro(grandTotal)}
-              </span>{" "}
-              <span className="text-[11px] text-[#607283]">
-                (600 € alquiler + {formatEuro(grandTotal - 600)} variables)
-              </span>
+            <div className="pt-3 border-t border-[#BFC6CC]/40 text-xs text-[#607283] flex items-center justify-between flex-wrap gap-1">
+              <div>
+                <span className="font-semibold text-[#31405F]">Total piso:</span>{" "}
+                <span className="font-extrabold text-[#31405F] whitespace-nowrap">
+                  {formatEuro(grandTotal)}
+                </span>{" "}
+                <span className="text-[11px] text-[#607283]">
+                  (600 € alquiler + {formatEuro(suppliesTotal)} suministros + {formatEuro(otherTotal)} otros)
+                </span>
+              </div>
+              {isJorge && (
+                <span className="text-[11px] font-semibold text-[#194F6B] bg-[#194F6B]/10 px-2 py-0.5 rounded-lg">
+                  Recaudas el alquiler del casero ({jorgeRentCollected} € de 400 € cobrados)
+                </span>
+              )}
             </div>
           </div>
 
