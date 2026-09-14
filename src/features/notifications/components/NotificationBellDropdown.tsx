@@ -57,6 +57,27 @@ function getNotificationIcon(type: NotificationType) {
         border: "border-indigo-500/20",
         text: "text-[#31405F]",
       };
+    case "debt_reminder":
+      return {
+        icon: BellRing,
+        bg: "bg-amber-500/10",
+        border: "border-amber-500/20",
+        text: "text-amber-700",
+      };
+    case "payment_sent":
+      return {
+        icon: Receipt,
+        bg: "bg-blue-500/10",
+        border: "border-blue-500/20",
+        text: "text-[#194F6B]",
+      };
+    case "payment_received":
+      return {
+        icon: CheckCheck,
+        bg: "bg-emerald-500/10",
+        border: "border-emerald-500/20",
+        text: "text-emerald-700",
+      };
     case "chore_reminder":
     default:
       return {

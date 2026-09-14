@@ -11,6 +11,7 @@ import {
   type UserBalanceSummary,
 } from "@/features/expenses/calculations";
 import { rentService, getCurrentMonthStr, type MonthlyRentSummary } from "@/services/rentService";
+import { notificationService } from "@/features/notifications/notificationService";
 import { getSupabaseBrowserClient } from "@/lib/supabase/client";
 import { useAuth } from "@/features/auth/AuthContext";
 import { DEFAULT_HOUSEHOLD_ID, FLATMATES } from "@/lib/constants";
@@ -151,6 +152,21 @@ export function useExpenses() {
         const created = await expensesService.createExpense(data);
         if (created) {
           await fetchExpenses();
+          try {
+            const payer = FLATMATES.find((f) => f.id === data.paid_by);
+            const payerName = payer?.name || "Un compañero";
+            void notificationService.dispatchNotification({
+              type: "expense_notice",
+              title: `💰 Nuevo gasto: ${data.description}`,
+              body: `${payerName} ha registrado ${data.amount.toFixed(2).replace(".", ",")} € en "${data.description}" (${data.category || "general"}).`,
+              householdId: DEFAULT_HOUSEHOLD_ID,
+              actorUserId: data.paid_by,
+              actorName: payerName,
+              data: { url: "/gastos", expenseId: created.id },
+            });
+          } catch (err) {
+            console.warn("[useExpenses] Error sending expense notice:", err);
+          }
         }
         return created;
       } finally {

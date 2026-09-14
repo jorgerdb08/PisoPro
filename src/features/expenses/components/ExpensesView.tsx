@@ -240,31 +240,56 @@ export function ExpensesView() {
   const myTotalPendingToPay = Math.round((myRentPending + pendingSuppliesShare) * 100) / 100;
   const myTotalDiscounted = Math.round((myRentSettled + settledSuppliesShare) * 100) / 100;
 
-  // Conteo de transferencias pendientes para la insignia de la pestaña
+  // Conteo de transferencias pendientes para la insignia de la pestaña (solo en las que estás involucrado)
   const totalPendingDebtsCount = useMemo(() => {
     let count = 0;
-    if (!isSamuelRentSettled) count++;
-    if (!isDavidRentSettled) count++;
+    if (!currentUser) return 0;
 
+    // Alquiler
+    if (isJorge) {
+      if (!isSamuelRentSettled) count++;
+      if (!isDavidRentSettled) count++;
+    } else {
+      if (!isMyRentSettled) count++;
+    }
+
+    // Facturas y suministros donde el usuario está involucrado (debe o le deben)
     monthExpenses.forEach((e) => {
       const cat = (e.category || "").toLowerCase();
       if (cat === "alquiler" || cat === "rent" || cat === "settlement") return;
-      if (e.participants && e.participants.length > 0) {
-        e.participants.forEach((p) => {
-          if (p.user_id !== e.paid_by && !settledDebtKeys.has(`${e.id}_${p.user_id}`)) {
-            count++;
-          }
-        });
+
+      const payerId = e.paid_by;
+      if (payerId === currentUser.id) {
+        // Al usuario le deben los demás
+        if (e.participants && e.participants.length > 0) {
+          e.participants.forEach((p) => {
+            if (p.user_id !== payerId && !settledDebtKeys.has(`${e.id}_${p.user_id}`)) {
+              count++;
+            }
+          });
+        } else {
+          FLATMATES.forEach((f) => {
+            if (f.id !== payerId && !settledDebtKeys.has(`${e.id}_${f.id}`)) {
+              count++;
+            }
+          });
+        }
       } else {
-        FLATMATES.forEach((f) => {
-          if (f.id !== e.paid_by && !settledDebtKeys.has(`${e.id}_${f.id}`)) {
-            count++;
+        // El usuario debe a payerId
+        const debtKey = `${e.id}_${currentUser.id}`;
+        if (!settledDebtKeys.has(debtKey)) {
+          let hasShare = true;
+          if (e.participants && e.participants.length > 0) {
+            hasShare = e.participants.some(
+              (p) => p.user_id === currentUser.id && (Number(p.share_amount) || 0) > 0
+            );
           }
-        });
+          if (hasShare) count++;
+        }
       }
     });
     return count;
-  }, [isSamuelRentSettled, isDavidRentSettled, monthExpenses, settledDebtKeys]);
+  }, [currentUser, isJorge, isSamuelRentSettled, isDavidRentSettled, isMyRentSettled, monthExpenses, settledDebtKeys]);
 
   // Cuota personal base del usuario logueado
   const myShare = safeMonthlyData.shares.find((s) => s.userId === currentUser?.id) || {
@@ -639,37 +664,15 @@ export function ExpensesView() {
               </div>
             </div>
 
-            {/* Barra inferior: Total del piso + Acciones principales */}
-            <div className="flex items-center justify-between pt-3 border-t border-[#BFC6CC]/40 text-xs text-[#607283] flex-wrap gap-2">
-              <div>
-                <span className="font-semibold text-[#31405F]">Total piso:</span>{" "}
-                <span className="font-extrabold text-[#31405F] whitespace-nowrap">
-                  {formatEuro(grandTotal)}
-                </span>{" "}
-                <span className="text-[11px] text-[#607283]">
-                  (600 € alquiler + {formatEuro(grandTotal - 600)} variables)
-                </span>
-              </div>
-
-              <div className="flex items-center gap-2">
-                <button
-                  type="button"
-                  onClick={handleSendReminder}
-                  disabled={isSendingReminder}
-                  className="inline-flex items-center gap-1.5 rounded-xl border border-[#BFC6CC] bg-white px-3 py-1.5 text-xs font-semibold text-[#31405F] hover:bg-[#F4F7F8] active:scale-95 transition-all shadow-2xs"
-                >
-                  <BellRing className="h-3.5 w-3.5 text-[#FF5722]" />
-                  <span>Avisar compañeros</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => openAddCategory("compras")}
-                  className="inline-flex items-center gap-1.5 rounded-xl bg-[#31405F] px-3.5 py-1.5 text-xs font-bold text-white hover:bg-[#194F6B] active:scale-95 transition-all shadow-2xs"
-                >
-                  <Plus className="h-4 w-4 stroke-[2.5]" />
-                  <span>+ Registrar Gasto</span>
-                </button>
-              </div>
+            {/* Barra inferior: Total del piso */}
+            <div className="pt-3 border-t border-[#BFC6CC]/40 text-xs text-[#607283]">
+              <span className="font-semibold text-[#31405F]">Total piso:</span>{" "}
+              <span className="font-extrabold text-[#31405F] whitespace-nowrap">
+                {formatEuro(grandTotal)}
+              </span>{" "}
+              <span className="text-[11px] text-[#607283]">
+                (600 € alquiler + {formatEuro(grandTotal - 600)} variables)
+              </span>
             </div>
           </div>
 
@@ -1134,6 +1137,7 @@ export function ExpensesView() {
           <DebtsView
             expenses={expenses}
             selectedMonth={selectedMonth}
+            currentUserId={currentUser?.id}
             pendingTransfers={pendingTransfers}
             netBalances={netBalances}
             onSettleTransfer={settleTransfer}

@@ -132,6 +132,81 @@ export const notificationService = {
   },
 
   /**
+   * Aviso de recordatorio de deuda pendiente
+   */
+  async sendDebtReminderNotice(params: {
+    senderName: string;
+    senderUserId?: string;
+    debtorName: string;
+    debtorUserId: string;
+    amount: number;
+    concept: string;
+    householdId?: string;
+  }) {
+    const formattedAmount = params.amount.toFixed(2).replace(".", ",") + " €";
+    return this.dispatchNotification({
+      type: "debt_reminder",
+      title: `⏳ Recordatorio: Pago de ${params.concept}`,
+      body: `${params.senderName} te recuerda transferir ${formattedAmount} por ${params.concept}.`,
+      householdId: params.householdId,
+      targetUserId: params.debtorUserId,
+      actorUserId: params.senderUserId,
+      actorName: params.senderName,
+      data: { url: "/gastos", concept: params.concept, amount: params.amount },
+    });
+  },
+
+  /**
+   * Aviso de que el compañero ya ha realizado el pago/transferencia
+   */
+  async sendPaymentSentNotice(params: {
+    senderName: string;
+    senderUserId?: string;
+    creditorName: string;
+    creditorUserId: string;
+    amount: number;
+    concept: string;
+    householdId?: string;
+  }) {
+    const formattedAmount = params.amount.toFixed(2).replace(".", ",") + " €";
+    return this.dispatchNotification({
+      type: "payment_sent",
+      title: `💸 Pago realizado: ${params.concept}`,
+      body: `${params.senderName} te avisa de que ya te ha transferido los ${formattedAmount} de ${params.concept}.`,
+      householdId: params.householdId,
+      targetUserId: params.creditorUserId,
+      actorUserId: params.senderUserId,
+      actorName: params.senderName,
+      data: { url: "/gastos", concept: params.concept, amount: params.amount },
+    });
+  },
+
+  /**
+   * Aviso de que el acreedor ha confirmado la recepción del pago
+   */
+  async sendPaymentReceivedNotice(params: {
+    senderName: string;
+    senderUserId?: string;
+    debtorName: string;
+    debtorUserId: string;
+    amount: number;
+    concept: string;
+    householdId?: string;
+  }) {
+    const formattedAmount = params.amount.toFixed(2).replace(".", ",") + " €";
+    return this.dispatchNotification({
+      type: "payment_received",
+      title: `✅ Cobro confirmado: ${params.concept}`,
+      body: `${params.senderName} ha confirmado haber recibido los ${formattedAmount} de ${params.concept}.`,
+      householdId: params.householdId,
+      targetUserId: params.debtorUserId,
+      actorUserId: params.senderUserId,
+      actorName: params.senderName,
+      data: { url: "/gastos", concept: params.concept, amount: params.amount },
+    });
+  },
+
+  /**
    * Aviso de mención directa en el chat del piso
    */
   async sendChatMentionNotice(

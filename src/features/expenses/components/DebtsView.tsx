@@ -4,10 +4,12 @@ import React, { useState, useEffect, useMemo } from "react";
 import type { ExpenseItem } from "../calculations";
 import { FLATMATES } from "@/lib/constants";
 import { rentService } from "@/services/rentService";
+import { notificationService } from "@/features/notifications/notificationService";
 import {
   ArrowRight,
   CheckCircle2,
   Check,
+  CheckCheck,
   RotateCcw,
   Home,
   Zap,
@@ -19,6 +21,7 @@ import {
   History,
   Clock,
   Users,
+  BellRing,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -43,6 +46,7 @@ const STORAGE_KEY = "pisopro_settled_itemized_debts_v1";
 interface DebtsViewProps {
   expenses?: ExpenseItem[];
   selectedMonth?: string;
+  currentUserId?: string;
   pendingTransfers?: unknown[];
   netBalances?: Record<string, number>;
   onSettleTransfer?: (transfer: {
@@ -58,12 +62,23 @@ interface DebtsViewProps {
 export function DebtsView({
   expenses = [],
   selectedMonth = "2026-09",
+  currentUserId,
   onSettleTransfer,
   onDeleteSettlement,
 }: DebtsViewProps) {
   const [activeSubTab, setActiveSubTab] = useState<"pendientes" | "historial">("pendientes");
   const [localSettledMap, setLocalSettledMap] = useState<Record<string, SettledTransferRecord>>({});
   const [justSettledId, setJustSettledId] = useState<string | null>(null);
+  const [actionToast, setActionToast] = useState<string | null>(null);
+  const [rentFeedback, setRentFeedback] = useState<{
+    isOnTime: boolean;
+    message: string;
+  } | null>(null);
+
+  const triggerToast = (msg: string) => {
+    setActionToast(msg);
+    setTimeout(() => setActionToast(null), 3500);
+  };
 
   // 1. Cargar almacenamiento local para redundancia inmediata y offline
   useEffect(() => {
@@ -221,12 +236,16 @@ export function DebtsView({
     return !!supabaseSettledMap[item.id] || !!localSettledMap[item.id];
   };
 
-  // 4. Lista de pendientes (se elimina al saldarse)
+  // 4. Lista de pendientes: cada uno ve solo las transferencias donde esté involucrado
   const pendingList = useMemo(() => {
-    return allItemizedTransfers.filter((item) => !isDebtSettled(item));
-  }, [allItemizedTransfers, supabaseSettledMap, localSettledMap]);
+    return allItemizedTransfers.filter((item) => {
+      if (isDebtSettled(item)) return false;
+      if (!currentUserId) return true;
+      return item.fromUserId === currentUserId || item.toUserId === currentUserId;
+    });
+  }, [allItemizedTransfers, supabaseSettledMap, localSettledMap, currentUserId]);
 
-  // 5. Historial de saldadas (queda registrado aquí)
+  // 5. Historial de saldadas (común para todos los compañeros del piso)
   const settledList = useMemo<SettledTransferRecord[]>(() => {
     return allItemizedTransfers
       .filter((item) => isDebtSettled(item))
@@ -241,10 +260,38 @@ export function DebtsView({
       });
   }, [allItemizedTransfers, supabaseSettledMap, localSettledMap]);
 
-  // Marcar como pagado (común para todos en tiempo real)
-  const handleMarkAsPaid = async (item: ItemizedTransfer) => {
+  // Enviar recordatorio de que falta por pagar
+  const handleSendDebtReminder = async (item: ItemizedTransfer) => {
+    const from = getFlatmate(item.fromUserId);
+    const to = getFlatmate(item.toUserId);
+    const sender = currentUserId ? getFlatmate(currentUserId) : to;
+
+    try {
+      await notificationService.sendDebtReminderNotice({
+        senderName: sender.name,
+        senderUserId: sender.id,
+        debtorName: from.name,
+        debtorUserId: item.fromUserId,
+        amount: item.amount,
+        concept: item.concept,
+      });
+      triggerToast(`🔔 Recordatorio enviado a ${from.name}: ${formatEuro(item.amount)}`);
+    } catch (err) {
+      console.error("Error enviando recordatorio:", err);
+      triggerToast(`🔔 Recordatorio registrado para ${from.name}`);
+    }
+  };
+
+  // Marcar como pagado (común para todos en tiempo real con notificaciones y reglas de alquiler)
+  const handleMarkAsPaid = async (
+    item: ItemizedTransfer,
+    roleAction: "debtor_paid" | "creditor_received" | "standard" = "standard"
+  ) => {
     const now = new Date();
     const formattedDate = `${now.toLocaleDateString("es-ES", { day: "2-digit", month: "2-digit" })} ${now.toLocaleTimeString("es-ES", { hour: "2-digit", minute: "2-digit" })}`;
+
+    const from = getFlatmate(item.fromUserId);
+    const to = getFlatmate(item.toUserId);
 
     setJustSettledId(item.id);
 
@@ -258,12 +305,53 @@ export function DebtsView({
     };
     saveLocalSettledMap(updatedLocal);
 
-    // Si es una cuota de alquiler, sincronizar también con rentService
+    // Si es una cuota de alquiler, evaluar puntualidad (regla de los 5 primeros días del mes)
     if (item.id.startsWith("rent_")) {
-      void rentService.recordRentPayment({
+      const res = await rentService.recordRentPayment({
         userId: item.fromUserId,
         monthStr: selectedMonth,
       });
+
+      if (res.isOnTime) {
+        setRentFeedback({
+          isOnTime: true,
+          message: `¡Alquiler pagado en los 5 primeros días! +1 punto de convivencia ganado para ${from.name}. 🏆`,
+        });
+      } else {
+        setRentFeedback({
+          isOnTime: false,
+          message: `Alquiler pagado fuera de plazo (después del día 5). Se aplica penalización de -1 punto a ${from.name}. ⚠️`,
+        });
+      }
+    }
+
+    // Despachar notificaciones en tiempo real según la acción
+    try {
+      if (roleAction === "debtor_paid") {
+        await notificationService.sendPaymentSentNotice({
+          senderName: from.name,
+          senderUserId: from.id,
+          creditorName: to.name,
+          creditorUserId: to.id,
+          amount: item.amount,
+          concept: item.concept,
+        });
+        triggerToast(`💸 Has marcado como pagado. Se ha avisado a ${to.name}.`);
+      } else if (roleAction === "creditor_received") {
+        await notificationService.sendPaymentReceivedNotice({
+          senderName: to.name,
+          senderUserId: to.id,
+          debtorName: from.name,
+          debtorUserId: from.id,
+          amount: item.amount,
+          concept: item.concept,
+        });
+        triggerToast(`✅ Cobro confirmado. Se ha avisado a ${from.name}.`);
+      } else {
+        triggerToast(`✓ Transferencia de ${formatEuro(item.amount)} marcada como pagada.`);
+      }
+    } catch (err) {
+      console.error("Error enviando notificación de liquidación:", err);
     }
 
     // Persistir en Supabase en tiempo real
@@ -462,21 +550,61 @@ export function DebtsView({
                     </div>
                   </div>
 
-                  {/* Pie de acción: Marcar como pagado */}
-                  <div className="flex items-center justify-between pt-2 border-t border-[#BFC6CC]/30">
+                  {/* Pie de acción: Avisar / Marcar pagado según rol */}
+                  <div className="flex items-center justify-between pt-2 border-t border-[#BFC6CC]/30 flex-wrap gap-2">
                     <span className="text-[11px] text-[#607283]">
                       {from.name} le transfiere a {to.name}
                     </span>
 
-                    <button
-                      type="button"
-                      onClick={() => void handleMarkAsPaid(item)}
-                      disabled={isSettling}
-                      className="inline-flex items-center gap-1.5 rounded-xl px-3 py-1.5 text-xs font-bold bg-[#31405F] text-white hover:bg-[#194F6B] active:scale-95 transition-all shadow-2xs border border-[#31405F]"
-                    >
-                      <Check className="h-3.5 w-3.5 stroke-[2.5]" />
-                      <span>Marcar como pagado</span>
-                    </button>
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      {/* Si soy el acreedor (me deben dinero) o Jorge administrador: Avisar de que falta por pagar */}
+                      {(currentUserId === item.toUserId || currentUserId === "22222222-2222-4222-8222-222222222222") && (
+                        <button
+                          type="button"
+                          onClick={() => void handleSendDebtReminder(item)}
+                          className="inline-flex items-center gap-1 rounded-xl px-2.5 py-1.5 text-xs font-semibold border border-amber-500/50 bg-amber-50 text-amber-800 hover:bg-amber-100 active:scale-95 transition-all shadow-2xs"
+                          title="Avisar de que falta por pagar"
+                        >
+                          <BellRing className="h-3.5 w-3.5 text-amber-600" />
+                          <span>Avisar de pago</span>
+                        </button>
+                      )}
+
+                      {/* Si soy el deudor (el que debe): Avisar que he pagado y saldar */}
+                      {currentUserId === item.fromUserId ? (
+                        <button
+                          type="button"
+                          onClick={() => void handleMarkAsPaid(item, "debtor_paid")}
+                          disabled={isSettling}
+                          className="inline-flex items-center gap-1.5 rounded-xl px-3 py-1.5 text-xs font-bold bg-[#31405F] text-white hover:bg-[#194F6B] active:scale-95 transition-all shadow-2xs border border-[#31405F]"
+                        >
+                          <Check className="h-3.5 w-3.5 stroke-[2.5]" />
+                          <span>He pagado (Avisar a {to.name})</span>
+                        </button>
+                      ) : currentUserId === item.toUserId ? (
+                        /* Si soy el acreedor (el que cobra): Confirmar que lo he recibido */
+                        <button
+                          type="button"
+                          onClick={() => void handleMarkAsPaid(item, "creditor_received")}
+                          disabled={isSettling}
+                          className="inline-flex items-center gap-1.5 rounded-xl px-3 py-1.5 text-xs font-bold bg-emerald-700 text-white hover:bg-emerald-800 active:scale-95 transition-all shadow-2xs border border-emerald-700"
+                        >
+                          <CheckCheck className="h-3.5 w-3.5 stroke-[2.5]" />
+                          <span>He recibido el pago</span>
+                        </button>
+                      ) : (
+                        /* Para Jorge u otro compañero: Marcar pagado general */
+                        <button
+                          type="button"
+                          onClick={() => void handleMarkAsPaid(item, "standard")}
+                          disabled={isSettling}
+                          className="inline-flex items-center gap-1.5 rounded-xl px-3 py-1.5 text-xs font-bold bg-[#31405F] text-white hover:bg-[#194F6B] active:scale-95 transition-all shadow-2xs border border-[#31405F]"
+                        >
+                          <Check className="h-3.5 w-3.5 stroke-[2.5]" />
+                          <span>Marcar pagado</span>
+                        </button>
+                      )}
+                    </div>
                   </div>
                 </div>
               );
@@ -576,6 +704,40 @@ export function DebtsView({
               </p>
             </div>
           )}
+        </div>
+      )}
+
+      {/* Toast flotante para confirmación de avisos y pagos */}
+      {actionToast && (
+        <div className="fixed bottom-5 left-1/2 -translate-x-1/2 z-50 rounded-2xl bg-[#31405F] text-white px-4 py-2.5 shadow-xl border border-[#194F6B] text-xs font-bold flex items-center gap-2 animate-in fade-in-50 duration-150 pointer-events-none">
+          <CheckCircle2 className="h-4 w-4 text-emerald-400 shrink-0" />
+          <span>{actionToast}</span>
+        </div>
+      )}
+
+      {/* Banner flotante de puntuación de alquiler (regla de los 5 días) */}
+      {rentFeedback && (
+        <div className="fixed bottom-5 right-5 z-50 max-w-sm rounded-3xl p-4 shadow-2xl border bg-white animate-in slide-in-from-bottom-5 duration-200">
+          <div className="flex items-start gap-3">
+            <div className="text-2xl shrink-0">
+              {rentFeedback.isOnTime ? "🏆" : "⚠️"}
+            </div>
+            <div className="flex-1 min-w-0">
+              <h4 className={cn("text-xs font-extrabold", rentFeedback.isOnTime ? "text-emerald-700" : "text-amber-700")}>
+                {rentFeedback.isOnTime ? "+1 Punto de convivencia" : "Pago fuera de plazo"}
+              </h4>
+              <p className="text-[11px] text-[#607283] mt-0.5 leading-relaxed">
+                {rentFeedback.message}
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => setRentFeedback(null)}
+              className="text-[#607283] hover:text-[#31405F] p-1 text-sm font-bold"
+            >
+              ✕
+            </button>
+          </div>
         </div>
       )}
     </div>

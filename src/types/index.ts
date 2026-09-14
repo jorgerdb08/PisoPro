@@ -249,7 +249,10 @@ export type NotificationType =
   | "weekly_zone"
   | "chore_reminder"
   | "expense_notice"
-  | "chat_mention";
+  | "chat_mention"
+  | "debt_reminder"
+  | "payment_sent"
+  | "payment_received";
 
 export interface PisoProNotification {
   id: string;
