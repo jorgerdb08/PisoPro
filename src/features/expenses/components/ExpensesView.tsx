@@ -25,12 +25,18 @@ import {
   FilterX,
   ArrowUpRight,
   ArrowDownLeft,
+  ArrowRight,
+  Check,
+  ChevronLeft,
+  ChevronRight,
   Info,
   Award,
   X,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { FLATMATES } from "@/lib/constants";
+import { rentService } from "@/services/rentService";
+import { notificationService } from "@/features/notifications/notificationService";
 import { MonthlyHistoryView } from "./MonthlyHistoryView";
 import { DebtsView } from "./DebtsView";
 
@@ -71,6 +77,7 @@ export function ExpensesView() {
   const [selectedCategoryFilter, setSelectedCategoryFilter] = useState<string | null>(null);
   const [isSendingReminder, setIsSendingReminder] = useState(false);
   const [feedbackBanner, setFeedbackBanner] = useState<string | null>(null);
+  const [carouselIndex, setCarouselIndex] = useState<number>(0);
 
   const safeRentSummary = rentSummary || {
     monthStr: selectedMonth || "2026-09",
@@ -405,6 +412,105 @@ export function ExpensesView() {
     }
   };
 
+  const handlePayMyRent = async () => {
+    if (!currentUser) return;
+    const debtKey = `rent_${selectedMonth}_${currentUser.id}`;
+    const now = new Date();
+    const formattedDate = `${now.toLocaleDateString("es-ES", { day: "2-digit", month: "2-digit" })} ${now.toLocaleTimeString("es-ES", { hour: "2-digit", minute: "2-digit" })}`;
+
+    // 1. Guardar en local storage para reactividad instantánea
+    try {
+      const raw = localStorage.getItem("pisopro_settled_itemized_debts_v1");
+      const currentMap = raw ? JSON.parse(raw) : {};
+      currentMap[debtKey] = {
+        id: debtKey,
+        expenseId: `rent_${selectedMonth}`,
+        concept: `Alquiler ${safeRentSummary.monthName || selectedMonth} (Mi parte)`,
+        category: "alquiler",
+        fromUserId: currentUser.id,
+        toUserId: "landlord",
+        amount: 200,
+        date: `${selectedMonth}-01`,
+        settledAt: formattedDate,
+      };
+      localStorage.setItem("pisopro_settled_itemized_debts_v1", JSON.stringify(currentMap));
+    } catch {
+      // ignore
+    }
+
+    // 2. Evaluar puntualidad (regla de los 5 primeros días)
+    const res = await rentService.recordRentPayment({
+      userId: currentUser.id,
+      monthStr: selectedMonth,
+    });
+
+    if (res.isOnTime) {
+      setFeedbackBanner(`🏆 ¡Has marcado tu cuota de alquiler (200 €) como pagada dentro de los 5 primeros días! +1 punto de convivencia ganado.`);
+    } else {
+      setFeedbackBanner(`⚠️ Has marcado tu cuota de alquiler (200 €) como pagada fuera de plazo (después del día 5). -1 punto.`);
+    }
+    setTimeout(() => setFeedbackBanner(null), 6000);
+
+    // 3. Notificación
+    try {
+      await notificationService.sendPaymentSentNotice({
+        senderName: currentUser.name,
+        senderUserId: currentUser.id,
+        creditorName: "Casero / Piso",
+        creditorUserId: "landlord",
+        amount: 200,
+        concept: `Alquiler ${safeRentSummary.monthName || selectedMonth} (Mi cuota)`,
+      });
+    } catch {
+      // ignore
+    }
+
+    // 4. Sincronizar en Supabase
+    await settleTransfer({
+      fromUserId: currentUser.id,
+      toUserId: "landlord",
+      amount: 200,
+      debtKey: debtKey,
+      concept: `Alquiler ${safeRentSummary.monthName || selectedMonth} (Mi cuota de 200 €)`,
+    });
+  };
+
+  const handleUndoMyRent = async () => {
+    if (!currentUser) return;
+    const debtKey = `rent_${selectedMonth}_${currentUser.id}`;
+
+    // 1. Quitar de local storage
+    try {
+      const raw = localStorage.getItem("pisopro_settled_itemized_debts_v1");
+      if (raw) {
+        const currentMap = JSON.parse(raw);
+        delete currentMap[debtKey];
+        localStorage.setItem("pisopro_settled_itemized_debts_v1", JSON.stringify(currentMap));
+      }
+    } catch {
+      // ignore
+    }
+
+    // 2. Revertir en rentService
+    await rentService.toggleRentPayment({
+      userId: currentUser.id,
+      monthStr: selectedMonth,
+    });
+
+    // 3. Borrar liquidación en Supabase si existe
+    const settlementExpense = expenses.find(
+      (e) => e.category === "settlement" && e.notes?.includes(debtKey)
+    );
+    if (settlementExpense) {
+      await removeExpense(settlementExpense.id);
+    } else {
+      void refreshExpenses();
+    }
+
+    setFeedbackBanner("Se ha deshecho el pago de tu cuota de alquiler.");
+    setTimeout(() => setFeedbackBanner(null), 3000);
+  };
+
   // Categorías interactivas para el grid visual
   const serviceCategories = [
     {
@@ -599,89 +705,230 @@ export function ExpensesView() {
               </div>
             </div>
 
-            {/* Desglose de tu cuota: 3 tarjetas separadas (Alquiler, Suministros, Otros) */}
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 pt-3 border-t border-[#BFC6CC]/40">
-              {/* Bloque 1: Alquiler */}
-              <div className="rounded-2xl border border-[#BFC6CC]/60 bg-white p-3.5 flex flex-col justify-between gap-2 shadow-2xs">
-                <div className="flex items-center justify-between gap-1.5">
-                  <span className="text-xs font-semibold text-[#607283]">
-                    Alquiler
-                  </span>
-                  {isMyRentSettled ? (
-                    <span className="text-[10px] font-bold px-1.5 py-0.2 rounded-md bg-emerald-50 text-emerald-700">
-                      ✓ Pagado
-                    </span>
-                  ) : (
-                    <span className="text-[10px] font-bold px-1.5 py-0.2 rounded-md bg-amber-50 text-amber-700">
-                      Pendiente
-                    </span>
-                  )}
+            {/* Carrusel Ligero y Minimalista: Alquiler / Suministros / Otros */}
+            <div className="pt-3 border-t border-[#BFC6CC]/40 space-y-2.5">
+              {/* Selector de pestañas del carrusel + Flechas */}
+              <div className="flex items-center justify-between gap-2">
+                <div className="flex items-center gap-1 p-1 rounded-2xl bg-[#F4F7F8] border border-[#BFC6CC]/50 text-xs font-bold">
+                  <button
+                    type="button"
+                    onClick={() => setCarouselIndex(0)}
+                    className={cn(
+                      "flex items-center gap-1.5 px-3 py-1.5 rounded-xl transition-all cursor-pointer",
+                      carouselIndex === 0
+                        ? "bg-white text-[#31405F] shadow-2xs font-extrabold"
+                        : "text-[#607283] hover:text-[#31405F]"
+                    )}
+                  >
+                    <Home className="h-3.5 w-3.5" />
+                    <span>Alquiler</span>
+                    {!isMyRentSettled && (
+                      <span className="h-1.5 w-1.5 rounded-full bg-amber-500" />
+                    )}
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setCarouselIndex(1)}
+                    className={cn(
+                      "flex items-center gap-1.5 px-3 py-1.5 rounded-xl transition-all cursor-pointer",
+                      carouselIndex === 1
+                        ? "bg-white text-[#31405F] shadow-2xs font-extrabold"
+                        : "text-[#607283] hover:text-[#31405F]"
+                    )}
+                  >
+                    <Zap className="h-3.5 w-3.5" />
+                    <span>Suministros</span>
+                    {pendingSuppliesShare > 0 && (
+                      <span className="h-1.5 w-1.5 rounded-full bg-blue-500" />
+                    )}
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setCarouselIndex(2)}
+                    className={cn(
+                      "flex items-center gap-1.5 px-3 py-1.5 rounded-xl transition-all cursor-pointer",
+                      carouselIndex === 2
+                        ? "bg-white text-[#31405F] shadow-2xs font-extrabold"
+                        : "text-[#607283] hover:text-[#31405F]"
+                    )}
+                  >
+                    <ShoppingCart className="h-3.5 w-3.5" />
+                    <span>Otros</span>
+                    {pendingOtherShare > 0 && (
+                      <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+                    )}
+                  </button>
                 </div>
-                <div>
-                  <div className="text-xl font-black text-[#31405F] whitespace-nowrap">
-                    {formatEuro(myRentPending)}
-                  </div>
-                  <div className="text-[11px] text-[#607283] mt-0.5">
-                    <span>Tu parte: 200,00 €</span>
-                    <br />
-                    <span>Total piso: 600,00 €</span>
-                  </div>
+
+                {/* Flechas de navegación */}
+                <div className="flex items-center gap-1">
+                  <button
+                    type="button"
+                    onClick={() => setCarouselIndex((prev) => (prev === 0 ? 2 : prev - 1))}
+                    className="p-1.5 rounded-xl border border-[#BFC6CC]/60 bg-white text-[#607283] hover:text-[#31405F] hover:bg-[#F4F7F8] transition-all shadow-2xs cursor-pointer"
+                    title="Anterior"
+                  >
+                    <ChevronLeft className="h-4 w-4" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setCarouselIndex((prev) => (prev === 2 ? 0 : prev + 1))}
+                    className="p-1.5 rounded-xl border border-[#BFC6CC]/60 bg-white text-[#607283] hover:text-[#31405F] hover:bg-[#F4F7F8] transition-all shadow-2xs cursor-pointer"
+                    title="Siguiente"
+                  >
+                    <ChevronRight className="h-4 w-4" />
+                  </button>
                 </div>
               </div>
 
-              {/* Bloque 2: Suministros */}
-              <div className="rounded-2xl border border-[#BFC6CC]/60 bg-white p-3.5 flex flex-col justify-between gap-2 shadow-2xs">
-                <div className="flex items-center justify-between gap-1.5">
-                  <span className="text-xs font-semibold text-[#607283]">
-                    Suministros
-                  </span>
-                  {pendingSuppliesShare === 0 ? (
-                    <span className="text-[10px] font-bold px-1.5 py-0.2 rounded-md bg-emerald-50 text-emerald-700">
-                      ✓ Al día
-                    </span>
-                  ) : (
-                    <span className="text-[10px] font-bold px-1.5 py-0.2 rounded-md bg-blue-50 text-blue-700">
-                      En curso
-                    </span>
-                  )}
-                </div>
-                <div>
-                  <div className="text-xl font-black text-[#31405F] whitespace-nowrap">
-                    {formatEuro(pendingSuppliesShare)}
-                  </div>
-                  <div className="text-[11px] text-[#607283] mt-0.5">
-                    <span>Luz, agua, gas e internet</span>
-                    <br />
-                    <span>Total piso: {formatEuro(suppliesTotal)}</span>
-                  </div>
-                </div>
-              </div>
+              {/* Diapositiva activa */}
+              <div className="rounded-2xl border border-[#BFC6CC]/60 bg-white p-4 shadow-2xs transition-all">
+                {carouselIndex === 0 && (
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 animate-in fade-in-50 duration-150">
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs font-bold text-[#31405F]">
+                          Cuota de Alquiler
+                        </span>
+                        {isMyRentSettled ? (
+                          <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-700 border border-emerald-200/60">
+                            ✓ Pagado
+                          </span>
+                        ) : (
+                          <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-amber-50 text-amber-700 border border-amber-200/60">
+                            Pendiente
+                          </span>
+                        )}
+                      </div>
+                      <div className="text-2xl font-black text-[#31405F] mt-1">
+                        {formatEuro(myRentPending)}
+                      </div>
+                      <p className="text-[11px] text-[#607283] mt-0.5">
+                        Tu cuota: 200,00 € · Total piso: 600,00 € (3 compañeros)
+                      </p>
+                    </div>
 
-              {/* Bloque 3: Otros gastos */}
-              <div className="rounded-2xl border border-[#BFC6CC]/60 bg-white p-3.5 flex flex-col justify-between gap-2 shadow-2xs">
-                <div className="flex items-center justify-between gap-1.5">
-                  <span className="text-xs font-semibold text-[#607283]">
-                    Otros gastos
-                  </span>
-                  {pendingOtherShare === 0 ? (
-                    <span className="text-[10px] font-bold px-1.5 py-0.2 rounded-md bg-emerald-50 text-emerald-700">
-                      ✓ Al día
-                    </span>
-                  ) : (
-                    <span className="text-[10px] font-bold px-1.5 py-0.2 rounded-md bg-blue-50 text-blue-700">
-                      En curso
-                    </span>
-                  )}
-                </div>
-                <div>
-                  <div className="text-xl font-black text-[#31405F] whitespace-nowrap">
-                    {formatEuro(pendingOtherShare)}
+                    {/* Botón directo: ¿Dónde marco que he pagado? */}
+                    <div className="flex items-center gap-2 shrink-0">
+                      {isMyRentSettled ? (
+                        <div className="flex items-center gap-2">
+                          <span className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-emerald-50 text-emerald-700 border border-emerald-200 text-xs font-bold">
+                            <Check className="h-4 w-4 stroke-[2.5]" />
+                            <span>✓ Has pagado tu parte</span>
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => void handleUndoMyRent()}
+                            className="text-xs font-semibold text-[#607283] hover:text-red-600 underline px-1 py-1 cursor-pointer"
+                          >
+                            Deshacer
+                          </button>
+                        </div>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => void handlePayMyRent()}
+                          className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white text-xs font-bold shadow-xs transition-all cursor-pointer"
+                          title="Marcar que ya has pagado tu cuota de 200 €"
+                        >
+                          <Check className="h-4 w-4 stroke-[2.5]" />
+                          <span>He pagado mi alquiler</span>
+                        </button>
+                      )}
+                    </div>
                   </div>
-                  <div className="text-[11px] text-[#607283] mt-0.5">
-                    <span>Compras comunes y varios</span>
-                    <br />
-                    <span>Total piso: {formatEuro(otherTotal)}</span>
+                )}
+
+                {carouselIndex === 1 && (
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 animate-in fade-in-50 duration-150">
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs font-bold text-[#31405F]">
+                          Suministros compartidos
+                        </span>
+                        {pendingSuppliesShare === 0 ? (
+                          <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-700 border border-emerald-200/60">
+                            ✓ Al día
+                          </span>
+                        ) : (
+                          <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-blue-50 text-blue-700 border border-blue-200/60">
+                            En curso
+                          </span>
+                        )}
+                      </div>
+                      <div className="text-2xl font-black text-[#31405F] mt-1">
+                        {formatEuro(pendingSuppliesShare)}
+                      </div>
+                      <p className="text-[11px] text-[#607283] mt-0.5">
+                        Luz, agua, gas e internet · Total piso: {formatEuro(suppliesTotal)}
+                      </p>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() => setActiveTab("deudas")}
+                      className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl border border-[#BFC6CC] bg-white hover:bg-[#F4F7F8] text-[#31405F] text-xs font-bold shadow-2xs transition-all self-start sm:self-auto cursor-pointer"
+                    >
+                      <span>Ver y saldar en Deudas</span>
+                      <ArrowRight className="h-3.5 w-3.5" />
+                    </button>
                   </div>
+                )}
+
+                {carouselIndex === 2 && (
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 animate-in fade-in-50 duration-150">
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs font-bold text-[#31405F]">
+                          Otros gastos compartidos
+                        </span>
+                        {pendingOtherShare === 0 ? (
+                          <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-700 border border-emerald-200/60">
+                            ✓ Al día
+                          </span>
+                        ) : (
+                          <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-blue-50 text-blue-700 border border-blue-200/60">
+                            En curso
+                          </span>
+                        )}
+                      </div>
+                      <div className="text-2xl font-black text-[#31405F] mt-1">
+                        {formatEuro(pendingOtherShare)}
+                      </div>
+                      <p className="text-[11px] text-[#607283] mt-0.5">
+                        Compras comunes y varios · Total piso: {formatEuro(otherTotal)}
+                      </p>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() => setActiveTab("deudas")}
+                      className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl border border-[#BFC6CC] bg-white hover:bg-[#F4F7F8] text-[#31405F] text-xs font-bold shadow-2xs transition-all self-start sm:self-auto cursor-pointer"
+                    >
+                      <span>Ver y saldar en Deudas</span>
+                      <ArrowRight className="h-3.5 w-3.5" />
+                    </button>
+                  </div>
+                )}
+
+                {/* Indicadores de puntos (Dots) */}
+                <div className="flex items-center justify-center gap-1.5 pt-3 mt-3 border-t border-[#BFC6CC]/30">
+                  {[0, 1, 2].map((idx) => (
+                    <button
+                      key={idx}
+                      type="button"
+                      onClick={() => setCarouselIndex(idx)}
+                      className={cn(
+                        "h-1.5 rounded-full transition-all cursor-pointer",
+                        carouselIndex === idx
+                          ? "w-5 bg-[#31405F]"
+                          : "w-1.5 bg-[#BFC6CC] hover:bg-[#607283]"
+                      )}
+                      title={`Ir a diapositiva ${idx + 1}`}
+                    />
+                  ))}
                 </div>
               </div>
             </div>
@@ -742,29 +989,56 @@ export function ExpensesView() {
                 </div>
               </div>
 
-              <div className="mt-2 pt-2 border-t border-[#BFC6CC]/30 flex items-center justify-between text-[10px] flex-wrap gap-1">
+              <div className="mt-2.5 pt-2.5 border-t border-[#BFC6CC]/30 flex items-center justify-between text-[11px] flex-wrap gap-2">
                 <span className="font-semibold text-[#607283]">
                   Tu parte:{" "}
-                  <strong className="text-[#31405F]">
-                    {isJorge
-                      ? "Gestionas tú (cobras 400 €)"
-                      : isMyRentSettled
-                      ? "0,00 € (✓ Pagado)"
-                      : "200,00 €"}
+                  <strong className={cn("font-bold", isMyRentSettled ? "text-emerald-700" : "text-[#31405F]")}>
+                    {isMyRentSettled ? "0,00 € (✓ Pagado)" : "200,00 €"}
                   </strong>
                 </span>
-                <button
-                  type="button"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setIsRentInfoModalOpen(true);
-                  }}
-                  className="inline-flex items-center gap-1 text-[10px] font-bold text-[#194F6B] hover:text-[#31405F] bg-[#194F6B]/10 hover:bg-[#194F6B]/20 px-2.5 py-1 rounded-xl transition-all shadow-2xs"
-                  title="Normas de puntuación del alquiler"
-                >
-                  <Info className="h-3 w-3 stroke-[2.2]" />
-                  <span>Info puntos</span>
-                </button>
+
+                <div className="flex items-center gap-1.5">
+                  {isMyRentSettled ? (
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        void handleUndoMyRent();
+                      }}
+                      className="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-xl border border-emerald-200 hover:bg-red-50 hover:text-red-700 hover:border-red-200 transition-all shadow-2xs cursor-pointer"
+                      title="Clic para deshacer el pago"
+                    >
+                      <Check className="h-3 w-3 stroke-[2.5]" />
+                      <span>✓ Pagado (Deshacer)</span>
+                    </button>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        void handlePayMyRent();
+                      }}
+                      className="inline-flex items-center gap-1 text-[10px] font-bold text-white bg-emerald-600 hover:bg-emerald-700 active:scale-95 px-2.5 py-1 rounded-xl shadow-2xs transition-all cursor-pointer"
+                      title="Marcar que has pagado tu parte del alquiler (200 €)"
+                    >
+                      <Check className="h-3 w-3 stroke-[2.5]" />
+                      <span>Marcar pagado</span>
+                    </button>
+                  )}
+
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setIsRentInfoModalOpen(true);
+                    }}
+                    className="inline-flex items-center gap-1 text-[10px] font-bold text-[#194F6B] hover:text-[#31405F] bg-[#194F6B]/10 hover:bg-[#194F6B]/20 px-2 py-1 rounded-xl transition-all shadow-2xs cursor-pointer"
+                    title="Normas de puntuación del alquiler"
+                  >
+                    <Info className="h-3 w-3 stroke-[2.2]" />
+                    <span>Info</span>
+                  </button>
+                </div>
               </div>
             </div>
 

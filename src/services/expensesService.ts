@@ -178,8 +178,13 @@ export const expensesService = {
     debtKey?: string,
     concept?: string
   ): Promise<ExpenseItem | null> {
+    const isExternalLandlord = toUserId === "landlord" || toUserId === "casero";
     const toFlatmate = FLATMATES.find((f) => f.id === toUserId);
-    const desc = concept ? `Liquidación: ${concept}` : `Liquidación a ${toFlatmate?.name || "compañero"}`;
+    const desc = concept
+      ? `Liquidación: ${concept}`
+      : isExternalLandlord
+      ? "Pago de alquiler al Casero / Piso"
+      : `Liquidación a ${toFlatmate?.name || "compañero"}`;
 
     const res = await this.createExpense({
       household_id: householdId,
@@ -188,7 +193,7 @@ export const expensesService = {
       paid_by: fromUserId,
       category: "settlement",
       notes: debtKey ? `settled_debt:${debtKey}` : "Pago directo registrado para saldar cuentas",
-      participantUserIds: [toUserId],
+      participantUserIds: isExternalLandlord ? [fromUserId] : [toUserId],
     });
 
     return res;

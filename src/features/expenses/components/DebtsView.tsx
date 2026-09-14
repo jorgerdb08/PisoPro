@@ -102,13 +102,24 @@ export function DebtsView({
   const formatEuro = (val: number) =>
     (val || 0).toFixed(2).replace(".", ",") + " €";
 
-  const getFlatmate = (id: string) =>
-    FLATMATES.find((f) => f.id === id) || {
-      id,
-      name: "Compañero",
-      avatar: "👤",
-      color: "bg-[#31405F] text-white",
-    };
+  const getFlatmate = (id: string) => {
+    if (id === "landlord" || id === "casero") {
+      return {
+        id: "landlord",
+        name: "Casero / Piso",
+        avatar: "🏠",
+        color: "bg-[#194F6B] text-white",
+      };
+    }
+    return (
+      FLATMATES.find((f) => f.id === id) || {
+        id,
+        name: "Compañero",
+        avatar: "👤",
+        color: "bg-[#31405F] text-white",
+      }
+    );
+  };
 
   const getCategoryVisual = (category?: string) => {
     const cat = (category || "").toLowerCase();
@@ -158,7 +169,20 @@ export function DebtsView({
     const samuel = FLATMATES.find((f) => f.name === "Samuel") || FLATMATES[1]!;
     const david = FLATMATES.find((f) => f.name === "David") || FLATMATES[2]!;
 
-    // A) Cuotas de Alquiler del mes (Jorge paga 600 € al casero; Samuel y David le transfieren 200 € c/u)
+    // A) Cuotas de Alquiler del mes (Cada compañero abona 200 € al alquiler total de 600 €)
+    // 1. Jorge abona sus 200 €
+    list.push({
+      id: `rent_${selectedMonth}_${jorge.id}`,
+      expenseId: `rent_${selectedMonth}`,
+      concept: `Alquiler ${selectedMonth} (Mi parte)`,
+      category: "alquiler",
+      fromUserId: jorge.id,
+      toUserId: "landlord",
+      amount: 200,
+      date: `${selectedMonth}-01`,
+    });
+
+    // 2. Samuel le transfiere sus 200 € a Jorge
     list.push({
       id: `rent_${selectedMonth}_${samuel.id}`,
       expenseId: `rent_${selectedMonth}`,
@@ -170,6 +194,7 @@ export function DebtsView({
       date: `${selectedMonth}-01`,
     });
 
+    // 3. David le transfiere sus 200 € a Jorge
     list.push({
       id: `rent_${selectedMonth}_${david.id}`,
       expenseId: `rent_${selectedMonth}`,
