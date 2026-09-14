@@ -219,13 +219,13 @@ export const rentService = {
     // 3. Enviar mensaje informativo al Chat del Piso
     try {
       const pointsMsg = isOnTime
-        ? "(+1 pt de convivencia por puntualidad 🏆)"
-        : "(-1 pt de convivencia por retraso tras el día 5 ⚠️)";
+        ? "(+1 pt de convivencia por puntualidad)"
+        : "(-1 pt de convivencia por retraso tras el día 5)";
 
       await chatService.sendMessage({
         household_id: householdId,
         user_id: params.userId,
-        content: `✅ [ALQUILER] ${userName} ha registrado el pago de su cuota de alquiler de ${monthName} (200 €). ${pointsMsg}`,
+        content: `[ALQUILER] ${userName} ha registrado el pago de su cuota de alquiler de ${monthName} (200 €). ${pointsMsg}`,
       });
     } catch (err) {
       console.warn("[rentService] Error sending chat message:", err);
@@ -234,8 +234,8 @@ export const rentService = {
     // 4. Emitir notificación
     try {
       const notifTitle = isOnTime
-        ? `🏆 +1 pt: Alquiler de ${monthName} pagado a tiempo`
-        : `⚠️ -1 pt: Alquiler de ${monthName} pagado fuera de plazo`;
+        ? `+1 pt: Alquiler de ${monthName} pagado a tiempo`
+        : `-1 pt: Alquiler de ${monthName} pagado fuera de plazo`;
 
       const notifBody = isOnTime
         ? `${userName} ha abonado los 200 € de alquiler dentro de los 5 primeros días del mes.`
@@ -278,7 +278,7 @@ export const rentService = {
       await chatService.sendMessage({
         household_id: householdId,
         user_id: FLATMATES[0]!.id, // Emitido en nombre del piso/admin
-        content: `📢 [AVISO DE ALQUILER] Recordatorio de pago de la mensualidad de ${monthName} (200 €/persona). Pendientes por abonar: ${pendingNames}. Recordad que pagar antes del día 5 suma +1 pt, tras el día 5 penaliza con -1 pt.`,
+        content: `[AVISO DE ALQUILER] Recordatorio de pago de la mensualidad de ${monthName} (200 €/persona). Pendientes por abonar: ${pendingNames}. Recordad que pagar antes del día 5 suma +1 pt, tras el día 5 penaliza con -1 pt.`,
       });
     } catch (err) {
       console.warn("[rentService] Error sending reminder to chat:", err);
@@ -288,7 +288,7 @@ export const rentService = {
     try {
       await notificationService.dispatchNotification({
         type: "expense_notice",
-        title: `📢 Recordatorio de alquiler: ${monthName}`,
+        title: `Recordatorio de alquiler: ${monthName}`,
         body: `Faltan por abonar su parte (200 €): ${pendingNames}. Plazo bonificado: días 1 al 5.`,
         householdId,
         data: { url: "/gastos", monthStr },

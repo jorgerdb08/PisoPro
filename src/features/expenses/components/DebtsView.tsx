@@ -8,6 +8,7 @@ import { notificationService } from "@/features/notifications/notificationServic
 import { expensesService } from "@/services/expensesService";
 import {
   ArrowRight,
+  ArrowRightLeft,
   CheckCircle2,
   Check,
   CheckCheck,
@@ -23,6 +24,9 @@ import {
   Clock,
   Users,
   BellRing,
+  Award,
+  AlertCircle,
+  X,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -125,7 +129,6 @@ export function DebtsView({
       return {
         id: "landlord",
         name: "Casero / Piso",
-        avatar: "🏠",
         color: "bg-[#194F6B] text-white",
       };
     }
@@ -133,7 +136,6 @@ export function DebtsView({
       FLATMATES.find((f) => f.id === id) || {
         id,
         name: "Compañero",
-        avatar: "👤",
         color: "bg-[#31405F] text-white",
       }
     );
@@ -351,10 +353,10 @@ export function DebtsView({
         amount: item.amount,
         concept: item.concept,
       });
-      triggerToast(`🔔 Recordatorio enviado a ${from.name}: ${formatEuro(item.amount)}`);
+      triggerToast(`Recordatorio enviado a ${from.name}: ${formatEuro(item.amount)}`);
     } catch (err) {
       console.error("Error enviando recordatorio:", err);
-      triggerToast(`🔔 Recordatorio registrado para ${from.name}`);
+      triggerToast(`Recordatorio registrado para ${from.name}`);
     }
   };
 
@@ -412,7 +414,7 @@ export function DebtsView({
       // ignore
     }
 
-    triggerToast(`💸 Has avisado a ${to.name}. La transferencia espera su confirmación de cobro.`);
+    triggerToast(`Aviso de pago enviado a ${to.name}. Pendiente de confirmación.`);
   };
 
   // Deshacer el aviso de pago del deudor
@@ -472,12 +474,12 @@ export function DebtsView({
       if (res.isOnTime) {
         setRentFeedback({
           isOnTime: true,
-          message: `¡Pago confirmado a tiempo! +1 punto de convivencia ganado para ${from.name}. 🏆`,
+          message: `Pago confirmado a tiempo (+1 punto de convivencia para ${from.name}).`,
         });
       } else {
         setRentFeedback({
           isOnTime: false,
-          message: `Pago fuera de plazo (después del día 5). Se aplica penalización de -1 punto a ${from.name}. ⚠️`,
+          message: `Pago fuera de plazo después del día 5 (-1 punto de penalización para ${from.name}).`,
         });
       }
     }
@@ -511,7 +513,7 @@ export function DebtsView({
       }
     }
 
-    triggerToast(`✅ Cobro de ${formatEuro(item.amount)} confirmado. Se ha avisado a ${from.name}.`);
+    triggerToast(`Cobro de ${formatEuro(item.amount)} confirmado. Se ha notificado a ${from.name}.`);
 
     setTimeout(() => {
       setJustSettledId(null);
@@ -560,7 +562,7 @@ export function DebtsView({
           <Clock className="h-3.5 w-3.5" />
           <span>Pendientes</span>
           {pendingList.length > 0 && (
-            <span className="ml-1 px-1.5 py-0.2 rounded-full bg-amber-500 text-white text-[10px] font-extrabold leading-none">
+            <span className="ml-1 px-1.5 py-0.5 rounded-full bg-[#194F6B] text-white text-[10px] font-bold leading-none">
               {pendingList.length}
             </span>
           )}
@@ -579,7 +581,7 @@ export function DebtsView({
           <History className="h-3.5 w-3.5" />
           <span>Historial</span>
           {settledList.length > 0 && (
-            <span className="ml-1 px-1.5 py-0.2 rounded-full bg-emerald-600 text-white text-[10px] font-extrabold leading-none">
+            <span className="ml-1 px-1.5 py-0.5 rounded-full bg-emerald-700 text-white text-[10px] font-bold leading-none">
               {settledList.length}
             </span>
           )}
@@ -604,10 +606,7 @@ export function DebtsView({
                 <div
                   key={item.id}
                   className={cn(
-                    "rounded-3xl border bg-white p-4 sm:p-5 shadow-xs transition-all space-y-3",
-                    isClaimed
-                      ? "border-amber-400/80 bg-amber-50/20 shadow-xs"
-                      : "border-[#BFC6CC]/70 hover:border-[#194F6B]/40",
+                    "rounded-3xl border border-[#BFC6CC]/70 bg-white p-4 sm:p-5 shadow-xs transition-all space-y-3 hover:border-[#194F6B]/40",
                     isSettling && "opacity-30 scale-98 transition-all duration-300"
                   )}
                 >
@@ -640,28 +639,30 @@ export function DebtsView({
                     </div>
                   </div>
 
-                  {/* Aviso si el deudor ya ha marcado pagado (esperando confirmación del acreedor) */}
+                  {/* Aviso informativo cuando el deudor ya ha indicado la transferencia */}
                   {isClaimed && (
-                    <div className="flex items-center justify-between gap-2 p-2.5 rounded-2xl bg-amber-50 border border-amber-300/80 text-amber-900 animate-in fade-in-50 duration-200">
-                      <div className="flex items-center gap-2 min-w-0">
-                        <span className="text-sm leading-none">💸</span>
-                        <span className="text-xs font-medium">
+                    <div className="flex items-center justify-between gap-3 p-3 rounded-2xl bg-[#F4F7F8] border border-[#BFC6CC]/70 text-[#31405F]">
+                      <div className="flex items-center gap-2.5 min-w-0">
+                        <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-white border border-[#BFC6CC]/60 text-[#194F6B] shadow-2xs">
+                          <ArrowRightLeft className="h-3.5 w-3.5" />
+                        </div>
+                        <p className="text-xs text-[#31405F] leading-snug">
                           {currentUserId === item.fromUserId ? (
                             <>
-                              Has indicado que ya has pagado <strong>{formatEuro(item.amount)}</strong>. Esperando confirmación de cobro de <strong>{to.name}</strong>.
+                              Has marcado como pagado <strong className="font-bold">{formatEuro(item.amount)}</strong>. Pendiente de confirmación de cobro de <strong className="font-bold">{to.name}</strong>.
                             </>
                           ) : (
                             <>
-                              <strong>{from.name}</strong> indica que ya te ha transferido <strong>{formatEuro(item.amount)}</strong>.
+                              <strong className="font-bold">{from.name}</strong> indica haberte transferido <strong className="font-bold">{formatEuro(item.amount)}</strong>.
                             </>
                           )}
-                        </span>
+                        </p>
                       </div>
                       {currentUserId === item.fromUserId && (
                         <button
                           type="button"
                           onClick={() => void handleUndoClaim(item)}
-                          className="shrink-0 text-xs font-bold text-amber-800 hover:text-amber-950 underline ml-2 cursor-pointer"
+                          className="shrink-0 text-xs font-medium text-[#607283] hover:text-[#31405F] underline transition-colors cursor-pointer"
                         >
                           Deshacer
                         </button>
@@ -738,14 +739,14 @@ export function DebtsView({
                       {currentUserId === item.fromUserId ? (
                         isClaimed ? (
                           <div className="flex items-center gap-2">
-                            <span className="inline-flex items-center gap-1.5 rounded-xl px-2.5 py-1 text-xs font-semibold bg-amber-100 text-amber-800 border border-amber-300/60 shadow-2xs">
-                              <Clock className="h-3.5 w-3.5 text-amber-600 animate-pulse" />
-                              <span>Pagado (esperando confirmación)</span>
+                            <span className="inline-flex items-center gap-1.5 rounded-xl px-2.5 py-1 text-xs font-semibold bg-[#F4F7F8] text-[#31405F] border border-[#BFC6CC]/70">
+                              <Clock className="h-3.5 w-3.5 text-[#607283]" />
+                              <span>Esperando confirmación</span>
                             </span>
                             <button
                               type="button"
                               onClick={() => void handleUndoClaim(item)}
-                              className="text-xs font-semibold text-[#607283] hover:text-rose-600 underline transition-colors cursor-pointer"
+                              className="text-xs font-medium text-[#607283] hover:text-[#31405F] underline transition-colors cursor-pointer"
                             >
                               Deshacer
                             </button>
@@ -758,7 +759,7 @@ export function DebtsView({
                             className="inline-flex items-center gap-1.5 rounded-xl px-3 py-1.5 text-xs font-bold bg-[#31405F] text-white hover:bg-[#194F6B] active:scale-95 transition-all shadow-2xs border border-[#31405F] cursor-pointer"
                           >
                             <Check className="h-3.5 w-3.5 stroke-[2.5]" />
-                            <span>Pagado</span>
+                            <span>Marcar pagado</span>
                           </button>
                         )
                       ) : currentUserId === item.toUserId ? (
@@ -768,10 +769,10 @@ export function DebtsView({
                             <button
                               type="button"
                               onClick={() => void handleSendDebtReminder(item)}
-                              className="inline-flex items-center gap-1 rounded-xl px-2.5 py-1.5 text-xs font-semibold border border-amber-500/50 bg-amber-50 text-amber-800 hover:bg-amber-100 active:scale-95 transition-all shadow-2xs cursor-pointer"
+                              className="inline-flex items-center gap-1.5 rounded-xl px-2.5 py-1.5 text-xs font-semibold border border-[#BFC6CC]/70 bg-[#F4F7F8] text-[#31405F] hover:bg-white active:scale-95 transition-all shadow-2xs cursor-pointer"
                               title="Avisar de que falta por pagar"
                             >
-                              <BellRing className="h-3.5 w-3.5 text-amber-600" />
+                              <BellRing className="h-3.5 w-3.5 text-[#607283]" />
                               <span>Avisar de pago</span>
                             </button>
                           )}
@@ -779,15 +780,10 @@ export function DebtsView({
                             type="button"
                             onClick={() => void handleConfirmReceived(item)}
                             disabled={isSettling}
-                            className={cn(
-                              "inline-flex items-center gap-1.5 rounded-xl px-3.5 py-1.5 text-xs font-bold text-white active:scale-95 transition-all shadow-2xs cursor-pointer",
-                              isClaimed
-                                ? "bg-emerald-600 hover:bg-emerald-700 ring-2 ring-emerald-500/30 animate-pulse"
-                                : "bg-emerald-700 hover:bg-emerald-800 border border-emerald-700"
-                            )}
+                            className="inline-flex items-center gap-1.5 rounded-xl px-3.5 py-1.5 text-xs font-bold bg-emerald-700 hover:bg-emerald-800 text-white border border-emerald-700 active:scale-95 transition-all shadow-2xs cursor-pointer"
                           >
                             <CheckCheck className="h-3.5 w-3.5 stroke-[2.5]" />
-                            <span>{isClaimed ? "Confirmar recibido" : "Recibido"}</span>
+                            <span>{isClaimed ? "Confirmar recibido" : "Marcar recibido"}</span>
                           </button>
                         </div>
                       ) : (
@@ -797,10 +793,10 @@ export function DebtsView({
                             <button
                               type="button"
                               onClick={() => void handleSendDebtReminder(item)}
-                              className="inline-flex items-center gap-1 rounded-xl px-2.5 py-1.5 text-xs font-semibold border border-amber-500/50 bg-amber-50 text-amber-800 hover:bg-amber-100 active:scale-95 transition-all shadow-2xs cursor-pointer"
+                              className="inline-flex items-center gap-1.5 rounded-xl px-2.5 py-1.5 text-xs font-semibold border border-[#BFC6CC]/70 bg-[#F4F7F8] text-[#31405F] hover:bg-white active:scale-95 transition-all shadow-2xs cursor-pointer"
                               title="Avisar de que falta por pagar"
                             >
-                              <BellRing className="h-3.5 w-3.5 text-amber-600" />
+                              <BellRing className="h-3.5 w-3.5 text-[#607283]" />
                               <span>Avisar</span>
                             </button>
                           )}
@@ -808,12 +804,7 @@ export function DebtsView({
                             type="button"
                             onClick={() => void handleConfirmReceived(item)}
                             disabled={isSettling}
-                            className={cn(
-                              "inline-flex items-center gap-1.5 rounded-xl px-3 py-1.5 text-xs font-bold text-white active:scale-95 transition-all shadow-2xs cursor-pointer",
-                              isClaimed
-                                ? "bg-emerald-600 hover:bg-emerald-700"
-                                : "bg-[#31405F] hover:bg-[#194F6B] border border-[#31405F]"
-                            )}
+                            className="inline-flex items-center gap-1.5 rounded-xl px-3 py-1.5 text-xs font-bold bg-[#31405F] hover:bg-[#194F6B] text-white border border-[#31405F] active:scale-95 transition-all shadow-2xs cursor-pointer"
                           >
                             <CheckCheck className="h-3.5 w-3.5 stroke-[2.5]" />
                             <span>{isClaimed ? "Confirmar recibido" : "Marcar recibido"}</span>
@@ -856,7 +847,7 @@ export function DebtsView({
               return (
                 <div
                   key={item.id}
-                  className="rounded-3xl border border-emerald-200/70 bg-gradient-to-r from-emerald-50/20 to-white p-4 shadow-xs space-y-2.5"
+                  className="rounded-3xl border border-[#BFC6CC]/70 bg-white p-4 shadow-xs space-y-2.5"
                 >
                   <div className="flex items-center justify-between gap-2">
                     <div className="flex items-center gap-2 min-w-0">
@@ -880,13 +871,13 @@ export function DebtsView({
                     </div>
 
                     <div className="flex items-center gap-2 shrink-0">
-                      <span className="text-xs font-black text-emerald-800 bg-emerald-100/70 px-2 py-0.5 rounded-lg">
+                      <span className="text-xs font-black text-[#31405F] bg-[#F4F7F8] border border-[#BFC6CC]/60 px-2 py-0.5 rounded-lg">
                         {formatEuro(item.amount)}
                       </span>
                       <button
                         type="button"
                         onClick={() => void handleUndo(item)}
-                        className="flex items-center gap-1 text-[10px] font-semibold text-[#607283] hover:text-[#31405F] hover:bg-[#F4F7F8] p-1.5 rounded-lg transition-colors border border-[#BFC6CC]/60"
+                        className="flex items-center gap-1 text-[10px] font-semibold text-[#607283] hover:text-[#31405F] hover:bg-[#F4F7F8] p-1.5 rounded-lg transition-colors border border-[#BFC6CC]/60 cursor-pointer"
                         title="Deshacer y volver a marcar como pendiente"
                       >
                         <RotateCcw className="h-3 w-3" />
@@ -896,12 +887,13 @@ export function DebtsView({
                   </div>
 
                   {/* Resumen quién pagó a quién */}
-                  <div className="flex items-center justify-between text-xs text-[#31405F] pt-2 border-t border-emerald-100/60 bg-emerald-50/40 -mx-4 -mb-4 px-4 py-2 rounded-b-3xl">
+                  <div className="flex items-center justify-between text-xs text-[#31405F] pt-2 border-t border-[#BFC6CC]/30 bg-[#F4F7F8] -mx-4 -mb-4 px-4 py-2 rounded-b-3xl">
                     <span className="text-[11px] font-medium text-[#607283]">
                       <strong className="text-[#31405F]">{from.name}</strong> transfirió a <strong className="text-[#31405F]">{to.name}</strong>
                     </span>
-                    <span className="text-[10px] font-bold text-emerald-700">
-                      ✓ Pagado
+                    <span className="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-700">
+                      <Check className="h-3 w-3 stroke-[2.5]" />
+                      <span>Pagado</span>
                     </span>
                   </div>
                 </div>
@@ -933,13 +925,17 @@ export function DebtsView({
 
       {/* Banner flotante de puntuación de alquiler (regla de los 5 días) */}
       {rentFeedback && (
-        <div className="fixed bottom-5 right-5 z-50 max-w-sm rounded-3xl p-4 shadow-2xl border bg-white animate-in slide-in-from-bottom-5 duration-200">
+        <div className="fixed bottom-5 right-5 z-50 max-w-sm rounded-3xl p-4 shadow-xl border border-[#BFC6CC]/70 bg-white animate-in slide-in-from-bottom-5 duration-200">
           <div className="flex items-start gap-3">
-            <div className="text-2xl shrink-0">
-              {rentFeedback.isOnTime ? "🏆" : "⚠️"}
+            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-[#F4F7F8] border border-[#BFC6CC]/60 text-[#31405F]">
+              {rentFeedback.isOnTime ? (
+                <Award className="h-4 w-4 text-emerald-700" />
+              ) : (
+                <AlertCircle className="h-4 w-4 text-amber-700" />
+              )}
             </div>
             <div className="flex-1 min-w-0">
-              <h4 className={cn("text-xs font-extrabold", rentFeedback.isOnTime ? "text-emerald-700" : "text-amber-700")}>
+              <h4 className="text-xs font-bold text-[#31405F]">
                 {rentFeedback.isOnTime ? "+1 Punto de convivencia" : "Pago fuera de plazo"}
               </h4>
               <p className="text-[11px] text-[#607283] mt-0.5 leading-relaxed">
@@ -949,9 +945,9 @@ export function DebtsView({
             <button
               type="button"
               onClick={() => setRentFeedback(null)}
-              className="text-[#607283] hover:text-[#31405F] p-1 text-sm font-bold"
+              className="text-[#607283] hover:text-[#31405F] p-1 rounded-lg hover:bg-[#F4F7F8] transition-colors cursor-pointer"
             >
-              ✕
+              <X className="h-4 w-4" />
             </button>
           </div>
         </div>

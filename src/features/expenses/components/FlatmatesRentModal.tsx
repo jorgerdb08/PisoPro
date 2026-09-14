@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect } from "react";
-import { X, Home } from "lucide-react";
+import { X, Home, Check, Clock } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { FLATMATES } from "@/lib/constants";
 import type { FlatmateRentStatus } from "@/services/rentService";
@@ -91,7 +91,7 @@ export function FlatmatesRentModal({
           </div>
           <div className="h-2 w-full overflow-hidden rounded-full bg-[#BFC6CC]/40">
             <div
-              className="h-full rounded-full bg-emerald-500 transition-all duration-300"
+              className="h-full rounded-full bg-emerald-600 transition-all duration-300"
               style={{ width: `${progressPercent}%` }}
             />
           </div>
@@ -148,11 +148,21 @@ export function FlatmatesRentModal({
               className={cn(
                 "rounded-xl px-3.5 py-1.5 text-xs font-bold transition-all active:scale-95 border whitespace-nowrap min-w-[105px] text-center shadow-2xs",
                 hasSamuelPaid
-                  ? "bg-emerald-50 text-emerald-700 border-emerald-300 hover:bg-emerald-100"
-                  : "bg-amber-50 text-amber-700 border-amber-300 hover:bg-amber-100"
+                  ? "bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100"
+                  : "bg-[#F4F7F8] text-[#607283] border-[#BFC6CC]/70 hover:bg-[#eceef0] hover:text-[#31405F]"
               )}
             >
-              {hasSamuelPaid ? "✓ Pagado" : "Pendiente"}
+              {hasSamuelPaid ? (
+                <span className="inline-flex items-center gap-1 justify-center">
+                  <Check className="h-3.5 w-3.5 stroke-[2.5]" />
+                  <span>Pagado</span>
+                </span>
+              ) : (
+                <span className="inline-flex items-center gap-1 justify-center">
+                  <Clock className="h-3.5 w-3.5 stroke-[2]" />
+                  <span>Pendiente</span>
+                </span>
+              )}
             </button>
           </div>
 
@@ -180,11 +190,21 @@ export function FlatmatesRentModal({
               className={cn(
                 "rounded-xl px-3.5 py-1.5 text-xs font-bold transition-all active:scale-95 border whitespace-nowrap min-w-[105px] text-center shadow-2xs",
                 hasDavidPaid
-                  ? "bg-emerald-50 text-emerald-700 border-emerald-300 hover:bg-emerald-100"
-                  : "bg-amber-50 text-amber-700 border-amber-300 hover:bg-amber-100"
+                  ? "bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100"
+                  : "bg-[#F4F7F8] text-[#607283] border-[#BFC6CC]/70 hover:bg-[#eceef0] hover:text-[#31405F]"
               )}
             >
-              {hasDavidPaid ? "✓ Pagado" : "Pendiente"}
+              {hasDavidPaid ? (
+                <span className="inline-flex items-center gap-1 justify-center">
+                  <Check className="h-3.5 w-3.5 stroke-[2.5]" />
+                  <span>Pagado</span>
+                </span>
+              ) : (
+                <span className="inline-flex items-center gap-1 justify-center">
+                  <Clock className="h-3.5 w-3.5 stroke-[2]" />
+                  <span>Pendiente</span>
+                </span>
+              )}
             </button>
           </div>
         </div>

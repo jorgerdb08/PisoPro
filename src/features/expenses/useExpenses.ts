@@ -157,7 +157,7 @@ export function useExpenses() {
             const payerName = payer?.name || "Un compañero";
             void notificationService.dispatchNotification({
               type: "expense_notice",
-              title: `💰 Nuevo gasto: ${data.description}`,
+              title: `Nuevo gasto: ${data.description}`,
               body: `${payerName} ha registrado ${data.amount.toFixed(2).replace(".", ",")} € en "${data.description}" (${data.category || "general"}).`,
               householdId: DEFAULT_HOUSEHOLD_ID,
               actorUserId: data.paid_by,

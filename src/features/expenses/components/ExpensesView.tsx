@@ -390,7 +390,7 @@ export function ExpensesView() {
     });
     if (created) {
       setFeedbackBanner(
-        `✓ Alquiler de 600,00 € registrado para ${safeRentSummary.monthName || selectedMonth}.`
+        `Alquiler de 600,00 € registrado para ${safeRentSummary.monthName || selectedMonth}.`
       );
       setTimeout(() => setFeedbackBanner(null), 4000);
     }
@@ -569,7 +569,7 @@ export function ExpensesView() {
                   <p className="text-xs font-medium text-[#607283] mt-0.5">
                     {myTotalPendingToPay === 0 ? (
                       <span className="text-emerald-700 font-bold">
-                        ¡Todo al día en {safeRentSummary.monthName}! 🎉
+                        ¡Todo al día en {safeRentSummary.monthName}!
                       </span>
                     ) : (
                       `Total a pagar por ti en ${safeRentSummary.monthName}`
@@ -578,7 +578,7 @@ export function ExpensesView() {
                 </div>
                 {myTotalDiscounted > 0 && myTotalPendingToPay > 0 && (
                   <p className="text-[11px] font-semibold text-emerald-700 mt-1 flex items-center gap-1">
-                    <span>✓</span> Descontados {formatEuro(myTotalDiscounted)} ya pagados por ti este mes
+                    <Check className="h-3 w-3 stroke-[2.5]" /> Descontados {formatEuro(myTotalDiscounted)} ya pagados por ti este mes
                   </p>
                 )}
               </div>
@@ -670,8 +670,9 @@ export function ExpensesView() {
                       <div className="flex items-center gap-2">
                         <span className="text-xs font-bold text-[#31405F]">Alquiler mensual</span>
                         {isMyRentSettled ? (
-                          <span className="text-[11px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200/60">
-                            {isMyRentOnTime ? "✓ Pagado a tiempo (+1 pto)" : "✓ Pagado"}
+                          <span className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200/60">
+                            <Check className="h-3 w-3 stroke-[2.5]" />
+                            <span>{isMyRentOnTime ? "Pagado a tiempo (+1 pto)" : "Pagado"}</span>
                           </span>
                         ) : (
                           <span className="text-[11px] font-bold text-amber-700 bg-amber-50 px-2 py-0.5 rounded-md border border-amber-200/60">
@@ -706,8 +707,9 @@ export function ExpensesView() {
                       <div className="flex items-center gap-2">
                         <span className="text-xs font-bold text-[#31405F]">Suministros compartidos</span>
                         {pendingSuppliesShare === 0 && (
-                          <span className="text-[11px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200/60">
-                            ✓ Al día
+                          <span className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200/60">
+                            <Check className="h-3 w-3 stroke-[2.5]" />
+                            <span>Al día</span>
                           </span>
                         )}
                       </div>
@@ -738,8 +740,9 @@ export function ExpensesView() {
                       <div className="flex items-center gap-2">
                         <span className="text-xs font-bold text-[#31405F]">Otros gastos compartidos</span>
                         {pendingOtherShare === 0 && (
-                          <span className="text-[11px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200/60">
-                            ✓ Al día
+                          <span className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200/60">
+                            <Check className="h-3 w-3 stroke-[2.5]" />
+                            <span>Al día</span>
                           </span>
                         )}
                       </div>
@@ -809,8 +812,9 @@ export function ExpensesView() {
                   <span className="text-[#607283]">Tu parte:</span>
                   <span className="font-bold text-[#31405F]">200,00 €</span>
                   {isMyRentSettled && (
-                    <span className="text-[11px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200/60 px-2 py-0.5 rounded-md">
-                      ✓ Pagado
+                    <span className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200/60 px-2 py-0.5 rounded-md">
+                      <Check className="h-3 w-3 stroke-[2.5]" />
+                      <span>Pagado</span>
                     </span>
                   )}
                 </div>
@@ -1321,7 +1325,7 @@ export function ExpensesView() {
 
             <div className="space-y-2.5 text-xs text-[#31405F]">
               <div className="rounded-2xl border border-emerald-500/30 bg-emerald-50/50 p-3 flex items-start gap-2.5">
-                <span className="text-emerald-700 font-extrabold text-sm mt-0.5">✓</span>
+                <Check className="h-4 w-4 text-emerald-700 mt-0.5 shrink-0 stroke-[2.5]" />
                 <div>
                   <span className="font-bold text-emerald-800">Días 1 al 5 del mes:</span>
                   <p className="text-[11px] text-emerald-700 mt-0.5">
@@ -1331,7 +1335,7 @@ export function ExpensesView() {
               </div>
 
               <div className="rounded-2xl border border-rose-500/30 bg-rose-50/50 p-3 flex items-start gap-2.5">
-                <span className="text-rose-600 font-extrabold text-sm mt-0.5">✕</span>
+                <X className="h-4 w-4 text-rose-600 mt-0.5 shrink-0 stroke-[2.5]" />
                 <div>
                   <span className="font-bold text-rose-800">Después del día 5:</span>
                   <p className="text-[11px] text-rose-700 mt-0.5">

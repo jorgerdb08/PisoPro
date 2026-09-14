@@ -140,7 +140,7 @@ export function MonthlyQuotaCard({
             >
               <CheckCircle2 className="h-3 w-3" />
               <span>
-                {isOnTime ? "Pagado (+1 pt 🏆)" : "Pagado tarde (-1 pt ⚠️)"}
+                {isOnTime ? "Pagado (+1 pt)" : "Pagado tarde (-1 pt)"}
               </span>
             </span>
           ) : (

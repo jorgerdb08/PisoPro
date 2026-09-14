@@ -124,7 +124,7 @@ export const notificationService = {
     amount: number,
     description: string
   ): Promise<boolean> {
-    return this.sendNotification("💰 Nuevo gasto compartido", {
+    return this.sendNotification("Nuevo gasto compartido", {
       body: `${payerName} ha registrado ${amount.toFixed(2).replace(".", ",")} € en "${description}".`,
       tag: "expense-notice",
       data: { url: "/gastos" },
@@ -146,7 +146,7 @@ export const notificationService = {
     const formattedAmount = params.amount.toFixed(2).replace(".", ",") + " €";
     return this.dispatchNotification({
       type: "debt_reminder",
-      title: `⏳ Recordatorio: Pago de ${params.concept}`,
+      title: `Recordatorio: ${params.concept}`,
       body: `${params.senderName} te recuerda transferir ${formattedAmount} por ${params.concept}.`,
       householdId: params.householdId,
       targetUserId: params.debtorUserId,
@@ -171,7 +171,7 @@ export const notificationService = {
     const formattedAmount = params.amount.toFixed(2).replace(".", ",") + " €";
     return this.dispatchNotification({
       type: "payment_sent",
-      title: `💸 Pago realizado: ${params.concept}`,
+      title: `Pago realizado: ${params.concept}`,
       body: `${params.senderName} te avisa de que ya te ha transferido los ${formattedAmount} de ${params.concept}.`,
       householdId: params.householdId,
       targetUserId: params.creditorUserId,
@@ -196,7 +196,7 @@ export const notificationService = {
     const formattedAmount = params.amount.toFixed(2).replace(".", ",") + " €";
     return this.dispatchNotification({
       type: "payment_received",
-      title: `✅ Cobro confirmado: ${params.concept}`,
+      title: `Cobro confirmado: ${params.concept}`,
       body: `${params.senderName} ha confirmado haber recibido los ${formattedAmount} de ${params.concept}.`,
       householdId: params.householdId,
       targetUserId: params.debtorUserId,
