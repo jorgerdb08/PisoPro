@@ -155,6 +155,28 @@ export function ExpensesView() {
   );
   const isMyRentPaid = myRentStatus?.isPaid ?? false;
 
+  // Roles específicos del alquiler (Jorge es quien paga el alquiler de 600 € al casero)
+  const isJorge =
+    currentUser?.name === "Jorge" ||
+    currentUser?.id === "22222222-2222-4222-8222-222222222222";
+  const isSamuel =
+    currentUser?.name === "Samuel" ||
+    currentUser?.id === "33333333-3333-4333-8333-333333333333";
+  const isDavid =
+    currentUser?.name === "David" ||
+    currentUser?.id === "44444444-4444-4444-8444-444444444444";
+
+  const samuelStatus = safeRentSummary.flatmateStatuses.find(
+    (s) => s.userName === "Samuel"
+  );
+  const davidStatus = safeRentSummary.flatmateStatuses.find(
+    (s) => s.userName === "David"
+  );
+
+  const hasSamuelPaid = samuelStatus?.isPaid ?? false;
+  const hasDavidPaid = davidStatus?.isPaid ?? false;
+  const bothPaid = hasSamuelPaid && hasDavidPaid;
+
   // Filtrado de gastos para el feed
   const displayedExpenses = monthExpenses.filter((e) => {
     if (e.category === "settlement") return false;
@@ -398,17 +420,29 @@ export function ExpensesView() {
                 <div>
                   <div className="flex items-center gap-1.5">
                     <span className="text-xs font-semibold text-[#607283]">
-                      Tu alquiler
+                      {isJorge ? "Alquiler (pagas al casero)" : "Tu alquiler (a Jorge)"}
                     </span>
                     <span
                       className={cn(
                         "text-[10px] font-bold px-1.5 py-0.2 rounded-md",
-                        isMyRentPaid
+                        isJorge
+                          ? bothPaid
+                            ? "bg-emerald-100 text-emerald-800"
+                            : "bg-amber-100 text-amber-800"
+                          : isMyRentPaid
                           ? "bg-emerald-100 text-emerald-800"
                           : "bg-amber-100 text-amber-800"
                       )}
                     >
-                      {isMyRentPaid ? "Pagado" : "Pendiente"}
+                      {isJorge
+                        ? bothPaid
+                          ? "✓ 2 de 2 cobrado"
+                          : hasSamuelPaid || hasDavidPaid
+                          ? "1 de 2 cobrado"
+                          : "0 de 2 cobrado"
+                        : isMyRentPaid
+                        ? "Pagado a Jorge"
+                        : "Pendiente"}
                     </span>
                   </div>
                   <div className="text-xl font-black text-[#31405F] whitespace-nowrap mt-0.5">
@@ -417,18 +451,33 @@ export function ExpensesView() {
                 </div>
 
                 {currentUser && (
-                  <button
-                    type="button"
-                    onClick={() => void toggleRentPaid(currentUser.id)}
-                    className={cn(
-                      "px-3 py-1.5 rounded-xl text-xs font-bold transition-all active:scale-95 border whitespace-nowrap shadow-2xs shrink-0",
-                      isMyRentPaid
-                        ? "bg-emerald-50 text-emerald-700 border-emerald-300 hover:bg-emerald-100"
-                        : "bg-[#31405F] text-white border-[#31405F] hover:bg-[#194F6B]"
-                    )}
-                  >
-                    {isMyRentPaid ? "Marcar pendiente" : "✓ Pagar"}
-                  </button>
+                  isJorge ? (
+                    <span
+                      className={cn(
+                        "px-3 py-1.5 rounded-xl text-xs font-bold border whitespace-nowrap shadow-2xs shrink-0 text-center",
+                        bothPaid
+                          ? "bg-emerald-50 text-emerald-700 border-emerald-300"
+                          : "bg-amber-50 text-amber-800 border-amber-300"
+                      )}
+                    >
+                      {bothPaid
+                        ? "✓ 400 € recibidos"
+                        : `Falta ${formatEuro((!hasSamuelPaid ? 200 : 0) + (!hasDavidPaid ? 200 : 0))}`}
+                    </span>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => void toggleRentPaid(currentUser.id)}
+                      className={cn(
+                        "px-3 py-1.5 rounded-xl text-xs font-bold transition-all active:scale-95 border whitespace-nowrap shadow-2xs shrink-0",
+                        isMyRentPaid
+                          ? "bg-emerald-50 text-emerald-700 border-emerald-300 hover:bg-emerald-100"
+                          : "bg-[#31405F] text-white border-[#31405F] hover:bg-[#194F6B]"
+                      )}
+                    >
+                      {isMyRentPaid ? "Marcar pendiente" : "✓ Pagar a Jorge"}
+                    </button>
+                  )
                 )}
               </div>
 
@@ -506,12 +555,33 @@ export function ExpensesView() {
                   <div>
                     <div className="flex items-center gap-2">
                       <h4 className="text-sm font-bold text-[#31405F]">Alquiler</h4>
-                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-200/60 whitespace-nowrap">
-                        {safeRentSummary.paidCount} de 3 pagados
+                      <span
+                        className={cn(
+                          "text-[10px] font-bold px-2 py-0.5 rounded-full whitespace-nowrap border",
+                          isJorge
+                            ? bothPaid
+                              ? "bg-emerald-50 text-emerald-800 border-emerald-200/60"
+                              : "bg-amber-50 text-amber-800 border-amber-200/60"
+                            : isMyRentPaid
+                            ? "bg-emerald-50 text-emerald-800 border-emerald-200/60"
+                            : "bg-amber-50 text-amber-800 border-amber-200/60"
+                        )}
+                      >
+                        {isJorge
+                          ? bothPaid
+                            ? "✓ Han pagado los dos"
+                            : hasSamuelPaid || hasDavidPaid
+                            ? "1 de 2 compañeros te ha pagado"
+                            : "0 de 2 compañeros han pagado"
+                          : isMyRentPaid
+                          ? "✓ Tu parte pagada a Jorge"
+                          : "Tu parte a Jorge pendiente"}
                       </span>
                     </div>
                     <p className="text-[11px] text-[#607283] mt-0.5">
-                      Fijo de 600,00 € al mes (200,00 € cada uno)
+                      {isJorge
+                        ? "Pagas tú 600,00 € al casero · Samuel y David te transfieren 200,00 € c/u"
+                        : "Jorge paga 600,00 € al casero · Cada compañero le transfiere 200,00 € a Jorge"}
                     </p>
                   </div>
                 </div>
@@ -522,7 +592,11 @@ export function ExpensesView() {
                       600,00 €
                     </span>
                     <span className="text-[10px] font-semibold text-[#607283] whitespace-nowrap block">
-                      Tu cuota: 200,00 €
+                      {isJorge
+                        ? bothPaid
+                          ? "✓ 400 € cobrados"
+                          : `Falta cobrar: ${formatEuro((!hasSamuelPaid ? 200 : 0) + (!hasDavidPaid ? 200 : 0))}`
+                        : "Tu cuota: 200,00 €"}
                     </span>
                   </div>
                   <button
@@ -532,64 +606,214 @@ export function ExpensesView() {
                       setIsRentModalOpen(true);
                     }}
                     className="flex items-center gap-1.5 rounded-xl border border-[#BFC6CC] bg-[#F4F7F8] px-2.5 py-1.5 text-xs font-semibold text-[#31405F] hover:bg-white active:scale-95 transition-all shadow-2xs"
-                    title="Ver compañeros del alquiler"
+                    title="Ver detalle del alquiler"
                   >
                     <Users className="h-3.5 w-3.5" />
-                    <span className="hidden sm:inline">Compañeros</span>
+                    <span className="hidden sm:inline">Detalle</span>
                   </button>
                 </div>
               </div>
 
-              {/* Fila compacta de los 3 compañeros con su estado directo */}
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 pt-3 mt-3 border-t border-[#BFC6CC]/30">
-                {safeRentSummary.flatmateStatuses.map((flatmate) => {
-                  const isPaid = flatmate.isPaid;
-                  const isMe = flatmate.userId === currentUser?.id;
-                  const flatmateDef = FLATMATES.find((f) => f.id === flatmate.userId);
-                  const colorClass = flatmateDef?.color || "bg-[#31405F] text-white";
-
-                  return (
-                    <div
-                      key={flatmate.userId}
-                      className={cn(
-                        "flex items-center justify-between rounded-xl px-2.5 py-2 border transition-all",
-                        isMe
-                          ? "bg-[#31405F]/5 border-[#31405F]/30"
-                          : "bg-[#F4F7F8]/50 border-[#BFC6CC]/40"
-                      )}
-                    >
+              {/* Fila adaptada según quién es el usuario */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-3 mt-3 border-t border-[#BFC6CC]/30">
+                {isJorge ? (
+                  // VISTA PARA JORGE: ve a Samuel y a David y si han pagado los dos
+                  <>
+                    {/* Samuel */}
+                    <div className="flex items-center justify-between rounded-xl px-3 py-2 border bg-[#F4F7F8]/60 border-[#BFC6CC]/40 transition-all">
                       <div className="flex items-center gap-2 min-w-0">
-                        <div
-                          className={cn(
-                            "flex h-6 w-6 shrink-0 items-center justify-center rounded-lg text-[10px] font-black shadow-2xs",
-                            colorClass
-                          )}
-                        >
-                          {flatmate.userName.charAt(0)}
+                        <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg text-xs font-black shadow-2xs bg-[#094152] text-white">
+                          S
                         </div>
-                        <span className="text-xs font-bold text-[#31405F] truncate">
-                          {flatmate.userName} {isMe && "(Tú)"}
-                        </span>
+                        <div>
+                          <span className="text-xs font-bold text-[#31405F] block">
+                            Samuel
+                          </span>
+                          <span className="text-[10px] text-[#607283]">
+                            Cuota: 200,00 € a ti
+                          </span>
+                        </div>
                       </div>
 
                       <button
                         type="button"
                         onClick={(e) => {
                           e.stopPropagation();
-                          void toggleRentPaid(flatmate.userId);
+                          if (samuelStatus) void toggleRentPaid(samuelStatus.userId);
                         }}
                         className={cn(
-                          "rounded-lg px-2 py-0.5 text-[10px] font-bold transition-all active:scale-95 border whitespace-nowrap",
-                          isPaid
+                          "rounded-lg px-2.5 py-1 text-[11px] font-bold transition-all active:scale-95 border whitespace-nowrap shadow-2xs",
+                          hasSamuelPaid
                             ? "bg-emerald-50 text-emerald-700 border-emerald-300 hover:bg-emerald-100"
                             : "bg-amber-50 text-amber-700 border-amber-300 hover:bg-amber-100"
                         )}
                       >
-                        {isPaid ? "✓ Pagado" : "Pendiente"}
+                        {hasSamuelPaid ? "✓ Samuel te ha pagado" : "Samuel pendiente"}
                       </button>
                     </div>
-                  );
-                })}
+
+                    {/* David */}
+                    <div className="flex items-center justify-between rounded-xl px-3 py-2 border bg-[#F4F7F8]/60 border-[#BFC6CC]/40 transition-all">
+                      <div className="flex items-center gap-2 min-w-0">
+                        <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg text-xs font-black shadow-2xs bg-[#194F6B] text-white">
+                          D
+                        </div>
+                        <div>
+                          <span className="text-xs font-bold text-[#31405F] block">
+                            David
+                          </span>
+                          <span className="text-[10px] text-[#607283]">
+                            Cuota: 200,00 € a ti
+                          </span>
+                        </div>
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          if (davidStatus) void toggleRentPaid(davidStatus.userId);
+                        }}
+                        className={cn(
+                          "rounded-lg px-2.5 py-1 text-[11px] font-bold transition-all active:scale-95 border whitespace-nowrap shadow-2xs",
+                          hasDavidPaid
+                            ? "bg-emerald-50 text-emerald-700 border-emerald-300 hover:bg-emerald-100"
+                            : "bg-amber-50 text-amber-700 border-amber-300 hover:bg-amber-100"
+                        )}
+                      >
+                        {hasDavidPaid ? "✓ David te ha pagado" : "David pendiente"}
+                      </button>
+                    </div>
+                  </>
+                ) : isDavid ? (
+                  // VISTA PARA DAVID: ve su estado propio hacia Jorge y ve si Samuel ya ha pagado
+                  <>
+                    {/* Tú (David) */}
+                    <div className="flex items-center justify-between rounded-xl px-3 py-2 border bg-[#31405F]/5 border-[#31405F]/30 transition-all">
+                      <div className="flex items-center gap-2 min-w-0">
+                        <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg text-xs font-black shadow-2xs bg-[#194F6B] text-white">
+                          D
+                        </div>
+                        <div>
+                          <span className="text-xs font-bold text-[#31405F] block">
+                            David (Tú)
+                          </span>
+                          <span className="text-[10px] text-[#607283]">
+                            Tu cuota a Jorge: 200,00 €
+                          </span>
+                        </div>
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          if (davidStatus) void toggleRentPaid(davidStatus.userId);
+                        }}
+                        className={cn(
+                          "rounded-lg px-2.5 py-1 text-[11px] font-bold transition-all active:scale-95 border whitespace-nowrap shadow-2xs",
+                          hasDavidPaid
+                            ? "bg-emerald-50 text-emerald-700 border-emerald-300 hover:bg-emerald-100"
+                            : "bg-[#31405F] text-white border-[#31405F] hover:bg-[#194F6B]"
+                        )}
+                      >
+                        {hasDavidPaid ? "✓ Has pagado a Jorge" : "Marcar pagado a Jorge"}
+                      </button>
+                    </div>
+
+                    {/* Samuel (David ve si Samuel ha pagado) */}
+                    <div className="flex items-center justify-between rounded-xl px-3 py-2 border bg-[#F4F7F8]/60 border-[#BFC6CC]/40 transition-all">
+                      <div className="flex items-center gap-2 min-w-0">
+                        <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg text-xs font-black shadow-2xs bg-[#094152] text-white">
+                          S
+                        </div>
+                        <div>
+                          <span className="text-xs font-bold text-[#31405F] block">
+                            Samuel
+                          </span>
+                          <span className="text-[10px] text-[#607283]">
+                            Cuota a Jorge: 200,00 €
+                          </span>
+                        </div>
+                      </div>
+
+                      <span
+                        className={cn(
+                          "rounded-lg px-2.5 py-1 text-[11px] font-bold border whitespace-nowrap",
+                          hasSamuelPaid
+                            ? "bg-emerald-50 text-emerald-700 border-emerald-300"
+                            : "bg-amber-50 text-amber-700 border-amber-300"
+                        )}
+                      >
+                        {hasSamuelPaid ? "✓ Samuel ya ha pagado" : "Samuel pendiente"}
+                      </span>
+                    </div>
+                  </>
+                ) : (
+                  // VISTA PARA SAMUEL: ve su estado propio hacia Jorge y ve si David ya ha pagado
+                  <>
+                    {/* Tú (Samuel) */}
+                    <div className="flex items-center justify-between rounded-xl px-3 py-2 border bg-[#31405F]/5 border-[#31405F]/30 transition-all">
+                      <div className="flex items-center gap-2 min-w-0">
+                        <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg text-xs font-black shadow-2xs bg-[#094152] text-white">
+                          S
+                        </div>
+                        <div>
+                          <span className="text-xs font-bold text-[#31405F] block">
+                            Samuel (Tú)
+                          </span>
+                          <span className="text-[10px] text-[#607283]">
+                            Tu cuota a Jorge: 200,00 €
+                          </span>
+                        </div>
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          if (samuelStatus) void toggleRentPaid(samuelStatus.userId);
+                        }}
+                        className={cn(
+                          "rounded-lg px-2.5 py-1 text-[11px] font-bold transition-all active:scale-95 border whitespace-nowrap shadow-2xs",
+                          hasSamuelPaid
+                            ? "bg-emerald-50 text-emerald-700 border-emerald-300 hover:bg-emerald-100"
+                            : "bg-[#31405F] text-white border-[#31405F] hover:bg-[#194F6B]"
+                        )}
+                      >
+                        {hasSamuelPaid ? "✓ Has pagado a Jorge" : "Marcar pagado a Jorge"}
+                      </button>
+                    </div>
+
+                    {/* David (Samuel ve si David ha pagado) */}
+                    <div className="flex items-center justify-between rounded-xl px-3 py-2 border bg-[#F4F7F8]/60 border-[#BFC6CC]/40 transition-all">
+                      <div className="flex items-center gap-2 min-w-0">
+                        <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg text-xs font-black shadow-2xs bg-[#194F6B] text-white">
+                          D
+                        </div>
+                        <div>
+                          <span className="text-xs font-bold text-[#31405F] block">
+                            David
+                          </span>
+                          <span className="text-[10px] text-[#607283]">
+                            Cuota a Jorge: 200,00 €
+                          </span>
+                        </div>
+                      </div>
+
+                      <span
+                        className={cn(
+                          "rounded-lg px-2.5 py-1 text-[11px] font-bold border whitespace-nowrap",
+                          hasDavidPaid
+                            ? "bg-emerald-50 text-emerald-700 border-emerald-300"
+                            : "bg-amber-50 text-amber-700 border-amber-300"
+                        )}
+                      >
+                        {hasDavidPaid ? "✓ David ya ha pagado" : "David pendiente"}
+                      </span>
+                    </div>
+                  </>
+                )}
               </div>
             </div>
 

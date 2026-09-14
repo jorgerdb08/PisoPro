@@ -22,7 +22,6 @@ export function FlatmatesRentModal({
   onClose,
   monthName,
   totalRent,
-  paidCount,
   flatmateStatuses,
   currentUserId,
   onToggleRentPaid,
@@ -40,7 +39,14 @@ export function FlatmatesRentModal({
   if (!isOpen) return null;
 
   const formatEuro = (n: number) => (n || 0).toFixed(2).replace(".", ",") + " €";
-  const progressPercent = Math.round((paidCount / 3) * 100);
+
+  const samuelStatus = flatmateStatuses.find((s) => s.userName === "Samuel");
+  const davidStatus = flatmateStatuses.find((s) => s.userName === "David");
+
+  const hasSamuelPaid = samuelStatus?.isPaid ?? false;
+  const hasDavidPaid = davidStatus?.isPaid ?? false;
+  const collectedCount = (hasSamuelPaid ? 1 : 0) + (hasDavidPaid ? 1 : 0);
+  const progressPercent = Math.round((collectedCount / 2) * 100);
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-xs p-4 animate-in fade-in-50 duration-150">
@@ -60,7 +66,7 @@ export function FlatmatesRentModal({
                 Alquiler del Piso
               </h3>
               <p className="text-xs text-[#607283]">
-                {monthName} · {formatEuro(totalRent)} total (200,00 € c/u)
+                {monthName} · Jorge paga {formatEuro(totalRent)} al casero
               </p>
             </div>
           </div>
@@ -73,11 +79,11 @@ export function FlatmatesRentModal({
           </button>
         </div>
 
-        {/* Barra de progreso */}
+        {/* Barra de progreso de recaudación */}
         <div className="space-y-1.5 rounded-2xl bg-[#F4F7F8] p-3 border border-[#BFC6CC]/40">
           <div className="flex items-center justify-between text-xs">
             <span className="font-semibold text-[#31405F]">
-              {paidCount} de 3 pagados
+              Recaudado para Jorge: {collectedCount} de 2 compañeros ({collectedCount * 200} € / 400 €)
             </span>
             <span className="font-extrabold text-[#31405F]">
               {progressPercent}%
@@ -91,65 +97,96 @@ export function FlatmatesRentModal({
           </div>
         </div>
 
-        {/* Lista de compañeros */}
+        {/* Lista de compañeros con roles reales */}
         <div className="space-y-2.5">
-          {flatmateStatuses.map((flatmate) => {
-            const isPaid = flatmate.isPaid;
-            const isMe = flatmate.userId === currentUserId;
-            const flatmateDef = FLATMATES.find((f) => f.id === flatmate.userId);
-            const colorClass = flatmateDef?.color || "bg-[#31405F] text-white";
-
-            return (
-              <div
-                key={flatmate.userId}
-                className={cn(
-                  "flex items-center justify-between rounded-2xl p-3.5 transition-all border",
-                  isMe
-                    ? "bg-[#31405F]/5 border-[#31405F]/30"
-                    : "bg-white border-[#BFC6CC]/60"
-                )}
-              >
-                <div className="flex items-center gap-3">
-                  <div
-                    className={cn(
-                      "flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-xs font-black shadow-2xs",
-                      colorClass
-                    )}
-                  >
-                    {flatmate.userName.charAt(0)}
-                  </div>
-                  <div>
-                    <div className="flex items-center gap-1.5">
-                      <span className="text-xs font-bold text-[#31405F]">
-                        {flatmate.userName}
-                      </span>
-                      {isMe && (
-                        <span className="text-[9px] font-bold bg-[#31405F] text-white px-1.5 py-0.2 rounded-md">
-                          Tú
-                        </span>
-                      )}
-                    </div>
-                    <span className="text-[11px] font-semibold text-[#607283] whitespace-nowrap">
-                      Cuota: 200,00 €
-                    </span>
-                  </div>
-                </div>
-
-                <button
-                  type="button"
-                  onClick={() => void onToggleRentPaid(flatmate.userId)}
-                  className={cn(
-                    "rounded-xl px-3.5 py-1.5 text-xs font-bold transition-all active:scale-95 border whitespace-nowrap min-w-[100px] text-center shadow-2xs",
-                    isPaid
-                      ? "bg-emerald-50 text-emerald-700 border-emerald-300 hover:bg-emerald-100"
-                      : "bg-amber-50 text-amber-700 border-amber-300 hover:bg-amber-100"
-                  )}
-                >
-                  {isPaid ? "✓ Pagado" : "Pendiente"}
-                </button>
+          {/* Jorge: Paga al casero */}
+          <div className="flex items-center justify-between rounded-2xl p-3.5 border bg-[#31405F]/5 border-[#31405F]/30">
+            <div className="flex items-center gap-3">
+              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-xs font-black shadow-2xs bg-[#31405F] text-white">
+                J
               </div>
-            );
-          })}
+              <div>
+                <div className="flex items-center gap-1.5">
+                  <span className="text-xs font-bold text-[#31405F]">
+                    Jorge {currentUserId === "22222222-2222-4222-8222-222222222222" && "(Tú)"}
+                  </span>
+                  <span className="text-[9px] font-bold bg-[#31405F] text-white px-1.5 py-0.2 rounded-md">
+                    Paga al casero
+                  </span>
+                </div>
+                <span className="text-[11px] font-semibold text-[#607283]">
+                  Abona 600,00 € al propietario (cuota neta 200,00 €)
+                </span>
+              </div>
+            </div>
+            <span className="text-xs font-bold text-[#31405F] px-2.5 py-1 rounded-xl bg-white border border-[#BFC6CC]/60 shadow-2xs whitespace-nowrap">
+              Responsable
+            </span>
+          </div>
+
+          {/* Samuel */}
+          <div className="flex items-center justify-between rounded-2xl p-3.5 border bg-white border-[#BFC6CC]/60">
+            <div className="flex items-center gap-3">
+              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-xs font-black shadow-2xs bg-[#094152] text-white">
+                S
+              </div>
+              <div>
+                <div className="flex items-center gap-1.5">
+                  <span className="text-xs font-bold text-[#31405F]">
+                    Samuel {currentUserId === "33333333-3333-4333-8333-333333333333" && "(Tú)"}
+                  </span>
+                </div>
+                <span className="text-[11px] font-semibold text-[#607283]">
+                  Cuota: 200,00 € a Jorge
+                </span>
+              </div>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => samuelStatus && void onToggleRentPaid(samuelStatus.userId)}
+              className={cn(
+                "rounded-xl px-3.5 py-1.5 text-xs font-bold transition-all active:scale-95 border whitespace-nowrap min-w-[105px] text-center shadow-2xs",
+                hasSamuelPaid
+                  ? "bg-emerald-50 text-emerald-700 border-emerald-300 hover:bg-emerald-100"
+                  : "bg-amber-50 text-amber-700 border-amber-300 hover:bg-amber-100"
+              )}
+            >
+              {hasSamuelPaid ? "✓ Pagado" : "Pendiente"}
+            </button>
+          </div>
+
+          {/* David */}
+          <div className="flex items-center justify-between rounded-2xl p-3.5 border bg-white border-[#BFC6CC]/60">
+            <div className="flex items-center gap-3">
+              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-xs font-black shadow-2xs bg-[#194F6B] text-white">
+                D
+              </div>
+              <div>
+                <div className="flex items-center gap-1.5">
+                  <span className="text-xs font-bold text-[#31405F]">
+                    David {currentUserId === "44444444-4444-4444-8444-444444444444" && "(Tú)"}
+                  </span>
+                </div>
+                <span className="text-[11px] font-semibold text-[#607283]">
+                  Cuota: 200,00 € a Jorge
+                </span>
+              </div>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => davidStatus && void onToggleRentPaid(davidStatus.userId)}
+              className={cn(
+                "rounded-xl px-3.5 py-1.5 text-xs font-bold transition-all active:scale-95 border whitespace-nowrap min-w-[105px] text-center shadow-2xs",
+                hasDavidPaid
+                  ? "bg-emerald-50 text-emerald-700 border-emerald-300 hover:bg-emerald-100"
+                  : "bg-amber-50 text-amber-700 border-amber-300 hover:bg-amber-100"
+              )}
+            >
+              {hasDavidPaid ? "✓ Pagado" : "Pendiente"}
+            </button>
+          </div>
         </div>
 
         {/* Footer */}
