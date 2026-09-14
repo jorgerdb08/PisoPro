@@ -1,12 +1,9 @@
 "use client";
 
-import React, { useMemo } from "react";
 import type { MonthHistoryItem, ExpenseItem } from "../calculations";
 import { ExpenseCategoryIcon } from "./ExpenseCategoryIcon";
 import { ExpenseCard } from "./ExpenseCard";
 import { cn } from "@/lib/utils";
-import { FLATMATES } from "@/lib/constants";
-import { Check } from "lucide-react";
 
 interface MonthlyHistoryViewProps {
   historyItems: MonthHistoryItem[];
@@ -16,7 +13,6 @@ interface MonthlyHistoryViewProps {
   currentUserId?: string;
   isAdmin: boolean;
   onDeleteExpense: (id: string) => Promise<unknown>;
-  settledDebtKeys?: Set<string>;
 }
 
 export function MonthlyHistoryView({
@@ -27,7 +23,6 @@ export function MonthlyHistoryView({
   currentUserId,
   isAdmin,
   onDeleteExpense,
-  settledDebtKeys,
 }: MonthlyHistoryViewProps) {
   const formatEuro = (val: number) =>
     (val || 0).toFixed(2).replace(".", ",") + " €";
@@ -56,119 +51,6 @@ export function MonthlyHistoryView({
   const selectedMonthExpenses = expenses.filter(
     (e) => e.date && e.date.substring(0, 7) === selectedMonth
   );
-
-  // Pagos e historial de gastos del usuario actual en el mes seleccionado
-  const { myPaidItems, totalPaidByMe } = useMemo(() => {
-    if (!currentUserId) return { myPaidItems: [], totalPaidByMe: 0 };
-
-    const items: Array<{
-      id: string;
-      concept: string;
-      category: string;
-      amount: number;
-      status: "paid" | "pending" | "paid_by_me";
-      date: string;
-    }> = [];
-
-    // Map local de debts saldadas
-    let localMap: Record<string, any> = {};
-    if (typeof window !== "undefined") {
-      try {
-        const raw = localStorage.getItem("pisopro_settled_itemized_debts_v1");
-        if (raw) localMap = JSON.parse(raw);
-      } catch {
-        // ignore
-      }
-    }
-
-    // 1. Alquiler del usuario
-    const rentKey = `rent_${selectedMonth}_${currentUserId}`;
-    const isRentSettled =
-      settledDebtKeys?.has(rentKey) || !!localMap[rentKey];
-    const rentSettledDate = localMap[rentKey]?.settledAt || "Mes en curso";
-
-    items.push({
-      id: rentKey,
-      concept: `Cuota de Alquiler ${selectedItem?.displayName || selectedMonth}`,
-      category: "alquiler",
-      amount: 200,
-      status: isRentSettled ? "paid" : "pending",
-      date: isRentSettled ? rentSettledDate : `${selectedMonth}-01`,
-    });
-
-    // 2. Gastos registrados en el mes
-    selectedMonthExpenses.forEach((e) => {
-      if (e.category === "settlement") return;
-      const cat = (e.category || "").toLowerCase();
-      if (cat === "alquiler" || cat === "rent") return;
-
-      const payerId = e.paid_by;
-      if (payerId === currentUserId) {
-        // Gasto pagado/adelantado por el usuario
-        items.push({
-          id: `paid_${e.id}`,
-          concept: `${e.description || "Gasto"}`,
-          category: e.category || "other",
-          amount: Number(e.amount) || 0,
-          status: "paid_by_me",
-          date: e.date || "Fecha",
-        });
-      } else {
-        // Cuota que el usuario debe aportar
-        let share = 0;
-        if (e.participants && e.participants.length > 0) {
-          const p = e.participants.find((part) => part.user_id === currentUserId);
-          if (p) share = Number(p.share_amount) || 0;
-        } else {
-          share = Math.round((Number(e.amount) / FLATMATES.length) * 100) / 100;
-        }
-
-        if (share > 0) {
-          const debtKey = `${e.id}_${currentUserId}`;
-          const isSettled =
-            settledDebtKeys?.has(debtKey) || !!localMap[debtKey];
-          const settledDate = localMap[debtKey]?.settledAt || e.date || "Fecha";
-
-          items.push({
-            id: debtKey,
-            concept: `Tu parte: ${e.description || "Gasto común"}`,
-            category: e.category || "other",
-            amount: share,
-            status: isSettled ? "paid" : "pending",
-            date: settledDate,
-          });
-        }
-      }
-    });
-
-    // 3. Otros items de localMap que puedan corresponder al mes
-    Object.values(localMap).forEach((loc: any) => {
-      if (
-        loc.fromUserId === currentUserId &&
-        loc.date &&
-        loc.date.startsWith(selectedMonth) &&
-        !items.some((i) => i.id === loc.id)
-      ) {
-        items.push({
-          id: loc.id,
-          concept: loc.concept || "Gasto saldado",
-          category: loc.category || "other",
-          amount: Number(loc.amount) || 0,
-          status: "paid",
-          date: loc.settledAt || "Reciente",
-        });
-      }
-    });
-
-    const totalPaid = items
-      .filter((i) => i.status === "paid" || i.status === "paid_by_me")
-      .reduce((sum, i) => sum + i.amount, 0);
-
-    return {
-      myPaidItems: items,
-      totalPaidByMe: Math.round(totalPaid * 100) / 100,
-    };
-  }, [currentUserId, selectedMonth, settledDebtKeys, selectedMonthExpenses, selectedItem]);
 
   return (
     <div className="space-y-4">
@@ -335,71 +217,6 @@ export function MonthlyHistoryView({
           </div>
         </div>
       )}
-
-      {/* Historial de Pagos del Usuario en este Mes */}
-      <div className="rounded-3xl border border-[#BFC6CC]/60 bg-white p-4 shadow-xs space-y-3">
-        <div className="flex items-center justify-between">
-          <div>
-            <span className="text-[10px] font-semibold uppercase tracking-wider text-[#607283]">
-              Historial de Pagos
-            </span>
-            <h4 className="text-xs font-bold text-[#31405F]">
-              Tus Pagos en {selectedItem?.displayName}
-            </h4>
-          </div>
-          <div className="text-right">
-            <span className="text-xs font-black px-2.5 py-1 rounded-xl bg-emerald-50 text-emerald-700 border border-emerald-200 block">
-              {formatEuro(totalPaidByMe)} pagado
-            </span>
-          </div>
-        </div>
-
-        {myPaidItems.length > 0 ? (
-          <div className="space-y-2">
-            {myPaidItems.map((item) => (
-              <div
-                key={item.id}
-                className="flex items-center justify-between rounded-xl border border-[#BFC6CC]/30 bg-white p-2.5 shadow-2xs"
-              >
-                <div className="flex items-center gap-2.5 min-w-0">
-                  <ExpenseCategoryIcon category={item.category} size="sm" />
-                  <div className="min-w-0">
-                    <span className="text-xs font-bold text-[#31405F] block truncate">
-                      {item.concept}
-                    </span>
-                    <span className="text-[10px] text-[#607283] block">
-                      {item.status === "paid_by_me"
-                        ? "Factura adelantada por ti"
-                        : item.status === "paid"
-                        ? `✓ Saldado (${item.date})`
-                        : `Pendiente (${item.date})`}
-                    </span>
-                  </div>
-                </div>
-
-                <div className="flex items-center gap-2 shrink-0">
-                  <span className="text-xs font-black text-[#31405F]">
-                    {formatEuro(item.amount)}
-                  </span>
-                  {item.status === "paid" || item.status === "paid_by_me" ? (
-                    <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200/60 px-2 py-0.5 rounded-md">
-                      ✓ Pagado
-                    </span>
-                  ) : (
-                    <span className="text-[10px] font-bold text-amber-700 bg-amber-50 border border-amber-200/60 px-2 py-0.5 rounded-md">
-                      Pendiente
-                    </span>
-                  )}
-                </div>
-              </div>
-            ))}
-          </div>
-        ) : (
-          <div className="rounded-2xl border border-dashed border-[#BFC6CC] p-4 text-center text-xs text-[#607283] bg-[#F4F7F8]/40">
-            No constan pagos registrados a tu nombre en este mes.
-          </div>
-        )}
-      </div>
 
       {/* Tickets y Movimientos del Mes Seleccionado */}
       <div className="space-y-2.5">

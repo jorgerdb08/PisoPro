@@ -23,6 +23,7 @@ import {
   BarChart3,
   Users,
   FilterX,
+  ArrowRight,
   ArrowUpRight,
   ArrowDownLeft,
   Check,
@@ -412,450 +413,6 @@ export function ExpensesView() {
     }
   };
 
-  const handlePayMyRent = async () => {
-    if (!currentUser) return;
-    const debtKey = `rent_${selectedMonth}_${currentUser.id}`;
-    const now = new Date();
-    const formattedDate = `${now.toLocaleDateString("es-ES", { day: "2-digit", month: "2-digit" })} ${now.toLocaleTimeString("es-ES", { hour: "2-digit", minute: "2-digit" })}`;
-
-    // 1. Guardar en local storage para reactividad instantánea
-    try {
-      const raw = localStorage.getItem("pisopro_settled_itemized_debts_v1");
-      const currentMap = raw ? JSON.parse(raw) : {};
-      currentMap[debtKey] = {
-        id: debtKey,
-        expenseId: `rent_${selectedMonth}`,
-        concept: `Alquiler ${safeRentSummary.monthName || selectedMonth}`,
-        category: "alquiler",
-        fromUserId: currentUser.id,
-        toUserId: currentUser.id,
-        amount: 200,
-        date: `${selectedMonth}-01`,
-        settledAt: formattedDate,
-      };
-      localStorage.setItem("pisopro_settled_itemized_debts_v1", JSON.stringify(currentMap));
-    } catch {
-      // ignore
-    }
-
-    // 2. Evaluar puntualidad (regla de los 5 primeros días)
-    const res = await rentService.recordRentPayment({
-      userId: currentUser.id,
-      monthStr: selectedMonth,
-    });
-
-    if (res.isOnTime) {
-      setFeedbackBanner(`🏆 ¡Alquiler marcado como pagado a tiempo! Has recibido +1 punto de convivencia.`);
-    } else {
-      setFeedbackBanner(`ℹ️ Alquiler marcado como pagado fuera de fecha (después del día 5). Esta vez no recibes punto.`);
-    }
-    setTimeout(() => setFeedbackBanner(null), 5000);
-
-    void refreshExpenses();
-  };
-
-  const handleUndoMyRent = async () => {
-    if (!currentUser) return;
-    const debtKey = `rent_${selectedMonth}_${currentUser.id}`;
-
-    // 1. Quitar de local storage
-    try {
-      const raw = localStorage.getItem("pisopro_settled_itemized_debts_v1");
-      if (raw) {
-        const currentMap = JSON.parse(raw);
-        delete currentMap[debtKey];
-        localStorage.setItem("pisopro_settled_itemized_debts_v1", JSON.stringify(currentMap));
-      }
-    } catch {
-      // ignore
-    }
-
-    // 2. Revertir en rentService
-    await rentService.toggleRentPayment({
-      userId: currentUser.id,
-      monthStr: selectedMonth,
-    });
-
-    // 3. Borrar liquidación en Supabase si existe
-    const settlementExpense = expenses.find(
-      (e) => e.category === "settlement" && e.notes?.includes(debtKey)
-    );
-    if (settlementExpense) {
-      await removeExpense(settlementExpense.id);
-    } else {
-      void refreshExpenses();
-    }
-
-    setFeedbackBanner("Se ha deshecho el pago del alquiler.");
-    setTimeout(() => setFeedbackBanner(null), 3000);
-  };
-
-  // Marcar como pagada toda la cuota pendiente de suministros u otros
-  const handlePayCategoryShare = async (group: "supplies" | "other") => {
-    if (!currentUser) return;
-    const SUPPLY_CATS = new Set(["luz", "agua", "gas", "internet", "wifi", "utilidades", "utilities"]);
-    const debtsToSettle: Array<{
-      debtKey: string;
-      fromUserId: string;
-      toUserId: string;
-      amount: number;
-      concept: string;
-    }> = [];
-
-    monthExpenses.forEach((e) => {
-      const cat = (e.category || "").toLowerCase();
-      if (cat === "alquiler" || cat === "rent" || cat === "settlement") return;
-      if (e.paid_by === currentUser.id) return; // Pagado por ti
-
-      const isSupply = SUPPLY_CATS.has(cat);
-      if ((group === "supplies" && !isSupply) || (group === "other" && isSupply)) return;
-
-      const debtKey = `${e.id}_${currentUser.id}`;
-      if (settledDebtKeys.has(debtKey)) return;
-
-      let share = 0;
-      if (e.participants && e.participants.length > 0) {
-        const p = e.participants.find((part) => part.user_id === currentUser.id);
-        if (p) share = Number(p.share_amount) || 0;
-      } else {
-        share = Math.round((Number(e.amount) / FLATMATES.length) * 100) / 100;
-      }
-
-      if (share > 0) {
-        debtsToSettle.push({
-          debtKey,
-          fromUserId: currentUser.id,
-          toUserId: e.paid_by,
-          amount: share,
-          concept: e.description || "Gasto compartido",
-        });
-      }
-    });
-
-    if (debtsToSettle.length === 0) return;
-
-    try {
-      const raw = localStorage.getItem("pisopro_settled_itemized_debts_v1");
-      const currentMap = raw ? JSON.parse(raw) : {};
-      const now = new Date();
-      const formattedDate = `${now.toLocaleDateString("es-ES", { day: "2-digit", month: "2-digit" })} ${now.toLocaleTimeString("es-ES", { hour: "2-digit", minute: "2-digit" })}`;
-
-      debtsToSettle.forEach((d) => {
-        currentMap[d.debtKey] = {
-          id: d.debtKey,
-          expenseId: d.debtKey.split("_")[0],
-          concept: d.concept,
-          category: group,
-          fromUserId: d.fromUserId,
-          toUserId: d.toUserId,
-          amount: d.amount,
-          date: `${selectedMonth}-01`,
-          settledAt: formattedDate,
-        };
-      });
-      localStorage.setItem("pisopro_settled_itemized_debts_v1", JSON.stringify(currentMap));
-    } catch {
-      // ignore
-    }
-
-    for (const d of debtsToSettle) {
-      void settleTransfer({
-        fromUserId: d.fromUserId,
-        toUserId: d.toUserId,
-        amount: d.amount,
-        debtKey: d.debtKey,
-        concept: d.concept,
-      });
-    }
-
-    setFeedbackBanner(
-      `✓ Has marcado como pagada tu parte de ${group === "supplies" ? "suministros" : "otros gastos"}.`
-    );
-    setTimeout(() => setFeedbackBanner(null), 4000);
-  };
-
-  // Marcar como pagada tu parte de una factura o gasto individual
-  const handlePaySingleExpenseShare = async (expense: typeof expenses[0]) => {
-    if (!currentUser || expense.paid_by === currentUser.id) return;
-    const debtKey = `${expense.id}_${currentUser.id}`;
-
-    let share = 0;
-    if (expense.participants && expense.participants.length > 0) {
-      const p = expense.participants.find((part) => part.user_id === currentUser.id);
-      if (p) share = Number(p.share_amount) || 0;
-    } else {
-      share = Math.round((Number(expense.amount) / FLATMATES.length) * 100) / 100;
-    }
-    if (share <= 0) return;
-
-    try {
-      const raw = localStorage.getItem("pisopro_settled_itemized_debts_v1");
-      const currentMap = raw ? JSON.parse(raw) : {};
-      const now = new Date();
-      const formattedDate = `${now.toLocaleDateString("es-ES", { day: "2-digit", month: "2-digit" })} ${now.toLocaleTimeString("es-ES", { hour: "2-digit", minute: "2-digit" })}`;
-
-      currentMap[debtKey] = {
-        id: debtKey,
-        expenseId: expense.id,
-        concept: expense.description,
-        category: expense.category,
-        fromUserId: currentUser.id,
-        toUserId: expense.paid_by,
-        amount: share,
-        date: expense.date,
-        settledAt: formattedDate,
-      };
-      localStorage.setItem("pisopro_settled_itemized_debts_v1", JSON.stringify(currentMap));
-    } catch {
-      // ignore
-    }
-
-    void settleTransfer({
-      fromUserId: currentUser.id,
-      toUserId: expense.paid_by,
-      amount: share,
-      debtKey,
-      concept: expense.description,
-    });
-
-    setFeedbackBanner(`✓ Has marcado tu parte de "${expense.description}" (${formatEuro(share)}) como pagada.`);
-    setTimeout(() => setFeedbackBanner(null), 4000);
-  };
-
-  // Deshacer el pago de tu parte de una factura o gasto individual
-  const handleUndoSingleExpenseShare = async (expense: typeof expenses[0]) => {
-    if (!currentUser) return;
-    const debtKey = `${expense.id}_${currentUser.id}`;
-
-    try {
-      const raw = localStorage.getItem("pisopro_settled_itemized_debts_v1");
-      if (raw) {
-        const currentMap = JSON.parse(raw);
-        delete currentMap[debtKey];
-        localStorage.setItem("pisopro_settled_itemized_debts_v1", JSON.stringify(currentMap));
-      }
-    } catch {
-      // ignore
-    }
-
-    const settlement = expenses.find(
-      (e) => e.category === "settlement" && e.notes?.includes(debtKey)
-    );
-    if (settlement) {
-      await removeExpense(settlement.id);
-    } else {
-      void refreshExpenses();
-    }
-
-    setFeedbackBanner(`Se ha deshecho el pago de tu parte de "${expense.description}".`);
-    setTimeout(() => setFeedbackBanner(null), 3000);
-  };
-
-  // Marcar como pagada toda tu parte de una categoría específica (luz, agua, gas, internet, compras)
-  const handlePayCategory = async (categoryName: string) => {
-    if (!currentUser) return;
-    const catLower = categoryName.toLowerCase();
-    const debtsToSettle: Array<{
-      debtKey: string;
-      fromUserId: string;
-      toUserId: string;
-      amount: number;
-      concept: string;
-      category: string;
-    }> = [];
-
-    monthExpenses.forEach((e) => {
-      const c = (e.category || "").toLowerCase();
-      if (c === "alquiler" || c === "rent" || c === "settlement") return;
-      if (e.paid_by === currentUser.id) return; // Pagado por ti
-
-      let matches = false;
-      if (catLower === "luz") matches = c === "luz" || c === "utilities";
-      else if (catLower === "agua") matches = c === "agua" || c === "water";
-      else if (catLower === "gas") matches = c === "gas";
-      else if (catLower === "internet") matches = c === "internet" || c === "wifi";
-      else if (catLower === "compras" || catLower === "otros") {
-        matches =
-          c !== "luz" &&
-          c !== "utilities" &&
-          c !== "agua" &&
-          c !== "water" &&
-          c !== "gas" &&
-          c !== "internet" &&
-          c !== "wifi";
-      }
-
-      if (!matches) return;
-
-      const debtKey = `${e.id}_${currentUser.id}`;
-      if (settledDebtKeys.has(debtKey)) return;
-
-      let share = 0;
-      if (e.participants && e.participants.length > 0) {
-        const p = e.participants.find((part) => part.user_id === currentUser.id);
-        if (p) share = Number(p.share_amount) || 0;
-      } else {
-        share = Math.round((Number(e.amount) / FLATMATES.length) * 100) / 100;
-      }
-
-      if (share > 0) {
-        debtsToSettle.push({
-          debtKey,
-          fromUserId: currentUser.id,
-          toUserId: e.paid_by,
-          amount: share,
-          concept: e.description || `Gasto de ${categoryName}`,
-          category: c,
-        });
-      }
-    });
-
-    if (debtsToSettle.length === 0) return;
-
-    try {
-      const raw = localStorage.getItem("pisopro_settled_itemized_debts_v1");
-      const currentMap = raw ? JSON.parse(raw) : {};
-      const now = new Date();
-      const formattedDate = `${now.toLocaleDateString("es-ES", { day: "2-digit", month: "2-digit" })} ${now.toLocaleTimeString("es-ES", { hour: "2-digit", minute: "2-digit" })}`;
-
-      debtsToSettle.forEach((d) => {
-        currentMap[d.debtKey] = {
-          id: d.debtKey,
-          expenseId: d.debtKey.split("_")[0],
-          concept: d.concept,
-          category: d.category,
-          fromUserId: d.fromUserId,
-          toUserId: d.toUserId,
-          amount: d.amount,
-          date: `${selectedMonth}-01`,
-          settledAt: formattedDate,
-        };
-      });
-      localStorage.setItem("pisopro_settled_itemized_debts_v1", JSON.stringify(currentMap));
-    } catch {
-      // ignore
-    }
-
-    for (const d of debtsToSettle) {
-      void settleTransfer({
-        fromUserId: d.fromUserId,
-        toUserId: d.toUserId,
-        amount: d.amount,
-        debtKey: d.debtKey,
-        concept: d.concept,
-      });
-    }
-
-    setFeedbackBanner(`✓ Has marcado como pagada tu parte de ${categoryName}.`);
-    setTimeout(() => setFeedbackBanner(null), 3500);
-  };
-
-  // Deshacer el pago de una categoría
-  const handleUndoCategory = async (categoryName: string) => {
-    if (!currentUser) return;
-    const catLower = categoryName.toLowerCase();
-
-    try {
-      const raw = localStorage.getItem("pisopro_settled_itemized_debts_v1");
-      if (raw) {
-        const currentMap = JSON.parse(raw);
-        monthExpenses.forEach((e) => {
-          const c = (e.category || "").toLowerCase();
-          let matches = false;
-          if (catLower === "luz") matches = c === "luz" || c === "utilities";
-          else if (catLower === "agua") matches = c === "agua" || c === "water";
-          else if (catLower === "gas") matches = c === "gas";
-          else if (catLower === "internet") matches = c === "internet" || c === "wifi";
-          else if (catLower === "compras" || catLower === "otros") {
-            matches =
-              c !== "luz" &&
-              c !== "utilities" &&
-              c !== "agua" &&
-              c !== "water" &&
-              c !== "gas" &&
-              c !== "internet" &&
-              c !== "wifi";
-          }
-          if (matches) {
-            const debtKey = `${e.id}_${currentUser.id}`;
-            delete currentMap[debtKey];
-          }
-        });
-        localStorage.setItem("pisopro_settled_itemized_debts_v1", JSON.stringify(currentMap));
-      }
-    } catch {
-      // ignore
-    }
-
-    const settlementsToDelete = expenses.filter((e) => {
-      if (e.category !== "settlement" || !e.notes?.startsWith("settled_debt:")) return false;
-      const debtKey = e.notes.replace("settled_debt:", "").trim();
-      return debtKey.endsWith(`_${currentUser.id}`);
-    });
-
-    for (const s of settlementsToDelete) {
-      void removeExpense(s.id);
-    }
-
-    void refreshExpenses();
-    setFeedbackBanner(`Se ha deshecho el pago de ${categoryName}.`);
-    setTimeout(() => setFeedbackBanner(null), 3000);
-  };
-
-  // Helper para conocer el estado de pago del usuario actual en una categoría
-  const getCategoryShareStatus = (catKey: "luz" | "agua" | "gas" | "internet" | "compras") => {
-    let catExpenses: typeof monthExpenses = [];
-    if (catKey === "luz") catExpenses = luzExpenses;
-    else if (catKey === "agua") catExpenses = aguaExpenses;
-    else if (catKey === "gas") catExpenses = gasExpenses;
-    else if (catKey === "internet") catExpenses = internetExpenses;
-    else catExpenses = otherExpenses;
-
-    const total = catExpenses.reduce((sum, e) => sum + Number(e.amount || 0), 0);
-    if (!currentUser || total <= 0) {
-      return { total: 0, myShare: 0, isPaidByMe: false, pendingAmount: 0, isSettled: false, count: 0 };
-    }
-
-    let myShare = 0;
-    let pendingAmount = 0;
-    let isPaidByMe = false;
-
-    catExpenses.forEach((e) => {
-      const payerId = e.paid_by;
-      let share = 0;
-      if (e.participants && e.participants.length > 0) {
-        const p = e.participants.find((part) => part.user_id === currentUser.id);
-        if (p) share = Number(p.share_amount) || 0;
-      } else {
-        share = Math.round((Number(e.amount) / FLATMATES.length) * 100) / 100;
-      }
-
-      if (payerId === currentUser.id) {
-        isPaidByMe = true;
-        myShare += share;
-      } else {
-        myShare += share;
-        const debtKey = `${e.id}_${currentUser.id}`;
-        if (!settledDebtKeys.has(debtKey)) {
-          pendingAmount += share;
-        }
-      }
-    });
-
-    myShare = Math.round(myShare * 100) / 100;
-    pendingAmount = Math.round(pendingAmount * 100) / 100;
-    const isSettled = myShare > 0 && pendingAmount === 0 && !isPaidByMe;
-
-    return {
-      total,
-      myShare,
-      isPaidByMe,
-      pendingAmount,
-      isSettled,
-      count: catExpenses.length,
-    };
-  };
-
   // Categorías interactivas para el grid visual
   const serviceCategories = [
     {
@@ -1131,23 +688,14 @@ export function ExpensesView() {
                     </div>
 
                     <div>
-                      {isMyRentSettled ? (
-                        <button
-                          type="button"
-                          onClick={() => void handleUndoMyRent()}
-                          className="text-xs text-[#607283] hover:text-red-600 underline cursor-pointer px-2 py-1"
-                        >
-                          Deshacer
-                        </button>
-                      ) : (
-                        <button
-                          type="button"
-                          onClick={() => void handlePayMyRent()}
-                          className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white text-xs font-bold shadow-xs transition-all cursor-pointer"
-                        >
-                          Marcar pagado
-                        </button>
-                      )}
+                      <button
+                        type="button"
+                        onClick={() => setActiveTab("deudas")}
+                        className="inline-flex items-center gap-1 px-3 py-1.5 rounded-xl bg-[#31405F]/10 hover:bg-[#31405F]/15 text-[#31405F] text-xs font-bold transition-all cursor-pointer"
+                      >
+                        <span>Ver en deudas</span>
+                        <ArrowRight className="h-3 w-3" />
+                      </button>
                     </div>
                   </div>
                 )}
@@ -1172,23 +720,14 @@ export function ExpensesView() {
                     </div>
 
                     <div>
-                      {pendingSuppliesShare > 0 ? (
-                        <button
-                          type="button"
-                          onClick={() => void handlePayCategoryShare("supplies")}
-                          className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white text-xs font-bold shadow-xs transition-all cursor-pointer"
-                        >
-                          Marcar pagado
-                        </button>
-                      ) : (
-                        <button
-                          type="button"
-                          onClick={() => setActiveTab("deudas")}
-                          className="text-xs text-[#194F6B] hover:underline font-semibold cursor-pointer px-2 py-1"
-                        >
-                          Ver desglose →
-                        </button>
-                      )}
+                      <button
+                        type="button"
+                        onClick={() => setActiveTab("deudas")}
+                        className="inline-flex items-center gap-1 px-3 py-1.5 rounded-xl bg-[#31405F]/10 hover:bg-[#31405F]/15 text-[#31405F] text-xs font-bold transition-all cursor-pointer"
+                      >
+                        <span>Ver en deudas</span>
+                        <ArrowRight className="h-3 w-3" />
+                      </button>
                     </div>
                   </div>
                 )}
@@ -1213,23 +752,14 @@ export function ExpensesView() {
                     </div>
 
                     <div>
-                      {pendingOtherShare > 0 ? (
-                        <button
-                          type="button"
-                          onClick={() => void handlePayCategoryShare("other")}
-                          className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white text-xs font-bold shadow-xs transition-all cursor-pointer"
-                        >
-                          Marcar pagado
-                        </button>
-                      ) : (
-                        <button
-                          type="button"
-                          onClick={() => setActiveTab("deudas")}
-                          className="text-xs text-[#194F6B] hover:underline font-semibold cursor-pointer px-2 py-1"
-                        >
-                          Ver desglose →
-                        </button>
-                      )}
+                      <button
+                        type="button"
+                        onClick={() => setActiveTab("deudas")}
+                        className="inline-flex items-center gap-1 px-3 py-1.5 rounded-xl bg-[#31405F]/10 hover:bg-[#31405F]/15 text-[#31405F] text-xs font-bold transition-all cursor-pointer"
+                      >
+                        <span>Ver en deudas</span>
+                        <ArrowRight className="h-3 w-3" />
+                      </button>
                     </div>
                   </div>
                 )}
@@ -1286,30 +816,6 @@ export function ExpensesView() {
                 </div>
 
                 <div className="flex items-center gap-2">
-                  {isMyRentSettled ? (
-                    <button
-                      type="button"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        void handleUndoMyRent();
-                      }}
-                      className="text-xs text-[#607283] hover:text-red-600 underline cursor-pointer"
-                    >
-                      Deshacer
-                    </button>
-                  ) : (
-                    <button
-                      type="button"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        void handlePayMyRent();
-                      }}
-                      className="inline-flex items-center gap-1 px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white text-xs font-bold shadow-2xs transition-all cursor-pointer"
-                    >
-                      <span>Marcar pagado</span>
-                    </button>
-                  )}
-
                   <button
                     type="button"
                     onClick={(e) => {
@@ -1363,44 +869,14 @@ export function ExpensesView() {
                   </div>
                 </div>
 
-                <div className="mt-2.5 pt-2 border-t border-[#BFC6CC]/30 flex items-center justify-between text-[11px] gap-1 flex-wrap">
+                <div className="mt-2 pt-2 border-t border-[#BFC6CC]/30 flex items-center justify-between text-[10px]">
                   <span className="font-semibold text-[#607283]">
-                    Tu parte: <strong className="text-[#31405F]">{formatEuro(getCategoryShareStatus("luz").myShare || (luzTotal / 3))}</strong>
+                    Tu parte: <strong className="text-[#31405F]">{formatEuro(luzTotal / 3)}</strong>
                   </span>
-
-                  {getCategoryShareStatus("luz").isPaidByMe ? (
-                    <span className="text-[10px] font-bold text-blue-700 bg-blue-50 border border-blue-200/60 px-1.5 py-0.5 rounded-md">
-                      Pagado por ti
+                  {luzExpenses.length > 0 && (
+                    <span className="text-[10px] font-bold text-amber-700 bg-amber-50 px-1.5 py-0.2 rounded-md">
+                      {luzExpenses.length} fact.
                     </span>
-                  ) : getCategoryShareStatus("luz").isSettled ? (
-                    <div className="flex items-center gap-1">
-                      <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200/60 px-1.5 py-0.5 rounded-md">
-                        ✓ Pagado
-                      </span>
-                      <button
-                        type="button"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          void handleUndoCategory("luz");
-                        }}
-                        className="text-[10px] text-[#607283] hover:text-red-600 underline cursor-pointer"
-                      >
-                        Deshacer
-                      </button>
-                    </div>
-                  ) : getCategoryShareStatus("luz").pendingAmount > 0 ? (
-                    <button
-                      type="button"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        void handlePayCategory("luz");
-                      }}
-                      className="px-2.5 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white text-[10px] font-bold shadow-2xs transition-all cursor-pointer"
-                    >
-                      Marcar pagado
-                    </button>
-                  ) : (
-                    <span className="text-[10px] text-[#8C9AA6]">Al día</span>
                   )}
                 </div>
               </div>
@@ -1441,44 +917,14 @@ export function ExpensesView() {
                   </div>
                 </div>
 
-                <div className="mt-2.5 pt-2 border-t border-[#BFC6CC]/30 flex items-center justify-between text-[11px] gap-1 flex-wrap">
+                <div className="mt-2 pt-2 border-t border-[#BFC6CC]/30 flex items-center justify-between text-[10px]">
                   <span className="font-semibold text-[#607283]">
-                    Tu parte: <strong className="text-[#31405F]">{formatEuro(getCategoryShareStatus("agua").myShare || (aguaTotal / 3))}</strong>
+                    Tu parte: <strong className="text-[#31405F]">{formatEuro(aguaTotal / 3)}</strong>
                   </span>
-
-                  {getCategoryShareStatus("agua").isPaidByMe ? (
-                    <span className="text-[10px] font-bold text-blue-700 bg-blue-50 border border-blue-200/60 px-1.5 py-0.5 rounded-md">
-                      Pagado por ti
+                  {aguaExpenses.length > 0 && (
+                    <span className="text-[10px] font-bold text-sky-700 bg-sky-50 px-1.5 py-0.2 rounded-md">
+                      {aguaExpenses.length} fact.
                     </span>
-                  ) : getCategoryShareStatus("agua").isSettled ? (
-                    <div className="flex items-center gap-1">
-                      <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200/60 px-1.5 py-0.5 rounded-md">
-                        ✓ Pagado
-                      </span>
-                      <button
-                        type="button"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          void handleUndoCategory("agua");
-                        }}
-                        className="text-[10px] text-[#607283] hover:text-red-600 underline cursor-pointer"
-                      >
-                        Deshacer
-                      </button>
-                    </div>
-                  ) : getCategoryShareStatus("agua").pendingAmount > 0 ? (
-                    <button
-                      type="button"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        void handlePayCategory("agua");
-                      }}
-                      className="px-2.5 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white text-[10px] font-bold shadow-2xs transition-all cursor-pointer"
-                    >
-                      Marcar pagado
-                    </button>
-                  ) : (
-                    <span className="text-[10px] text-[#8C9AA6]">Al día</span>
                   )}
                 </div>
               </div>
@@ -1519,44 +965,14 @@ export function ExpensesView() {
                   </div>
                 </div>
 
-                <div className="mt-2.5 pt-2 border-t border-[#BFC6CC]/30 flex items-center justify-between text-[11px] gap-1 flex-wrap">
+                <div className="mt-2 pt-2 border-t border-[#BFC6CC]/30 flex items-center justify-between text-[10px]">
                   <span className="font-semibold text-[#607283]">
-                    Tu parte: <strong className="text-[#31405F]">{formatEuro(getCategoryShareStatus("gas").myShare || (gasTotal / 3))}</strong>
+                    Tu parte: <strong className="text-[#31405F]">{formatEuro(gasTotal / 3)}</strong>
                   </span>
-
-                  {getCategoryShareStatus("gas").isPaidByMe ? (
-                    <span className="text-[10px] font-bold text-blue-700 bg-blue-50 border border-blue-200/60 px-1.5 py-0.5 rounded-md">
-                      Pagado por ti
+                  {gasExpenses.length > 0 && (
+                    <span className="text-[10px] font-bold text-orange-700 bg-orange-50 px-1.5 py-0.2 rounded-md">
+                      {gasExpenses.length} fact.
                     </span>
-                  ) : getCategoryShareStatus("gas").isSettled ? (
-                    <div className="flex items-center gap-1">
-                      <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200/60 px-1.5 py-0.5 rounded-md">
-                        ✓ Pagado
-                      </span>
-                      <button
-                        type="button"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          void handleUndoCategory("gas");
-                        }}
-                        className="text-[10px] text-[#607283] hover:text-red-600 underline cursor-pointer"
-                      >
-                        Deshacer
-                      </button>
-                    </div>
-                  ) : getCategoryShareStatus("gas").pendingAmount > 0 ? (
-                    <button
-                      type="button"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        void handlePayCategory("gas");
-                      }}
-                      className="px-2.5 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white text-[10px] font-bold shadow-2xs transition-all cursor-pointer"
-                    >
-                      Marcar pagado
-                    </button>
-                  ) : (
-                    <span className="text-[10px] text-[#8C9AA6]">Al día</span>
                   )}
                 </div>
               </div>
@@ -1597,44 +1013,14 @@ export function ExpensesView() {
                   </div>
                 </div>
 
-                <div className="mt-2.5 pt-2 border-t border-[#BFC6CC]/30 flex items-center justify-between text-[11px] gap-1 flex-wrap">
+                <div className="mt-2 pt-2 border-t border-[#BFC6CC]/30 flex items-center justify-between text-[10px]">
                   <span className="font-semibold text-[#607283]">
-                    Tu parte: <strong className="text-[#31405F]">{formatEuro(getCategoryShareStatus("internet").myShare || (internetTotal / 3))}</strong>
+                    Tu parte: <strong className="text-[#31405F]">{formatEuro(internetTotal / 3)}</strong>
                   </span>
-
-                  {getCategoryShareStatus("internet").isPaidByMe ? (
-                    <span className="text-[10px] font-bold text-blue-700 bg-blue-50 border border-blue-200/60 px-1.5 py-0.5 rounded-md">
-                      Pagado por ti
+                  {internetExpenses.length > 0 && (
+                    <span className="text-[10px] font-bold text-[#094152] bg-[#094152]/10 px-1.5 py-0.2 rounded-md">
+                      {internetExpenses.length} fact.
                     </span>
-                  ) : getCategoryShareStatus("internet").isSettled ? (
-                    <div className="flex items-center gap-1">
-                      <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200/60 px-1.5 py-0.5 rounded-md">
-                        ✓ Pagado
-                      </span>
-                      <button
-                        type="button"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          void handleUndoCategory("internet");
-                        }}
-                        className="text-[10px] text-[#607283] hover:text-red-600 underline cursor-pointer"
-                      >
-                        Deshacer
-                      </button>
-                    </div>
-                  ) : getCategoryShareStatus("internet").pendingAmount > 0 ? (
-                    <button
-                      type="button"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        void handlePayCategory("internet");
-                      }}
-                      className="px-2.5 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white text-[10px] font-bold shadow-2xs transition-all cursor-pointer"
-                    >
-                      Marcar pagado
-                    </button>
-                  ) : (
-                    <span className="text-[10px] text-[#8C9AA6]">Al día</span>
                   )}
                 </div>
               </div>
@@ -1670,48 +1056,15 @@ export function ExpensesView() {
                   </div>
                 </div>
 
-                <div className="flex items-center gap-2.5 shrink-0 flex-wrap">
+                <div className="flex items-center gap-3 shrink-0">
                   <div className="text-right">
                     <span className="text-base font-black text-[#31405F] whitespace-nowrap block">
                       {formatEuro(otherTotal)}
                     </span>
                     <span className="text-[10px] font-semibold text-[#607283] whitespace-nowrap block">
-                      Tu parte: <strong className="text-[#31405F]">{formatEuro(getCategoryShareStatus("compras").myShare || (otherTotal / 3))}</strong>
+                      Tu parte: <strong className="text-[#31405F]">{formatEuro(otherTotal / 3)}</strong>
                     </span>
                   </div>
-
-                  {getCategoryShareStatus("compras").isPaidByMe ? (
-                    <span className="text-[11px] font-bold text-blue-700 bg-blue-50 border border-blue-200/60 px-2.5 py-1 rounded-lg">
-                      Pagado por ti
-                    </span>
-                  ) : getCategoryShareStatus("compras").isSettled ? (
-                    <div className="flex items-center gap-1.5">
-                      <span className="text-[11px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200/60 px-2.5 py-1 rounded-lg">
-                        ✓ Pagado
-                      </span>
-                      <button
-                        type="button"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          void handleUndoCategory("compras");
-                        }}
-                        className="text-xs text-[#607283] hover:text-red-600 underline cursor-pointer"
-                      >
-                        Deshacer
-                      </button>
-                    </div>
-                  ) : getCategoryShareStatus("compras").pendingAmount > 0 ? (
-                    <button
-                      type="button"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        void handlePayCategory("compras");
-                      }}
-                      className="px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white text-xs font-bold shadow-2xs transition-all cursor-pointer"
-                    >
-                      Marcar pagado
-                    </button>
-                  ) : null}
 
                   <button
                     type="button"
@@ -1824,29 +1177,14 @@ export function ExpensesView() {
                           ) : (
                             <div className="flex items-center gap-1.5 justify-end mt-0.5">
                               {settledDebtKeys.has(`${exp.id}_${currentUser?.id}`) ? (
-                                <div className="flex items-center gap-1">
-                                  <span className="inline-flex items-center gap-0.5 text-[10px] font-bold text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded-md border border-emerald-200">
-                                    <Check className="h-3 w-3 stroke-[2.5]" />
-                                    <span>Pagado</span>
-                                  </span>
-                                  <button
-                                    type="button"
-                                    onClick={() => void handleUndoSingleExpenseShare(exp)}
-                                    className="text-[9px] text-[#607283] hover:text-red-600 underline cursor-pointer"
-                                  >
-                                    Deshacer
-                                  </button>
-                                </div>
-                              ) : (
-                                <button
-                                  type="button"
-                                  onClick={() => void handlePaySingleExpenseShare(exp)}
-                                  className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-[#31405F] hover:bg-[#194F6B] text-white text-[10px] font-bold shadow-2xs transition-all active:scale-95 cursor-pointer"
-                                  title="Marcar tu parte como pagada"
-                                >
+                                <span className="inline-flex items-center gap-0.5 text-[10px] font-bold text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded-md border border-emerald-200">
                                   <Check className="h-3 w-3 stroke-[2.5]" />
-                                  <span>Pagado ({formatEuro(myShareAmount)})</span>
-                                </button>
+                                  <span>Pagado</span>
+                                </span>
+                              ) : (
+                                <span className="inline-flex items-center gap-0.5 text-[10px] font-bold text-amber-700 whitespace-nowrap">
+                                  Tu parte: {formatEuro(myShareAmount)}
+                                </span>
                               )}
                             </div>
                           )}
@@ -1921,7 +1259,6 @@ export function ExpensesView() {
             currentUserId={currentUser?.id}
             isAdmin={isAdmin}
             onDeleteExpense={removeExpense}
-            settledDebtKeys={settledDebtKeys}
           />
         </div>
       )}

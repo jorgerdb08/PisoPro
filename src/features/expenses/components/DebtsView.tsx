@@ -2,9 +2,10 @@
 
 import React, { useState, useEffect, useMemo } from "react";
 import type { ExpenseItem } from "../calculations";
-import { FLATMATES } from "@/lib/constants";
+import { FLATMATES, DEFAULT_HOUSEHOLD_ID } from "@/lib/constants";
 import { rentService } from "@/services/rentService";
 import { notificationService } from "@/features/notifications/notificationService";
+import { expensesService } from "@/services/expensesService";
 import {
   ArrowRight,
   CheckCircle2,
@@ -42,6 +43,7 @@ export interface SettledTransferRecord extends ItemizedTransfer {
 }
 
 const STORAGE_KEY = "pisopro_settled_itemized_debts_v1";
+const CLAIM_STORAGE_KEY = "pisopro_claimed_payment_debts_v1";
 
 interface DebtsViewProps {
   expenses?: ExpenseItem[];
@@ -68,6 +70,7 @@ export function DebtsView({
 }: DebtsViewProps) {
   const [activeSubTab, setActiveSubTab] = useState<"pendientes" | "historial">("pendientes");
   const [localSettledMap, setLocalSettledMap] = useState<Record<string, SettledTransferRecord>>({});
+  const [localClaimedMap, setLocalClaimedMap] = useState<Record<string, { debtorId: string; claimedAt: string }>>({});
   const [justSettledId, setJustSettledId] = useState<string | null>(null);
   const [actionToast, setActionToast] = useState<string | null>(null);
   const [rentFeedback, setRentFeedback] = useState<{
@@ -88,12 +91,27 @@ export function DebtsView({
     } catch {
       // ignore
     }
+    try {
+      const rawClaims = localStorage.getItem(CLAIM_STORAGE_KEY);
+      if (rawClaims) setLocalClaimedMap(JSON.parse(rawClaims));
+    } catch {
+      // ignore
+    }
   }, []);
 
   const saveLocalSettledMap = (updated: Record<string, SettledTransferRecord>) => {
     setLocalSettledMap(updated);
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
+    } catch {
+      // ignore
+    }
+  };
+
+  const saveLocalClaimedMap = (updated: Record<string, { debtorId: string; claimedAt: string }>) => {
+    setLocalClaimedMap(updated);
+    try {
+      localStorage.setItem(CLAIM_STORAGE_KEY, JSON.stringify(updated));
     } catch {
       // ignore
     }
@@ -256,7 +274,28 @@ export function DebtsView({
     return list.sort((a, b) => b.date.localeCompare(a.date));
   }, [expenses, selectedMonth]);
 
-  // Función para comprobar si una deuda está saldada (en Supabase o localmente)
+  // Claims de pago sincronizados desde Supabase
+  const supabaseClaimedMap = useMemo(() => {
+    const map: Record<string, { debtorId: string; claimedAt: string }> = {};
+    expenses.forEach((e) => {
+      if (e.category === "payment_claim" && e.notes?.startsWith("claimed_debt:")) {
+        const debtKey = e.notes.replace("claimed_debt:", "").trim();
+        if (debtKey) {
+          map[debtKey] = {
+            debtorId: e.paid_by,
+            claimedAt: e.date || (e.created_at ? e.created_at.split("T")[0]! : ""),
+          };
+        }
+      }
+    });
+    return map;
+  }, [expenses]);
+
+  const isDebtClaimed = (item: ItemizedTransfer) => {
+    return !!supabaseClaimedMap[item.id] || !!localClaimedMap[item.id];
+  };
+
+  // Función para comprobar si una deuda está saldada definitivamente (en Supabase o localmente)
   const isDebtSettled = (item: ItemizedTransfer) => {
     return !!supabaseSettledMap[item.id] || !!localSettledMap[item.id];
   };
@@ -319,30 +358,111 @@ export function DebtsView({
     }
   };
 
-  // Marcar como pagado (común para todos en tiempo real con notificaciones y reglas de alquiler)
-  const handleMarkAsPaid = async (
-    item: ItemizedTransfer,
-    roleAction: "debtor_paid" | "creditor_received" | "standard" = "standard"
-  ) => {
+  // 1. El deudor marca que ha pagado: se notifica al acreedor y NO desaparece de la lista
+  const handleDebtorMarkPaid = async (item: ItemizedTransfer) => {
     const now = new Date();
     const formattedDate = `${now.toLocaleDateString("es-ES", { day: "2-digit", month: "2-digit" })} ${now.toLocaleTimeString("es-ES", { hour: "2-digit", minute: "2-digit" })}`;
+    const from = getFlatmate(item.fromUserId);
+    const to = getFlatmate(item.toUserId);
 
+    // Guardar aviso de pago en local
+    const updatedClaims = {
+      ...localClaimedMap,
+      [item.id]: {
+        debtorId: item.fromUserId,
+        claimedAt: formattedDate,
+      },
+    };
+    saveLocalClaimedMap(updatedClaims);
+
+    // Si es cuota de alquiler, registrar fecha del pago para regla de puntualidad
+    if (item.id.startsWith("rent_")) {
+      await rentService.recordRentPayment({
+        userId: item.fromUserId,
+        monthStr: selectedMonth,
+      });
+    }
+
+    // Registrar aviso en Supabase para sincronizar entre navegadores
+    try {
+      await expensesService.createExpense({
+        household_id: DEFAULT_HOUSEHOLD_ID,
+        description: `Aviso de pago: ${item.concept}`,
+        amount: item.amount,
+        paid_by: item.fromUserId,
+        category: "payment_claim",
+        notes: `claimed_debt:${item.id}`,
+        participantUserIds: [item.toUserId],
+      });
+    } catch {
+      // ignore
+    }
+
+    // Enviar notificación al acreedor
+    try {
+      await notificationService.sendPaymentSentNotice({
+        senderName: from.name,
+        senderUserId: from.id,
+        creditorName: to.name,
+        creditorUserId: to.id,
+        amount: item.amount,
+        concept: item.concept,
+      });
+    } catch {
+      // ignore
+    }
+
+    triggerToast(`💸 Has avisado a ${to.name}. La transferencia espera su confirmación de cobro.`);
+  };
+
+  // Deshacer el aviso de pago del deudor
+  const handleUndoClaim = async (item: ItemizedTransfer) => {
+    const updatedClaims = { ...localClaimedMap };
+    delete updatedClaims[item.id];
+    saveLocalClaimedMap(updatedClaims);
+
+    const claimExpense = expenses.find(
+      (e) => e.category === "payment_claim" && e.notes === `claimed_debt:${item.id}`
+    );
+    if (claimExpense && onDeleteSettlement) {
+      void onDeleteSettlement(claimExpense.id);
+    }
+
+    triggerToast("Aviso de pago cancelado. La deuda vuelve a estar pendiente.");
+  };
+
+  // 2. El acreedor confirma la recepción: se liquida definitivamente y pasa al Historial
+  const handleConfirmReceived = async (item: ItemizedTransfer) => {
+    const now = new Date();
+    const formattedDate = `${now.toLocaleDateString("es-ES", { day: "2-digit", month: "2-digit" })} ${now.toLocaleTimeString("es-ES", { hour: "2-digit", minute: "2-digit" })}`;
     const from = getFlatmate(item.fromUserId);
     const to = getFlatmate(item.toUserId);
 
     setJustSettledId(item.id);
 
-    // Guardar estado local optimista para feedback inmediato
-    const updatedLocal = {
+    // 1. Limpiar claim si existía
+    const updatedClaims = { ...localClaimedMap };
+    delete updatedClaims[item.id];
+    saveLocalClaimedMap(updatedClaims);
+
+    const claimExpense = expenses.find(
+      (e) => e.category === "payment_claim" && e.notes === `claimed_debt:${item.id}`
+    );
+    if (claimExpense && onDeleteSettlement) {
+      void onDeleteSettlement(claimExpense.id);
+    }
+
+    // 2. Guardar estado liquidado local
+    const updatedSettled = {
       ...localSettledMap,
       [item.id]: {
         ...item,
         settledAt: formattedDate,
       },
     };
-    saveLocalSettledMap(updatedLocal);
+    saveLocalSettledMap(updatedSettled);
 
-    // Si es una cuota de alquiler, evaluar puntualidad (regla de los 5 primeros días del mes)
+    // 3. Si es alquiler, evaluar puntualidad (regla de los 5 primeros días del mes)
     if (item.id.startsWith("rent_")) {
       const res = await rentService.recordRentPayment({
         userId: item.fromUserId,
@@ -352,46 +472,31 @@ export function DebtsView({
       if (res.isOnTime) {
         setRentFeedback({
           isOnTime: true,
-          message: `¡Alquiler pagado en los 5 primeros días! +1 punto de convivencia ganado para ${from.name}. 🏆`,
+          message: `¡Pago confirmado a tiempo! +1 punto de convivencia ganado para ${from.name}. 🏆`,
         });
       } else {
         setRentFeedback({
           isOnTime: false,
-          message: `Alquiler pagado fuera de plazo (después del día 5). Se aplica penalización de -1 punto a ${from.name}. ⚠️`,
+          message: `Pago fuera de plazo (después del día 5). Se aplica penalización de -1 punto a ${from.name}. ⚠️`,
         });
       }
     }
 
-    // Despachar notificaciones en tiempo real según la acción
+    // 4. Enviar notificación al deudor de confirmación
     try {
-      if (roleAction === "debtor_paid") {
-        await notificationService.sendPaymentSentNotice({
-          senderName: from.name,
-          senderUserId: from.id,
-          creditorName: to.name,
-          creditorUserId: to.id,
-          amount: item.amount,
-          concept: item.concept,
-        });
-        triggerToast(`💸 Has marcado como pagado. Se ha avisado a ${to.name}.`);
-      } else if (roleAction === "creditor_received") {
-        await notificationService.sendPaymentReceivedNotice({
-          senderName: to.name,
-          senderUserId: to.id,
-          debtorName: from.name,
-          debtorUserId: from.id,
-          amount: item.amount,
-          concept: item.concept,
-        });
-        triggerToast(`✅ Cobro confirmado. Se ha avisado a ${from.name}.`);
-      } else {
-        triggerToast(`✓ Transferencia de ${formatEuro(item.amount)} marcada como pagada.`);
-      }
-    } catch (err) {
-      console.error("Error enviando notificación de liquidación:", err);
+      await notificationService.sendPaymentReceivedNotice({
+        senderName: to.name,
+        senderUserId: to.id,
+        debtorName: from.name,
+        debtorUserId: from.id,
+        amount: item.amount,
+        concept: item.concept,
+      });
+    } catch {
+      // ignore
     }
 
-    // Persistir en Supabase en tiempo real
+    // 5. Persistir liquidación definitiva en Supabase
     if (onSettleTransfer) {
       try {
         await onSettleTransfer({
@@ -405,6 +510,8 @@ export function DebtsView({
         console.error("Error sincronizando liquidación en Supabase:", err);
       }
     }
+
+    triggerToast(`✅ Cobro de ${formatEuro(item.amount)} confirmado. Se ha avisado a ${from.name}.`);
 
     setTimeout(() => {
       setJustSettledId(null);
@@ -491,12 +598,16 @@ export function DebtsView({
               const visual = getCategoryVisual(item.category);
               const IconComp = visual.icon;
               const isSettling = justSettledId === item.id;
+              const isClaimed = isDebtClaimed(item);
 
               return (
                 <div
                   key={item.id}
                   className={cn(
-                    "rounded-3xl border border-[#BFC6CC]/70 bg-white p-4 sm:p-5 shadow-xs transition-all space-y-3 hover:border-[#194F6B]/40",
+                    "rounded-3xl border bg-white p-4 sm:p-5 shadow-xs transition-all space-y-3",
+                    isClaimed
+                      ? "border-amber-400/80 bg-amber-50/20 shadow-xs"
+                      : "border-[#BFC6CC]/70 hover:border-[#194F6B]/40",
                     isSettling && "opacity-30 scale-98 transition-all duration-300"
                   )}
                 >
@@ -528,6 +639,35 @@ export function DebtsView({
                       </span>
                     </div>
                   </div>
+
+                  {/* Aviso si el deudor ya ha marcado pagado (esperando confirmación del acreedor) */}
+                  {isClaimed && (
+                    <div className="flex items-center justify-between gap-2 p-2.5 rounded-2xl bg-amber-50 border border-amber-300/80 text-amber-900 animate-in fade-in-50 duration-200">
+                      <div className="flex items-center gap-2 min-w-0">
+                        <span className="text-sm leading-none">💸</span>
+                        <span className="text-xs font-medium">
+                          {currentUserId === item.fromUserId ? (
+                            <>
+                              Has indicado que ya has pagado <strong>{formatEuro(item.amount)}</strong>. Esperando confirmación de cobro de <strong>{to.name}</strong>.
+                            </>
+                          ) : (
+                            <>
+                              <strong>{from.name}</strong> indica que ya te ha transferido <strong>{formatEuro(item.amount)}</strong>.
+                            </>
+                          )}
+                        </span>
+                      </div>
+                      {currentUserId === item.fromUserId && (
+                        <button
+                          type="button"
+                          onClick={() => void handleUndoClaim(item)}
+                          className="shrink-0 text-xs font-bold text-amber-800 hover:text-amber-950 underline ml-2 cursor-pointer"
+                        >
+                          Deshacer
+                        </button>
+                      )}
+                    </div>
+                  )}
 
                   {/* FLECHA VISUAL: Deudor -> Importe -> Acreedor */}
                   <div className="flex items-center justify-between gap-2 pt-2 border-t border-[#BFC6CC]/30 flex-wrap sm:flex-nowrap">
@@ -594,52 +734,91 @@ export function DebtsView({
                     </span>
 
                     <div className="flex items-center gap-1.5 flex-wrap">
-                      {/* Si soy el acreedor (me deben dinero) o Jorge administrador: Avisar de que falta por pagar */}
-                      {(currentUserId === item.toUserId || currentUserId === "22222222-2222-4222-8222-222222222222") && (
-                        <button
-                          type="button"
-                          onClick={() => void handleSendDebtReminder(item)}
-                          className="inline-flex items-center gap-1 rounded-xl px-2.5 py-1.5 text-xs font-semibold border border-amber-500/50 bg-amber-50 text-amber-800 hover:bg-amber-100 active:scale-95 transition-all shadow-2xs"
-                          title="Avisar de que falta por pagar"
-                        >
-                          <BellRing className="h-3.5 w-3.5 text-amber-600" />
-                          <span>Avisar de pago</span>
-                        </button>
-                      )}
-
-                      {/* Si soy el deudor (el que debe): Marcar pagado */}
+                      {/* Si soy el deudor (el que debe pagar): */}
                       {currentUserId === item.fromUserId ? (
-                        <button
-                          type="button"
-                          onClick={() => void handleMarkAsPaid(item, "debtor_paid")}
-                          disabled={isSettling}
-                          className="inline-flex items-center gap-1.5 rounded-xl px-3 py-1.5 text-xs font-bold bg-[#31405F] text-white hover:bg-[#194F6B] active:scale-95 transition-all shadow-2xs border border-[#31405F] cursor-pointer"
-                        >
-                          <Check className="h-3.5 w-3.5 stroke-[2.5]" />
-                          <span>Pagado</span>
-                        </button>
+                        isClaimed ? (
+                          <div className="flex items-center gap-2">
+                            <span className="inline-flex items-center gap-1.5 rounded-xl px-2.5 py-1 text-xs font-semibold bg-amber-100 text-amber-800 border border-amber-300/60 shadow-2xs">
+                              <Clock className="h-3.5 w-3.5 text-amber-600 animate-pulse" />
+                              <span>Pagado (esperando confirmación)</span>
+                            </span>
+                            <button
+                              type="button"
+                              onClick={() => void handleUndoClaim(item)}
+                              className="text-xs font-semibold text-[#607283] hover:text-rose-600 underline transition-colors cursor-pointer"
+                            >
+                              Deshacer
+                            </button>
+                          </div>
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={() => void handleDebtorMarkPaid(item)}
+                            disabled={isSettling}
+                            className="inline-flex items-center gap-1.5 rounded-xl px-3 py-1.5 text-xs font-bold bg-[#31405F] text-white hover:bg-[#194F6B] active:scale-95 transition-all shadow-2xs border border-[#31405F] cursor-pointer"
+                          >
+                            <Check className="h-3.5 w-3.5 stroke-[2.5]" />
+                            <span>Pagado</span>
+                          </button>
+                        )
                       ) : currentUserId === item.toUserId ? (
-                        /* Si soy el acreedor (el que cobra): Confirmar que lo he recibido */
-                        <button
-                          type="button"
-                          onClick={() => void handleMarkAsPaid(item, "creditor_received")}
-                          disabled={isSettling}
-                          className="inline-flex items-center gap-1.5 rounded-xl px-3 py-1.5 text-xs font-bold bg-emerald-700 text-white hover:bg-emerald-800 active:scale-95 transition-all shadow-2xs border border-emerald-700 cursor-pointer"
-                        >
-                          <CheckCheck className="h-3.5 w-3.5 stroke-[2.5]" />
-                          <span>Recibido</span>
-                        </button>
+                        /* Si soy el acreedor (el que recibe el dinero): */
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          {!isClaimed && (
+                            <button
+                              type="button"
+                              onClick={() => void handleSendDebtReminder(item)}
+                              className="inline-flex items-center gap-1 rounded-xl px-2.5 py-1.5 text-xs font-semibold border border-amber-500/50 bg-amber-50 text-amber-800 hover:bg-amber-100 active:scale-95 transition-all shadow-2xs cursor-pointer"
+                              title="Avisar de que falta por pagar"
+                            >
+                              <BellRing className="h-3.5 w-3.5 text-amber-600" />
+                              <span>Avisar de pago</span>
+                            </button>
+                          )}
+                          <button
+                            type="button"
+                            onClick={() => void handleConfirmReceived(item)}
+                            disabled={isSettling}
+                            className={cn(
+                              "inline-flex items-center gap-1.5 rounded-xl px-3.5 py-1.5 text-xs font-bold text-white active:scale-95 transition-all shadow-2xs cursor-pointer",
+                              isClaimed
+                                ? "bg-emerald-600 hover:bg-emerald-700 ring-2 ring-emerald-500/30 animate-pulse"
+                                : "bg-emerald-700 hover:bg-emerald-800 border border-emerald-700"
+                            )}
+                          >
+                            <CheckCheck className="h-3.5 w-3.5 stroke-[2.5]" />
+                            <span>{isClaimed ? "Confirmar recibido" : "Recibido"}</span>
+                          </button>
+                        </div>
                       ) : (
-                        /* Para Jorge u otro compañero: Marcar pagado general */
-                        <button
-                          type="button"
-                          onClick={() => void handleMarkAsPaid(item, "standard")}
-                          disabled={isSettling}
-                          className="inline-flex items-center gap-1.5 rounded-xl px-3 py-1.5 text-xs font-bold bg-[#31405F] text-white hover:bg-[#194F6B] active:scale-95 transition-all shadow-2xs border border-[#31405F]"
-                        >
-                          <Check className="h-3.5 w-3.5 stroke-[2.5]" />
-                          <span>Marcar pagado</span>
-                        </button>
+                        /* Para Jorge u otro compañero observador: */
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          {currentUserId === "22222222-2222-4222-8222-222222222222" && !isClaimed && (
+                            <button
+                              type="button"
+                              onClick={() => void handleSendDebtReminder(item)}
+                              className="inline-flex items-center gap-1 rounded-xl px-2.5 py-1.5 text-xs font-semibold border border-amber-500/50 bg-amber-50 text-amber-800 hover:bg-amber-100 active:scale-95 transition-all shadow-2xs cursor-pointer"
+                              title="Avisar de que falta por pagar"
+                            >
+                              <BellRing className="h-3.5 w-3.5 text-amber-600" />
+                              <span>Avisar</span>
+                            </button>
+                          )}
+                          <button
+                            type="button"
+                            onClick={() => void handleConfirmReceived(item)}
+                            disabled={isSettling}
+                            className={cn(
+                              "inline-flex items-center gap-1.5 rounded-xl px-3 py-1.5 text-xs font-bold text-white active:scale-95 transition-all shadow-2xs cursor-pointer",
+                              isClaimed
+                                ? "bg-emerald-600 hover:bg-emerald-700"
+                                : "bg-[#31405F] hover:bg-[#194F6B] border border-[#31405F]"
+                            )}
+                          >
+                            <CheckCheck className="h-3.5 w-3.5 stroke-[2.5]" />
+                            <span>{isClaimed ? "Confirmar recibido" : "Marcar recibido"}</span>
+                          </button>
+                        </div>
                       )}
                     </div>
                   </div>
