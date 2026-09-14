@@ -139,7 +139,10 @@ export const expensesService = {
     }
 
     const expenseId = createdExpense.data.id;
-    const participantsCount = data.participantUserIds.length;
+    const validParticipantIds = (data.participantUserIds || []).filter((id) =>
+      /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id)
+    );
+    const participantsCount = validParticipantIds.length;
     const share =
       participantsCount > 0
         ? Math.round((data.amount / participantsCount + Number.EPSILON) * 100) / 100
@@ -148,7 +151,7 @@ export const expensesService = {
     const participantsTable = getTableClient("expense_participants");
     const participantsList: ExpenseParticipantItem[] = [];
 
-    for (const userId of data.participantUserIds) {
+    for (const userId of validParticipantIds) {
       await participantsTable.insert({
         expense_id: expenseId,
         user_id: userId,

@@ -226,9 +226,15 @@ export function DebtsView({
       date: `${selectedMonth}-01`,
     });
 
-    // B) Gastos y facturas de la tabla expenses (filtrados del mes o generales, excluyendo liquidaciones)
+    // B) Gastos y facturas de la tabla expenses (filtrados del mes o generales, excluyendo liquidaciones y avisos de sistema)
     expenses.forEach((expense) => {
-      if (expense.category === "settlement") return;
+      if (
+        expense.category === "settlement" ||
+        expense.category === "payment_claim" ||
+        expense.category === "rent_payment"
+      ) {
+        return;
+      }
       const cat = (expense.category || "").toLowerCase();
       if (cat === "alquiler" || cat === "rent") return; // Ya cubierto arriba
 
@@ -387,6 +393,9 @@ export function DebtsView({
 
     // Registrar aviso en Supabase para sincronizar entre navegadores
     try {
+      const validParticipants = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(item.toUserId)
+        ? [item.toUserId]
+        : [];
       await expensesService.createExpense({
         household_id: DEFAULT_HOUSEHOLD_ID,
         description: `Aviso de pago: ${item.concept}`,
@@ -394,7 +403,7 @@ export function DebtsView({
         paid_by: item.fromUserId,
         category: "payment_claim",
         notes: `claimed_debt:${item.id}`,
-        participantUserIds: [item.toUserId],
+        participantUserIds: validParticipants,
       });
     } catch {
       // ignore

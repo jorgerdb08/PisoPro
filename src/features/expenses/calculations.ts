@@ -47,6 +47,10 @@ export function calculateNetBalances(
   });
 
   expenses.forEach((expense) => {
+    const cat = (expense.category || "other").toLowerCase();
+    if (cat === "settlement" || cat === "payment_claim" || cat === "rent_payment") {
+      return;
+    }
     const amount = Number(expense.amount) || 0;
 
     // Quien pagó suma el importe total
@@ -245,12 +249,15 @@ export function calculateMonthlyUserShares(
 
   monthExpenses.forEach((exp) => {
     const cat = (exp.category || "other").toLowerCase();
+    if (cat === "settlement" || cat === "payment_claim" || cat === "rent_payment") {
+      return;
+    }
     const isSupplies = suppliesCategories.has(cat);
     const amount = Number(exp.amount) || 0;
 
     if (isSupplies) {
       monthSuppliesTotal += amount;
-    } else if (cat !== "settlement" && cat !== "alquiler") {
+    } else if (cat !== "alquiler") {
       monthVariableTotal += amount;
     }
 
@@ -264,7 +271,7 @@ export function calculateMonthlyUserShares(
       const share = Number(p.share_amount) || 0;
       if (isSupplies) {
         suppliesPerUser[p.user_id] = (suppliesPerUser[p.user_id] || 0) + share;
-      } else if (cat !== "settlement" && cat !== "alquiler") {
+      } else if (cat !== "alquiler") {
         variablePerUser[p.user_id] = (variablePerUser[p.user_id] || 0) + share;
       }
     });
@@ -339,12 +346,15 @@ export function getMonthlyHistoricalBreakdown(
 
     monthExpenses.forEach((e) => {
       const cat = (e.category || "otros").toLowerCase();
+      if (cat === "settlement" || cat === "payment_claim" || cat === "rent_payment") {
+        return;
+      }
       const amount = Number(e.amount) || 0;
       categoryBreakdown[cat] = (categoryBreakdown[cat] || 0) + amount;
 
       if (suppliesCats.has(cat)) {
         suppliesTotal += amount;
-      } else if (cat !== "settlement" && cat !== "alquiler") {
+      } else if (cat !== "alquiler") {
         variableTotal += amount;
       }
     });

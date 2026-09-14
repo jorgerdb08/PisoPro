@@ -28,10 +28,10 @@ export function useExpenses() {
   const flatmateIds = useMemo(() => FLATMATES.map((f) => f.id), []);
 
   const rentSummary: MonthlyRentSummary = useMemo(() => {
-    // Recompute when selectedMonth or rentVersion changes
+    // Recompute when selectedMonth, rentVersion, or expenses change
     void rentVersion;
-    return rentService.getMonthlyRentStatus(DEFAULT_HOUSEHOLD_ID, selectedMonth);
-  }, [selectedMonth, rentVersion]);
+    return rentService.getMonthlyRentStatus(DEFAULT_HOUSEHOLD_ID, selectedMonth, expenses);
+  }, [selectedMonth, rentVersion, expenses]);
 
   const refreshRentStatus = useCallback(() => {
     setRentVersion((v) => v + 1);

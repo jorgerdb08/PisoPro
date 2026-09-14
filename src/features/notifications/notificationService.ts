@@ -4,7 +4,53 @@ import type { PisoProNotification, NotificationType } from "@/types";
 
 const PREF_KEY = "pisopro_notifications_enabled";
 
+function isValidUuid(id?: string | null): boolean {
+  if (!id) return false;
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
+}
+
 export const notificationService = {
+  /**
+   * Reproduce un suave sonido de notificación (chime de 2 tonos) vía Web Audio API nativa
+   */
+  playNotificationSound(): void {
+    if (typeof window === "undefined") return;
+    try {
+      const AudioCtx =
+        window.AudioContext ||
+        (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
+      if (!AudioCtx) return;
+      const ctx = new AudioCtx();
+      const now = ctx.currentTime;
+
+      // Nota 1: D5 (587.33 Hz)
+      const osc1 = ctx.createOscillator();
+      const gain1 = ctx.createGain();
+      osc1.type = "sine";
+      osc1.frequency.setValueAtTime(587.33, now);
+      gain1.gain.setValueAtTime(0.12, now);
+      gain1.gain.exponentialRampToValueAtTime(0.001, now + 0.18);
+      osc1.connect(gain1);
+      gain1.connect(ctx.destination);
+      osc1.start(now);
+      osc1.stop(now + 0.18);
+
+      // Nota 2: A5 (880.00 Hz)
+      const osc2 = ctx.createOscillator();
+      const gain2 = ctx.createGain();
+      osc2.type = "sine";
+      osc2.frequency.setValueAtTime(880.0, now + 0.08);
+      gain2.gain.setValueAtTime(0.15, now + 0.08);
+      gain2.gain.exponentialRampToValueAtTime(0.001, now + 0.38);
+      osc2.connect(gain2);
+      gain2.connect(ctx.destination);
+      osc2.start(now + 0.08);
+      osc2.stop(now + 0.38);
+    } catch {
+      // AudioContext puede requerir interacción previa del usuario
+    }
+  },
+
   /**
    * Comprueba si la API de notificaciones está soportada en el navegador
    */
@@ -284,10 +330,10 @@ export const notificationService = {
       const raw = localStorage.getItem(key);
       if (!raw) return [];
       const list = JSON.parse(raw) as PisoProNotification[];
-      // Filtrar notificaciones dirigidas al usuario o globales al piso
+      // Filtrar notificaciones dirigidas al usuario o generadas por él
       if (!userId) return list;
       return list.filter(
-        (n) => !n.target_user_id || n.target_user_id === userId
+        (n) => !n.target_user_id || n.target_user_id === userId || n.actor_user_id === userId
       );
     } catch {
       return [];
@@ -357,9 +403,10 @@ export const notificationService = {
 
   /**
    * Despacha una notificación completa:
-   * 1. Almacena en lista in-app
-   * 2. Envía notificación nativa al navegador/PWA
-   * 3. Transmite en tiempo real vía Supabase Realtime a otros dispositivos
+   * 1. Almacena en lista in-app local
+   * 2. Envía notificación nativa si aplica
+   * 3. Persiste en la tabla 'notifications' de Supabase (dispara Realtime postgres_changes a todos los dispositivos)
+   * 4. Transmite por canal Realtime broadcast como respaldo
    */
   async dispatchNotification(
     params: {
@@ -374,6 +421,9 @@ export const notificationService = {
     }
   ): Promise<PisoProNotification> {
     const householdId = params.householdId || DEFAULT_HOUSEHOLD_ID;
+    const targetUserId = isValidUuid(params.targetUserId) ? params.targetUserId : null;
+    const actorUserId = isValidUuid(params.actorUserId) ? params.actorUserId : null;
+
     const notification: PisoProNotification = {
       id: `notif-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
       household_id: householdId,
@@ -382,8 +432,8 @@ export const notificationService = {
       body: params.body,
       created_at: new Date().toISOString(),
       read: false,
-      target_user_id: params.targetUserId ?? null,
-      actor_user_id: params.actorUserId ?? null,
+      target_user_id: targetUserId,
+      actor_user_id: actorUserId,
       actor_name: params.actorName ?? null,
       data: params.data,
     };
@@ -398,7 +448,35 @@ export const notificationService = {
       data: params.data,
     });
 
-    // 3. Transmitir por canal de Realtime Supabase si está disponible
+    // 3. Persistir en la tabla 'notifications' de Supabase
+    // Al insertarse, PostgreSQL emite el evento postgres_changes vía WebSocket a todos los usuarios conectados
+    try {
+      const supabase = getSupabaseBrowserClient();
+      const { data, error } = await (supabase.from("notifications") as any)
+        .insert({
+          household_id: householdId,
+          target_user_id: targetUserId,
+          actor_user_id: actorUserId,
+          type: params.type,
+          title: params.title,
+          body: params.body,
+          data: params.data ?? {},
+          read: false,
+        })
+        .select()
+        .single();
+
+      if (!error && data) {
+        notification.id = data.id;
+        notification.created_at = data.created_at;
+      } else if (error) {
+        console.warn("[notificationService] Supabase insert warning:", error.message || error);
+      }
+    } catch (err) {
+      console.warn("[notificationService] Exception inserting notification to Supabase:", err);
+    }
+
+    // 4. Transmitir por broadcast como respaldo secundario
     try {
       const supabase = getSupabaseBrowserClient();
       const channel = supabase.channel(`pisopro-broadcast-${householdId}`);
@@ -412,24 +490,7 @@ export const notificationService = {
         }
       });
     } catch (err) {
-      console.warn("[notificationService] Realtime broadcast error:", err);
-    }
-
-    // 4. Persistir en la tabla notifications de Supabase para histórico en la nube
-    try {
-      const supabase = getSupabaseBrowserClient();
-      void (supabase.from("notifications") as any).insert({
-        household_id: householdId,
-        target_user_id: params.targetUserId ?? null,
-        actor_user_id: params.actorUserId ?? null,
-        type: params.type,
-        title: params.title,
-        body: params.body,
-        data: params.data ?? {},
-        read: false,
-      });
-    } catch {
-      // Ignorar si hay problemas de red o tabla no disponible
+      // ignore
     }
 
     return notification;

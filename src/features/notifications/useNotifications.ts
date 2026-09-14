@@ -38,32 +38,85 @@ export function useNotifications() {
     window.addEventListener("pisopro-notification-updated", handleLocalUpdate);
     window.addEventListener("storage", handleLocalUpdate);
 
-    // 2. Suscribirse a Supabase Realtime Broadcast para recibir avisos de otros compañeros
+    // 2. Suscribirse a Supabase Realtime Postgres Changes en la tabla 'notifications'
     const supabase = getSupabaseBrowserClient();
-    const channelName = `pisopro-broadcast-${DEFAULT_HOUSEHOLD_ID}`;
-    const channel = supabase.channel(channelName);
+    const realtimeChannel = supabase
+      .channel("pisopro-notifications-realtime")
+      .on(
+        "postgres_changes",
+        {
+          event: "INSERT",
+          schema: "public",
+          table: "notifications",
+          filter: `household_id=eq.${DEFAULT_HOUSEHOLD_ID}`,
+        },
+        (payload) => {
+          const row = payload.new as any;
+          if (!row || !row.id) return;
 
-    channel
+          const isActor = row.actor_user_id === currentUser?.id;
+          const isTarget = !row.target_user_id || row.target_user_id === currentUser?.id;
+
+          // Si el usuario actual es el destinatario o el emisor de la acción
+          if (isTarget || isActor) {
+            const notifItem: PisoProNotification = {
+              id: row.id,
+              household_id: row.household_id,
+              type: row.type as NotificationType,
+              title: isActor && !isTarget ? `[Enviado] ${row.title}` : row.title,
+              body: row.body,
+              created_at: row.created_at,
+              read: isActor && !isTarget,
+              target_user_id: row.target_user_id ?? null,
+              actor_user_id: row.actor_user_id ?? null,
+              data: (row.data as Record<string, unknown>) || undefined,
+            };
+
+            // Añadir al estado en memoria
+            setNotifications((prev) => {
+              if (prev.some((p) => p.id === notifItem.id)) return prev;
+              return [notifItem, ...prev];
+            });
+
+            // Guardar en almacenamiento in-app local
+            const currentList = notificationService.getInAppNotifications(DEFAULT_HOUSEHOLD_ID);
+            if (!currentList.some((n) => n.id === notifItem.id)) {
+              notificationService.saveInAppNotifications(
+                [notifItem, ...currentList],
+                DEFAULT_HOUSEHOLD_ID
+              );
+            }
+
+            // Si es destinatario directo y no es el propio emisor: sonido + push nativo
+            if (isTarget && !isActor) {
+              notificationService.playNotificationSound();
+              void notificationService.sendNotification(row.title, {
+                body: row.body,
+                data: row.data,
+              });
+            }
+          }
+        }
+      )
       .on("broadcast", { event: "new-notification" }, (payload) => {
         const notif = payload.payload as PisoProNotification;
         if (!notif || !notif.id) return;
 
-        // Si la notificación fue emitida por otro usuario y aplica a este usuario
         const isSelf = notif.actor_user_id === currentUser?.id;
         const isTarget = !notif.target_user_id || notif.target_user_id === currentUser?.id;
 
-        if (!isSelf && isTarget) {
-          // Guardar en almacenamiento in-app local
-          const currentList = notificationService.getInAppNotifications(DEFAULT_HOUSEHOLD_ID);
-          if (!currentList.some((n) => n.id === notif.id)) {
-            notificationService.saveInAppNotifications([notif, ...currentList], DEFAULT_HOUSEHOLD_ID);
-          }
-
-          // Disparar notificación nativa en segundo plano
-          void notificationService.sendNotification(notif.title, {
-            body: notif.body,
-            data: notif.data,
+        if (isTarget || isSelf) {
+          setNotifications((prev) => {
+            if (prev.some((p) => p.id === notif.id)) return prev;
+            return [notif, ...prev];
           });
+          if (!isSelf && isTarget) {
+            notificationService.playNotificationSound();
+            void notificationService.sendNotification(notif.title, {
+              body: notif.body,
+              data: notif.data,
+            });
+          }
         }
       })
       .subscribe();
@@ -91,40 +144,37 @@ export function useNotifications() {
             actor_user_id?: string | null;
             data?: Record<string, unknown> | null;
           }>;
-          const formatted: PisoProNotification[] = rows.map((row) => ({
-            id: row.id,
-            household_id: row.household_id,
-            type: row.type as NotificationType,
-            title: row.title,
-            body: row.body,
-            created_at: row.created_at,
-            read: row.read ?? false,
-            target_user_id: row.target_user_id ?? null,
-            actor_user_id: row.actor_user_id ?? null,
-            data: row.data as Record<string, unknown> | undefined,
-          }));
 
-          const localList = notificationService.getInAppNotifications(DEFAULT_HOUSEHOLD_ID);
-          const combined = [...localList];
-          for (const item of formatted) {
-            if (
-              !combined.some(
-                (c) =>
-                  c.id === item.id ||
-                  (c.title === item.title &&
-                    Math.abs(new Date(c.created_at).getTime() - new Date(item.created_at).getTime()) < 5000)
-              )
-            ) {
-              combined.push(item);
-            }
-          }
-          combined.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
-          notificationService.saveInAppNotifications(combined, DEFAULT_HOUSEHOLD_ID);
-          setNotifications(
-            combined.filter(
-              (n) => !n.target_user_id || n.target_user_id === currentUser?.id
-            )
-          );
+          const formatted: PisoProNotification[] = rows
+            .filter((row) => {
+              if (!currentUser) return true;
+              return (
+                !row.target_user_id ||
+                row.target_user_id === currentUser.id ||
+                row.actor_user_id === currentUser.id
+              );
+            })
+            .map((row) => ({
+              id: row.id,
+              household_id: row.household_id,
+              type: row.type as NotificationType,
+              title:
+                row.actor_user_id === currentUser?.id && row.target_user_id !== currentUser?.id
+                  ? `[Enviado] ${row.title}`
+                  : row.title,
+              body: row.body,
+              created_at: row.created_at,
+              read:
+                row.actor_user_id === currentUser?.id && row.target_user_id !== currentUser?.id
+                  ? true
+                  : (row.read ?? false),
+              target_user_id: row.target_user_id ?? null,
+              actor_user_id: row.actor_user_id ?? null,
+              data: (row.data as Record<string, unknown>) || undefined,
+            }));
+
+          setNotifications(formatted);
+          notificationService.saveInAppNotifications(formatted, DEFAULT_HOUSEHOLD_ID);
         }
       } catch {
         // Fallback silencioso si la tabla no está disponible o sin conexión
@@ -135,7 +185,7 @@ export function useNotifications() {
     return () => {
       window.removeEventListener("pisopro-notification-updated", handleLocalUpdate);
       window.removeEventListener("storage", handleLocalUpdate);
-      void supabase.removeChannel(channel);
+      void supabase.removeChannel(realtimeChannel);
     };
   }, [currentUser?.id, loadLocalNotifications]);
 

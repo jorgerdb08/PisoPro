@@ -7,6 +7,8 @@ import {
 } from "@/lib/constants";
 import { chatService } from "./chatService";
 import { notificationService } from "@/features/notifications/notificationService";
+import { expensesService } from "./expensesService";
+import type { ExpenseItem } from "@/features/expenses/calculations";
 
 export interface FlatmateRentStatus {
   userId: string;
@@ -68,7 +70,8 @@ export const rentService = {
    */
   getMonthlyRentStatus(
     householdId: string = DEFAULT_HOUSEHOLD_ID,
-    monthStr: string = getCurrentMonthStr()
+    monthStr: string = getCurrentMonthStr(),
+    expenses?: ExpenseItem[]
   ): MonthlyRentSummary {
     const storageKey = `pisopro_rent_${householdId}_${monthStr}`;
     let savedRecords: Record<string, { paidDate: string; pointsAwarded: number }> = {};
@@ -80,6 +83,24 @@ export const rentService = {
       } catch {
         savedRecords = {};
       }
+    }
+
+    // Sincronización en tiempo real desde Supabase expenses (rent_payment)
+    if (expenses && expenses.length > 0) {
+      expenses.forEach((e) => {
+        if (
+          e.category === "rent_payment" &&
+          e.notes?.startsWith(`rent_paid:${monthStr}:`)
+        ) {
+          const parts = e.notes.split(":");
+          const userId = parts[2];
+          const paidDate = parts[3] || e.date || "";
+          const points = Number(parts[4]) || 0;
+          if (userId && !savedRecords[userId]) {
+            savedRecords[userId] = { paidDate, pointsAwarded: points };
+          }
+        }
+      });
     }
 
     const today = new Date();
@@ -154,6 +175,22 @@ export const rentService = {
           console.error("[rentService] Error toggling rent status:", err);
         }
       }
+
+      // Eliminar registro de rent_payment en Supabase si existe
+      try {
+        const allExp = await expensesService.getExpenses(householdId);
+        const match = allExp.find(
+          (e) =>
+            e.category === "rent_payment" &&
+            e.notes?.startsWith(`rent_paid:${params.monthStr}:${params.userId}`)
+        );
+        if (match) {
+          await expensesService.deleteExpense(match.id);
+        }
+      } catch {
+        // ignore
+      }
+
       return { isPaid: false };
     } else {
       await this.recordRentPayment({
@@ -197,6 +234,22 @@ export const rentService = {
       } catch (err) {
         console.error("[rentService] Error saving rent payment locally:", err);
       }
+    }
+
+    // 2. Registrar en expenses de Supabase para sincronización en tiempo real entre todos los dispositivos
+    try {
+      await expensesService.createExpense({
+        household_id: householdId,
+        description: `Pago alquiler ${monthName} - ${userName}`,
+        amount: RENT_PER_FLATMATE,
+        paid_by: params.userId,
+        category: "rent_payment",
+        notes: `rent_paid:${params.monthStr}:${params.userId}:${paidDate}:${pointsAwarded}`,
+        date: paidDate,
+        participantUserIds: [params.userId],
+      });
+    } catch (err) {
+      console.warn("[rentService] Error syncing rent payment to Supabase expenses:", err);
     }
 
     // 2. Registrar transacción de puntos en base de datos
