@@ -192,10 +192,13 @@ export function ExpensesView() {
     (isSamuelRentSettled ? 200 : 0) + (isDavidRentSettled ? 200 : 0);
   const jorgeRentPendingToCollect = 400 - jorgeRentCollected;
 
-  // Cuotas de alquiler para el usuario actual:
-  // Todos los compañeros (incluido Jorge) tienen su cuota personal de 200,00 €
   const myRentPending = isMyRentSettled ? 0 : 200;
   const myRentSettled = isMyRentSettled ? 200 : 0;
+
+  const myRentStatus = safeRentSummary.flatmateStatuses?.find(
+    (s) => s.userId === currentUser?.id
+  );
+  const isMyRentOnTime = myRentStatus?.isOnTime ?? (new Date().getDate() <= 5);
 
   // Cuotas de suministros y otros gastos para el usuario actual (separados y descontando cada pago hecho)
   const {
@@ -425,10 +428,10 @@ export function ExpensesView() {
       currentMap[debtKey] = {
         id: debtKey,
         expenseId: `rent_${selectedMonth}`,
-        concept: `Alquiler ${safeRentSummary.monthName || selectedMonth} (Mi parte)`,
+        concept: `Alquiler ${safeRentSummary.monthName || selectedMonth}`,
         category: "alquiler",
         fromUserId: currentUser.id,
-        toUserId: "landlord",
+        toUserId: currentUser.id,
         amount: 200,
         date: `${selectedMonth}-01`,
         settledAt: formattedDate,
@@ -445,34 +448,13 @@ export function ExpensesView() {
     });
 
     if (res.isOnTime) {
-      setFeedbackBanner(`🏆 ¡Has marcado tu cuota de alquiler (200 €) como pagada dentro de los 5 primeros días! +1 punto de convivencia ganado.`);
+      setFeedbackBanner(`🏆 ¡Alquiler marcado como pagado a tiempo! Has recibido +1 punto de convivencia.`);
     } else {
-      setFeedbackBanner(`⚠️ Has marcado tu cuota de alquiler (200 €) como pagada fuera de plazo (después del día 5). -1 punto.`);
+      setFeedbackBanner(`ℹ️ Alquiler marcado como pagado fuera de fecha (después del día 5). Esta vez no recibes punto.`);
     }
-    setTimeout(() => setFeedbackBanner(null), 6000);
+    setTimeout(() => setFeedbackBanner(null), 5000);
 
-    // 3. Notificación
-    try {
-      await notificationService.sendPaymentSentNotice({
-        senderName: currentUser.name,
-        senderUserId: currentUser.id,
-        creditorName: "Casero / Piso",
-        creditorUserId: "landlord",
-        amount: 200,
-        concept: `Alquiler ${safeRentSummary.monthName || selectedMonth} (Mi cuota)`,
-      });
-    } catch {
-      // ignore
-    }
-
-    // 4. Sincronizar en Supabase
-    await settleTransfer({
-      fromUserId: currentUser.id,
-      toUserId: "landlord",
-      amount: 200,
-      debtKey: debtKey,
-      concept: `Alquiler ${safeRentSummary.monthName || selectedMonth} (Mi cuota de 200 €)`,
-    });
+    void refreshExpenses();
   };
 
   const handleUndoMyRent = async () => {
@@ -507,7 +489,168 @@ export function ExpensesView() {
       void refreshExpenses();
     }
 
-    setFeedbackBanner("Se ha deshecho el pago de tu cuota de alquiler.");
+    setFeedbackBanner("Se ha deshecho el pago del alquiler.");
+    setTimeout(() => setFeedbackBanner(null), 3000);
+  };
+
+  // Marcar como pagada toda la cuota pendiente de suministros u otros
+  const handlePayCategoryShare = async (group: "supplies" | "other") => {
+    if (!currentUser) return;
+    const SUPPLY_CATS = new Set(["luz", "agua", "gas", "internet", "wifi", "utilidades", "utilities"]);
+    const debtsToSettle: Array<{
+      debtKey: string;
+      fromUserId: string;
+      toUserId: string;
+      amount: number;
+      concept: string;
+    }> = [];
+
+    monthExpenses.forEach((e) => {
+      const cat = (e.category || "").toLowerCase();
+      if (cat === "alquiler" || cat === "rent" || cat === "settlement") return;
+      if (e.paid_by === currentUser.id) return; // Pagado por ti
+
+      const isSupply = SUPPLY_CATS.has(cat);
+      if ((group === "supplies" && !isSupply) || (group === "other" && isSupply)) return;
+
+      const debtKey = `${e.id}_${currentUser.id}`;
+      if (settledDebtKeys.has(debtKey)) return;
+
+      let share = 0;
+      if (e.participants && e.participants.length > 0) {
+        const p = e.participants.find((part) => part.user_id === currentUser.id);
+        if (p) share = Number(p.share_amount) || 0;
+      } else {
+        share = Math.round((Number(e.amount) / FLATMATES.length) * 100) / 100;
+      }
+
+      if (share > 0) {
+        debtsToSettle.push({
+          debtKey,
+          fromUserId: currentUser.id,
+          toUserId: e.paid_by,
+          amount: share,
+          concept: e.description || "Gasto compartido",
+        });
+      }
+    });
+
+    if (debtsToSettle.length === 0) return;
+
+    try {
+      const raw = localStorage.getItem("pisopro_settled_itemized_debts_v1");
+      const currentMap = raw ? JSON.parse(raw) : {};
+      const now = new Date();
+      const formattedDate = `${now.toLocaleDateString("es-ES", { day: "2-digit", month: "2-digit" })} ${now.toLocaleTimeString("es-ES", { hour: "2-digit", minute: "2-digit" })}`;
+
+      debtsToSettle.forEach((d) => {
+        currentMap[d.debtKey] = {
+          id: d.debtKey,
+          expenseId: d.debtKey.split("_")[0],
+          concept: d.concept,
+          category: group,
+          fromUserId: d.fromUserId,
+          toUserId: d.toUserId,
+          amount: d.amount,
+          date: `${selectedMonth}-01`,
+          settledAt: formattedDate,
+        };
+      });
+      localStorage.setItem("pisopro_settled_itemized_debts_v1", JSON.stringify(currentMap));
+    } catch {
+      // ignore
+    }
+
+    for (const d of debtsToSettle) {
+      void settleTransfer({
+        fromUserId: d.fromUserId,
+        toUserId: d.toUserId,
+        amount: d.amount,
+        debtKey: d.debtKey,
+        concept: d.concept,
+      });
+    }
+
+    setFeedbackBanner(
+      `✓ Has marcado como pagada tu parte de ${group === "supplies" ? "suministros" : "otros gastos"}.`
+    );
+    setTimeout(() => setFeedbackBanner(null), 4000);
+  };
+
+  // Marcar como pagada tu parte de una factura o gasto individual
+  const handlePaySingleExpenseShare = async (expense: typeof expenses[0]) => {
+    if (!currentUser || expense.paid_by === currentUser.id) return;
+    const debtKey = `${expense.id}_${currentUser.id}`;
+
+    let share = 0;
+    if (expense.participants && expense.participants.length > 0) {
+      const p = expense.participants.find((part) => part.user_id === currentUser.id);
+      if (p) share = Number(p.share_amount) || 0;
+    } else {
+      share = Math.round((Number(expense.amount) / FLATMATES.length) * 100) / 100;
+    }
+    if (share <= 0) return;
+
+    try {
+      const raw = localStorage.getItem("pisopro_settled_itemized_debts_v1");
+      const currentMap = raw ? JSON.parse(raw) : {};
+      const now = new Date();
+      const formattedDate = `${now.toLocaleDateString("es-ES", { day: "2-digit", month: "2-digit" })} ${now.toLocaleTimeString("es-ES", { hour: "2-digit", minute: "2-digit" })}`;
+
+      currentMap[debtKey] = {
+        id: debtKey,
+        expenseId: expense.id,
+        concept: expense.description,
+        category: expense.category,
+        fromUserId: currentUser.id,
+        toUserId: expense.paid_by,
+        amount: share,
+        date: expense.date,
+        settledAt: formattedDate,
+      };
+      localStorage.setItem("pisopro_settled_itemized_debts_v1", JSON.stringify(currentMap));
+    } catch {
+      // ignore
+    }
+
+    void settleTransfer({
+      fromUserId: currentUser.id,
+      toUserId: expense.paid_by,
+      amount: share,
+      debtKey,
+      concept: expense.description,
+    });
+
+    setFeedbackBanner(`✓ Has marcado tu parte de "${expense.description}" (${formatEuro(share)}) como pagada.`);
+    setTimeout(() => setFeedbackBanner(null), 4000);
+  };
+
+  // Deshacer el pago de tu parte de una factura o gasto individual
+  const handleUndoSingleExpenseShare = async (expense: typeof expenses[0]) => {
+    if (!currentUser) return;
+    const debtKey = `${expense.id}_${currentUser.id}`;
+
+    try {
+      const raw = localStorage.getItem("pisopro_settled_itemized_debts_v1");
+      if (raw) {
+        const currentMap = JSON.parse(raw);
+        delete currentMap[debtKey];
+        localStorage.setItem("pisopro_settled_itemized_debts_v1", JSON.stringify(currentMap));
+      }
+    } catch {
+      // ignore
+    }
+
+    const settlement = expenses.find(
+      (e) => e.category === "settlement" && e.notes?.includes(debtKey)
+    );
+    if (settlement) {
+      await removeExpense(settlement.id);
+    } else {
+      void refreshExpenses();
+    }
+
+    setFeedbackBanner(`Se ha deshecho el pago de tu parte de "${expense.description}".`);
     setTimeout(() => setFeedbackBanner(null), 3000);
   };
 
@@ -794,11 +937,11 @@ export function ExpensesView() {
                         </span>
                         {isMyRentSettled ? (
                           <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-700 border border-emerald-200/60">
-                            ✓ Pagado
+                            {isMyRentOnTime ? "✓ Pagado a tiempo (+1 pto)" : "✓ Pagado"}
                           </span>
                         ) : (
                           <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-amber-50 text-amber-700 border border-amber-200/60">
-                            Pendiente
+                            Pendiente · Hasta día 5 (+1 pto)
                           </span>
                         )}
                       </div>
@@ -810,13 +953,13 @@ export function ExpensesView() {
                       </p>
                     </div>
 
-                    {/* Botón directo: ¿Dónde marco que he pagado? */}
+                    {/* Botón directo: Poner pagado para recibir puntos */}
                     <div className="flex items-center gap-2 shrink-0">
                       {isMyRentSettled ? (
                         <div className="flex items-center gap-2">
-                          <span className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-emerald-50 text-emerald-700 border border-emerald-200 text-xs font-bold">
-                            <Check className="h-4 w-4 stroke-[2.5]" />
-                            <span>✓ Has pagado tu parte</span>
+                          <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-50 text-emerald-700 border border-emerald-200 text-xs font-bold">
+                            <Check className="h-3.5 w-3.5 stroke-[2.5]" />
+                            <span>Pagado</span>
                           </span>
                           <button
                             type="button"
@@ -830,11 +973,11 @@ export function ExpensesView() {
                         <button
                           type="button"
                           onClick={() => void handlePayMyRent()}
-                          className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white text-xs font-bold shadow-xs transition-all cursor-pointer"
-                          title="Marcar que ya has pagado tu cuota de 200 €"
+                          className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white text-xs font-bold shadow-xs transition-all cursor-pointer"
+                          title="Poner pagado para recibir puntos en la fecha"
                         >
                           <Check className="h-4 w-4 stroke-[2.5]" />
-                          <span>He pagado mi alquiler</span>
+                          <span>Pagado</span>
                         </button>
                       )}
                     </div>
@@ -866,14 +1009,32 @@ export function ExpensesView() {
                       </p>
                     </div>
 
-                    <button
-                      type="button"
-                      onClick={() => setActiveTab("deudas")}
-                      className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl border border-[#BFC6CC] bg-white hover:bg-[#F4F7F8] text-[#31405F] text-xs font-bold shadow-2xs transition-all self-start sm:self-auto cursor-pointer"
-                    >
-                      <span>Ver y saldar en Deudas</span>
-                      <ArrowRight className="h-3.5 w-3.5" />
-                    </button>
+                    <div className="flex items-center gap-2 shrink-0">
+                      {pendingSuppliesShare > 0 ? (
+                        <button
+                          type="button"
+                          onClick={() => void handlePayCategoryShare("supplies")}
+                          className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white text-xs font-bold shadow-xs transition-all cursor-pointer"
+                          title="Poner como pagada tu parte de suministros"
+                        >
+                          <Check className="h-3.5 w-3.5 stroke-[2.5]" />
+                          <span>Pagado ({formatEuro(pendingSuppliesShare)})</span>
+                        </button>
+                      ) : (
+                        <span className="inline-flex items-center gap-1 px-3 py-1.5 rounded-xl bg-emerald-50 text-emerald-700 border border-emerald-200 text-xs font-bold">
+                          <Check className="h-3.5 w-3.5 stroke-[2.5]" />
+                          <span>Al día</span>
+                        </span>
+                      )}
+                      <button
+                        type="button"
+                        onClick={() => setActiveTab("deudas")}
+                        className="p-2 rounded-xl border border-[#BFC6CC]/60 bg-white hover:bg-[#F4F7F8] text-[#607283] hover:text-[#31405F] transition-all shadow-2xs cursor-pointer"
+                        title="Ver desglose en Deudas"
+                      >
+                        <ArrowRight className="h-3.5 w-3.5" />
+                      </button>
+                    </div>
                   </div>
                 )}
 
@@ -902,14 +1063,32 @@ export function ExpensesView() {
                       </p>
                     </div>
 
-                    <button
-                      type="button"
-                      onClick={() => setActiveTab("deudas")}
-                      className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl border border-[#BFC6CC] bg-white hover:bg-[#F4F7F8] text-[#31405F] text-xs font-bold shadow-2xs transition-all self-start sm:self-auto cursor-pointer"
-                    >
-                      <span>Ver y saldar en Deudas</span>
-                      <ArrowRight className="h-3.5 w-3.5" />
-                    </button>
+                    <div className="flex items-center gap-2 shrink-0">
+                      {pendingOtherShare > 0 ? (
+                        <button
+                          type="button"
+                          onClick={() => void handlePayCategoryShare("other")}
+                          className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white text-xs font-bold shadow-xs transition-all cursor-pointer"
+                          title="Poner como pagada tu parte de otros gastos"
+                        >
+                          <Check className="h-3.5 w-3.5 stroke-[2.5]" />
+                          <span>Pagado ({formatEuro(pendingOtherShare)})</span>
+                        </button>
+                      ) : (
+                        <span className="inline-flex items-center gap-1 px-3 py-1.5 rounded-xl bg-emerald-50 text-emerald-700 border border-emerald-200 text-xs font-bold">
+                          <Check className="h-3.5 w-3.5 stroke-[2.5]" />
+                          <span>Al día</span>
+                        </span>
+                      )}
+                      <button
+                        type="button"
+                        onClick={() => setActiveTab("deudas")}
+                        className="p-2 rounded-xl border border-[#BFC6CC]/60 bg-white hover:bg-[#F4F7F8] text-[#607283] hover:text-[#31405F] transition-all shadow-2xs cursor-pointer"
+                        title="Ver desglose en Deudas"
+                      >
+                        <ArrowRight className="h-3.5 w-3.5" />
+                      </button>
+                    </div>
                   </div>
                 )}
 
@@ -1386,10 +1565,33 @@ export function ExpensesView() {
                               Te deben {formatEuro((exp.amount / 3) * 2)}
                             </span>
                           ) : (
-                            <span className="inline-flex items-center gap-0.5 text-[10px] font-semibold text-[#607283] whitespace-nowrap">
-                              <ArrowUpRight className="h-3 w-3" />
-                              Tu parte: {formatEuro(myShareAmount)}
-                            </span>
+                            <div className="flex items-center gap-1.5 justify-end mt-0.5">
+                              {settledDebtKeys.has(`${exp.id}_${currentUser?.id}`) ? (
+                                <div className="flex items-center gap-1">
+                                  <span className="inline-flex items-center gap-0.5 text-[10px] font-bold text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded-md border border-emerald-200">
+                                    <Check className="h-3 w-3 stroke-[2.5]" />
+                                    <span>Pagado</span>
+                                  </span>
+                                  <button
+                                    type="button"
+                                    onClick={() => void handleUndoSingleExpenseShare(exp)}
+                                    className="text-[9px] text-[#607283] hover:text-red-600 underline cursor-pointer"
+                                  >
+                                    Deshacer
+                                  </button>
+                                </div>
+                              ) : (
+                                <button
+                                  type="button"
+                                  onClick={() => void handlePaySingleExpenseShare(exp)}
+                                  className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-[#31405F] hover:bg-[#194F6B] text-white text-[10px] font-bold shadow-2xs transition-all active:scale-95 cursor-pointer"
+                                  title="Marcar tu parte como pagada"
+                                >
+                                  <Check className="h-3 w-3 stroke-[2.5]" />
+                                  <span>Pagado ({formatEuro(myShareAmount)})</span>
+                                </button>
+                              )}
+                            </div>
                           )}
                         </div>
 

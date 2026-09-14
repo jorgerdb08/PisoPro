@@ -169,20 +169,8 @@ export function DebtsView({
     const samuel = FLATMATES.find((f) => f.name === "Samuel") || FLATMATES[1]!;
     const david = FLATMATES.find((f) => f.name === "David") || FLATMATES[2]!;
 
-    // A) Cuotas de Alquiler del mes (Cada compañero abona 200 € al alquiler total de 600 €)
-    // 1. Jorge abona sus 200 €
-    list.push({
-      id: `rent_${selectedMonth}_${jorge.id}`,
-      expenseId: `rent_${selectedMonth}`,
-      concept: `Alquiler ${selectedMonth} (Mi parte)`,
-      category: "alquiler",
-      fromUserId: jorge.id,
-      toUserId: "landlord",
-      amount: 200,
-      date: `${selectedMonth}-01`,
-    });
-
-    // 2. Samuel le transfiere sus 200 € a Jorge
+    // A) Cuotas de Alquiler del mes (Samuel y David le transfieren sus 200 € a Jorge)
+    // 1. Samuel le transfiere sus 200 € a Jorge
     list.push({
       id: `rent_${selectedMonth}_${samuel.id}`,
       expenseId: `rent_${selectedMonth}`,
@@ -194,7 +182,7 @@ export function DebtsView({
       date: `${selectedMonth}-01`,
     });
 
-    // 3. David le transfiere sus 200 € a Jorge
+    // 2. David le transfiere sus 200 € a Jorge
     list.push({
       id: `rent_${selectedMonth}_${david.id}`,
       expenseId: `rent_${selectedMonth}`,
@@ -595,16 +583,16 @@ export function DebtsView({
                         </button>
                       )}
 
-                      {/* Si soy el deudor (el que debe): Avisar que he pagado y saldar */}
+                      {/* Si soy el deudor (el que debe): Marcar pagado */}
                       {currentUserId === item.fromUserId ? (
                         <button
                           type="button"
                           onClick={() => void handleMarkAsPaid(item, "debtor_paid")}
                           disabled={isSettling}
-                          className="inline-flex items-center gap-1.5 rounded-xl px-3 py-1.5 text-xs font-bold bg-[#31405F] text-white hover:bg-[#194F6B] active:scale-95 transition-all shadow-2xs border border-[#31405F]"
+                          className="inline-flex items-center gap-1.5 rounded-xl px-3 py-1.5 text-xs font-bold bg-[#31405F] text-white hover:bg-[#194F6B] active:scale-95 transition-all shadow-2xs border border-[#31405F] cursor-pointer"
                         >
                           <Check className="h-3.5 w-3.5 stroke-[2.5]" />
-                          <span>He pagado (Avisar a {to.name})</span>
+                          <span>Pagado</span>
                         </button>
                       ) : currentUserId === item.toUserId ? (
                         /* Si soy el acreedor (el que cobra): Confirmar que lo he recibido */
@@ -612,10 +600,10 @@ export function DebtsView({
                           type="button"
                           onClick={() => void handleMarkAsPaid(item, "creditor_received")}
                           disabled={isSettling}
-                          className="inline-flex items-center gap-1.5 rounded-xl px-3 py-1.5 text-xs font-bold bg-emerald-700 text-white hover:bg-emerald-800 active:scale-95 transition-all shadow-2xs border border-emerald-700"
+                          className="inline-flex items-center gap-1.5 rounded-xl px-3 py-1.5 text-xs font-bold bg-emerald-700 text-white hover:bg-emerald-800 active:scale-95 transition-all shadow-2xs border border-emerald-700 cursor-pointer"
                         >
                           <CheckCheck className="h-3.5 w-3.5 stroke-[2.5]" />
-                          <span>He recibido el pago</span>
+                          <span>Recibido</span>
                         </button>
                       ) : (
                         /* Para Jorge u otro compañero: Marcar pagado general */
