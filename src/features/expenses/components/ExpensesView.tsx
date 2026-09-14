@@ -615,11 +615,10 @@ export function ExpensesView() {
                       e.stopPropagation();
                       openAddCategory("luz");
                     }}
-                    className="flex h-7 items-center gap-1 rounded-xl border border-amber-300/80 bg-amber-50/80 px-2 text-[11px] font-bold text-amber-800 hover:bg-amber-100 active:scale-95 transition-all shadow-2xs"
+                    className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full border border-[#BFC6CC] bg-[#F4F7F8] text-[#31405F] hover:bg-[#31405F] hover:text-white hover:border-[#31405F] active:scale-95 transition-all shadow-2xs"
                     title="Añadir factura de luz"
                   >
-                    <Plus className="h-3 w-3" />
-                    <span>Factura</span>
+                    <Plus className="h-4 w-4 stroke-[2.5]" />
                   </button>
                 </div>
 
@@ -664,11 +663,10 @@ export function ExpensesView() {
                       e.stopPropagation();
                       openAddCategory("agua");
                     }}
-                    className="flex h-7 items-center gap-1 rounded-xl border border-sky-300/80 bg-sky-50/80 px-2 text-[11px] font-bold text-sky-800 hover:bg-sky-100 active:scale-95 transition-all shadow-2xs"
+                    className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full border border-[#BFC6CC] bg-[#F4F7F8] text-[#31405F] hover:bg-[#31405F] hover:text-white hover:border-[#31405F] active:scale-95 transition-all shadow-2xs"
                     title="Añadir factura de agua"
                   >
-                    <Plus className="h-3 w-3" />
-                    <span>Factura</span>
+                    <Plus className="h-4 w-4 stroke-[2.5]" />
                   </button>
                 </div>
 
@@ -713,11 +711,10 @@ export function ExpensesView() {
                       e.stopPropagation();
                       openAddCategory("gas");
                     }}
-                    className="flex h-7 items-center gap-1 rounded-xl border border-orange-300/80 bg-orange-50/80 px-2 text-[11px] font-bold text-orange-800 hover:bg-orange-100 active:scale-95 transition-all shadow-2xs"
+                    className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full border border-[#BFC6CC] bg-[#F4F7F8] text-[#31405F] hover:bg-[#31405F] hover:text-white hover:border-[#31405F] active:scale-95 transition-all shadow-2xs"
                     title="Añadir factura de gas"
                   >
-                    <Plus className="h-3 w-3" />
-                    <span>Factura</span>
+                    <Plus className="h-4 w-4 stroke-[2.5]" />
                   </button>
                 </div>
 
@@ -762,11 +759,10 @@ export function ExpensesView() {
                       e.stopPropagation();
                       openAddCategory("internet");
                     }}
-                    className="flex h-7 items-center gap-1 rounded-xl border border-[#094152]/30 bg-[#094152]/5 px-2 text-[11px] font-bold text-[#094152] hover:bg-[#094152]/15 active:scale-95 transition-all shadow-2xs"
+                    className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full border border-[#BFC6CC] bg-[#F4F7F8] text-[#31405F] hover:bg-[#31405F] hover:text-white hover:border-[#31405F] active:scale-95 transition-all shadow-2xs"
                     title="Añadir factura de internet"
                   >
-                    <Plus className="h-3 w-3" />
-                    <span>Factura</span>
+                    <Plus className="h-4 w-4 stroke-[2.5]" />
                   </button>
                 </div>
 
@@ -838,11 +834,10 @@ export function ExpensesView() {
                       e.stopPropagation();
                       openAddCategory("compras");
                     }}
-                    className="flex items-center gap-1.5 rounded-xl border border-emerald-300/80 bg-emerald-50 px-2.5 py-1.5 text-xs font-bold text-emerald-800 hover:bg-emerald-100 active:scale-95 transition-all shadow-2xs"
+                    className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full border border-[#BFC6CC] bg-[#F4F7F8] text-[#31405F] hover:bg-[#31405F] hover:text-white hover:border-[#31405F] active:scale-95 transition-all shadow-2xs"
                     title="Añadir compra o gasto común"
                   >
-                    <Plus className="h-3.5 w-3.5" />
-                    <span>Añadir</span>
+                    <Plus className="h-4 w-4 stroke-[2.5]" />
                   </button>
                 </div>
               </div>
