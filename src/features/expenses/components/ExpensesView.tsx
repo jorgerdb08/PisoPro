@@ -25,6 +25,9 @@ import {
   FilterX,
   ArrowUpRight,
   ArrowDownLeft,
+  Info,
+  Award,
+  X,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { FLATMATES } from "@/lib/constants";
@@ -64,6 +67,7 @@ export function ExpensesView() {
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [modalCategory, setModalCategory] = useState<string>("compras");
   const [isRentModalOpen, setIsRentModalOpen] = useState(false);
+  const [isRentInfoModalOpen, setIsRentInfoModalOpen] = useState(false);
   const [selectedCategoryFilter, setSelectedCategoryFilter] = useState<string | null>(null);
   const [isSendingReminder, setIsSendingReminder] = useState(false);
   const [feedbackBanner, setFeedbackBanner] = useState<string | null>(null);
@@ -519,9 +523,18 @@ export function ExpensesView() {
                 <span className="font-semibold text-[#607283]">
                   Tu parte: <strong className="text-[#31405F]">200,00 €</strong>
                 </span>
-                <span className="text-[10px] font-semibold text-[#607283]">
-                  Días 1-5: <span className="text-emerald-700 font-bold">+1 pt</span> · Tarde: <span className="text-rose-600 font-bold">-1 pt</span>
-                </span>
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setIsRentInfoModalOpen(true);
+                  }}
+                  className="inline-flex items-center gap-1 text-[10px] font-bold text-[#194F6B] hover:text-[#31405F] bg-[#194F6B]/10 hover:bg-[#194F6B]/20 px-2.5 py-1 rounded-xl transition-all shadow-2xs"
+                  title="Normas de puntuación del alquiler"
+                >
+                  <Info className="h-3 w-3 stroke-[2.2]" />
+                  <span>Info puntos</span>
+                </button>
               </div>
             </div>
 
@@ -921,6 +934,7 @@ export function ExpensesView() {
       {activeTab === "deudas" && (
         <div className="animate-in fade-in-50 duration-150">
           <DebtsView
+            expenses={expenses}
             pendingTransfers={pendingTransfers}
             netBalances={netBalances}
             onSettleTransfer={settleTransfer}
@@ -965,6 +979,74 @@ export function ExpensesView() {
         currentUserId={currentUser?.id}
         onToggleRentPaid={toggleRentPaid}
       />
+
+      {/* Modal explicativo de normas de puntos del alquiler */}
+      {isRentInfoModalOpen && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-xs p-4 animate-in fade-in-50 duration-150"
+          onClick={() => setIsRentInfoModalOpen(false)}
+        >
+          <div
+            className="w-full max-w-sm rounded-3xl border border-[#BFC6CC]/70 bg-white p-5 sm:p-6 shadow-xl space-y-4 animate-in zoom-in-95 duration-150"
+            role="dialog"
+            aria-modal="true"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-start justify-between gap-3">
+              <div className="flex items-center gap-2.5">
+                <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-amber-500/15 text-amber-600 border border-amber-500/20">
+                  <Award className="h-5 w-5" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-bold text-[#31405F]">
+                    Puntos del Alquiler
+                  </h3>
+                  <p className="text-[11px] text-[#607283]">
+                    Reglas de pago puntual
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsRentInfoModalOpen(false)}
+                className="rounded-xl p-1 text-[#607283] hover:bg-[#F4F7F8] hover:text-[#31405F] transition-colors"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+
+            <div className="space-y-2.5 text-xs text-[#31405F]">
+              <div className="rounded-2xl border border-emerald-500/30 bg-emerald-50/50 p-3 flex items-start gap-2.5">
+                <span className="text-emerald-700 font-extrabold text-sm mt-0.5">✓</span>
+                <div>
+                  <span className="font-bold text-emerald-800">Días 1 al 5 del mes:</span>
+                  <p className="text-[11px] text-emerald-700 mt-0.5">
+                    Si pagas tu parte dentro de los primeros 5 días, ganas <strong>+1 punto</strong> en el ranking de convivencia.
+                  </p>
+                </div>
+              </div>
+
+              <div className="rounded-2xl border border-rose-500/30 bg-rose-50/50 p-3 flex items-start gap-2.5">
+                <span className="text-rose-600 font-extrabold text-sm mt-0.5">✕</span>
+                <div>
+                  <span className="font-bold text-rose-800">Después del día 5:</span>
+                  <p className="text-[11px] text-rose-700 mt-0.5">
+                    Si te retrasas y pagas después del día 5, se te penaliza con <strong>-1 punto</strong>.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => setIsRentInfoModalOpen(false)}
+              className="w-full rounded-xl bg-[#31405F] py-2.5 text-xs font-bold text-white hover:bg-[#194F6B] transition-all shadow-2xs"
+            >
+              Entendido
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
