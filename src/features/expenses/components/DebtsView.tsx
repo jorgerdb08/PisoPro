@@ -194,6 +194,18 @@ export function DebtsView({
       date: `${selectedMonth}-01`,
     });
 
+    // 3. Cuota de alquiler propia de Jorge (para reflejar su pago en el historial)
+    list.push({
+      id: `rent_${selectedMonth}_${jorge.id}`,
+      expenseId: `rent_${selectedMonth}`,
+      concept: `Alquiler ${selectedMonth} (Tu parte)`,
+      category: "alquiler",
+      fromUserId: jorge.id,
+      toUserId: jorge.id,
+      amount: 200,
+      date: `${selectedMonth}-01`,
+    });
+
     // B) Gastos y facturas de la tabla expenses (filtrados del mes o generales, excluyendo liquidaciones)
     expenses.forEach((expense) => {
       if (expense.category === "settlement") return;
@@ -249,10 +261,11 @@ export function DebtsView({
     return !!supabaseSettledMap[item.id] || !!localSettledMap[item.id];
   };
 
-  // 4. Lista de pendientes: cada uno ve solo las transferencias donde esté involucrado
+  // 4. Lista de pendientes: cada uno ve solo las transferencias donde esté involucrado (excluyendo pagos a sí mismo)
   const pendingList = useMemo(() => {
     return allItemizedTransfers.filter((item) => {
       if (isDebtSettled(item)) return false;
+      if (item.fromUserId === item.toUserId) return false;
       if (!currentUserId) return true;
       return item.fromUserId === currentUserId || item.toUserId === currentUserId;
     });
@@ -260,17 +273,28 @@ export function DebtsView({
 
   // 5. Historial de saldadas (común para todos los compañeros del piso)
   const settledList = useMemo<SettledTransferRecord[]>(() => {
-    return allItemizedTransfers
-      .filter((item) => isDebtSettled(item))
-      .map((item) => {
+    const listMap = new Map<string, SettledTransferRecord>();
+
+    allItemizedTransfers.forEach((item) => {
+      if (isDebtSettled(item)) {
         const sb = supabaseSettledMap[item.id];
         const loc = localSettledMap[item.id];
-        return {
+        listMap.set(item.id, {
           ...item,
           settledAt: sb?.settledAt || loc?.settledAt || "Reciente",
           settlementId: sb?.settlementId || loc?.settlementId,
-        };
-      });
+        });
+      }
+    });
+
+    // Asegurar que cualquier registro presente en localSettledMap también aparezca
+    Object.values(localSettledMap).forEach((locItem) => {
+      if (!listMap.has(locItem.id)) {
+        listMap.set(locItem.id, locItem);
+      }
+    });
+
+    return Array.from(listMap.values());
   }, [allItemizedTransfers, supabaseSettledMap, localSettledMap]);
 
   // Enviar recordatorio de que falta por pagar
