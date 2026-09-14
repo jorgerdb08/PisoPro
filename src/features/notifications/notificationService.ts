@@ -415,6 +415,23 @@ export const notificationService = {
       console.warn("[notificationService] Realtime broadcast error:", err);
     }
 
+    // 4. Persistir en la tabla notifications de Supabase para histórico en la nube
+    try {
+      const supabase = getSupabaseBrowserClient();
+      void (supabase.from("notifications") as any).insert({
+        household_id: householdId,
+        target_user_id: params.targetUserId ?? null,
+        actor_user_id: params.actorUserId ?? null,
+        type: params.type,
+        title: params.title,
+        body: params.body,
+        data: params.data ?? {},
+        read: false,
+      });
+    } catch {
+      // Ignorar si hay problemas de red o tabla no disponible
+    }
+
     return notification;
   },
 };

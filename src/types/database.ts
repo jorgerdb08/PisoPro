@@ -612,6 +612,44 @@ export interface Database {
           created_at?: string;
         };
       };
+      notifications: {
+        Row: {
+          id: string;
+          household_id: string;
+          target_user_id: string | null;
+          actor_user_id: string | null;
+          type: string;
+          title: string;
+          body: string;
+          data: Json | null;
+          read: boolean;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          household_id: string;
+          target_user_id?: string | null;
+          actor_user_id?: string | null;
+          type: string;
+          title: string;
+          body: string;
+          data?: Json | null;
+          read?: boolean;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          household_id?: string;
+          target_user_id?: string | null;
+          actor_user_id?: string | null;
+          type?: string;
+          title?: string;
+          body?: string;
+          data?: Json | null;
+          read?: boolean;
+          created_at?: string;
+        };
+      };
     };
     Views: Record<string, never>;
     Functions: {

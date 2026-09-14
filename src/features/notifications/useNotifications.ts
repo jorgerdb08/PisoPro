@@ -68,6 +68,70 @@ export function useNotifications() {
       })
       .subscribe();
 
+    // 3. Sincronizar notificaciones persistidas en la nube desde Supabase
+    const fetchCloudNotifications = async () => {
+      try {
+        const { data, error } = await supabase
+          .from("notifications")
+          .select("*")
+          .eq("household_id", DEFAULT_HOUSEHOLD_ID)
+          .order("created_at", { ascending: false })
+          .limit(50);
+
+        if (!error && data && data.length > 0) {
+          const rows = data as unknown as Array<{
+            id: string;
+            household_id: string;
+            type: string;
+            title: string;
+            body: string;
+            created_at: string;
+            read?: boolean;
+            target_user_id?: string | null;
+            actor_user_id?: string | null;
+            data?: Record<string, unknown> | null;
+          }>;
+          const formatted: PisoProNotification[] = rows.map((row) => ({
+            id: row.id,
+            household_id: row.household_id,
+            type: row.type as NotificationType,
+            title: row.title,
+            body: row.body,
+            created_at: row.created_at,
+            read: row.read ?? false,
+            target_user_id: row.target_user_id ?? null,
+            actor_user_id: row.actor_user_id ?? null,
+            data: row.data as Record<string, unknown> | undefined,
+          }));
+
+          const localList = notificationService.getInAppNotifications(DEFAULT_HOUSEHOLD_ID);
+          const combined = [...localList];
+          for (const item of formatted) {
+            if (
+              !combined.some(
+                (c) =>
+                  c.id === item.id ||
+                  (c.title === item.title &&
+                    Math.abs(new Date(c.created_at).getTime() - new Date(item.created_at).getTime()) < 5000)
+              )
+            ) {
+              combined.push(item);
+            }
+          }
+          combined.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+          notificationService.saveInAppNotifications(combined, DEFAULT_HOUSEHOLD_ID);
+          setNotifications(
+            combined.filter(
+              (n) => !n.target_user_id || n.target_user_id === currentUser?.id
+            )
+          );
+        }
+      } catch {
+        // Fallback silencioso si la tabla no está disponible o sin conexión
+      }
+    };
+    void fetchCloudNotifications();
+
     return () => {
       window.removeEventListener("pisopro-notification-updated", handleLocalUpdate);
       window.removeEventListener("storage", handleLocalUpdate);
